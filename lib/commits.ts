@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { redisUrlCommand } from "./redisUrl";
 
 export type CommitPost = { date: string; commit: string; txHash: string | null; block?: number };
 
@@ -24,6 +25,7 @@ function redisConfig() {
 }
 
 async function redis(args: string[], doFetch: Fetcher): Promise<unknown> {
+  if (process.env.REDIS_URL) return (await redisUrlCommand(process.env.REDIS_URL, args)) ?? null;
   const cfg = redisConfig();
   if (!cfg) return null;
   const res = await doFetch(cfg.url, {

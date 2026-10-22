@@ -150,7 +150,7 @@ npx tsx scripts/post-commit.ts --dry-run
 | `ISSUER_MNEMONIC` | Key of the native account that owns the Portal collection and mints the winners' Portals |
 | `PORTAL_COLLECTION_ID`, `NEXT_PUBLIC_PORTAL_COLLECTION_ID` | The pallet-nfts collection id |
 | `CRON_SECRET` | Protects the two daily timers |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Records store |
+| `REDIS_URL` (Vercel Redis), or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Records store. One of the two is required on a hosted site |
 
 Nothing secret is ever written in this repo.
 

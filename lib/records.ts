@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { redisUrlCommand } from "./redisUrl";
 
 export type PortalRecord = {
   tokenId: number;
@@ -47,7 +48,7 @@ export function rankCotd(entries: CotdEntry[]): CotdEntry[] {
 }
 
 // Two stores implement this: FileRecordStore (local dev) and UpstashRecordStore (hosted).
-// getStore() picks Upstash when UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set.
+// getStore() picks plain Redis when REDIS_URL is set, else Upstash when UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set.
 export interface RecordStore {
   getRecord(tokenId: number): Promise<PortalRecord>;
   listRecords(): Promise<PortalRecord[]>;
@@ -282,7 +283,7 @@ export class UpstashRecordStore implements RecordStore {
     this.url = url.replace(/\/+$/, "");
   }
 
-  private async cmd<T = unknown>(...args: (string | number)[]): Promise<T> {
+  protected async cmd<T = unknown>(...args: (string | number)[]): Promise<T> {
     const res = await this.doFetch(this.url, {
       method: "POST",
       headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
@@ -396,9 +397,21 @@ export class UpstashRecordStore implements RecordStore {
   }
 }
 
+// The same store over plain Redis (REDIS_URL) instead of Upstash's REST API.
+export class RedisUrlRecordStore extends UpstashRecordStore {
+  constructor(private redisUrl: string) {
+    super("", "");
+  }
+
+  protected async cmd<T = unknown>(...args: (string | number)[]): Promise<T> {
+    return redisUrlCommand<T>(this.redisUrl, args);
+  }
+}
+
 let store: RecordStore | undefined;
 export function getStore(): RecordStore {
   if (store) return store;
+  if (process.env.REDIS_URL) return (store = new RedisUrlRecordStore(process.env.REDIS_URL));
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
   return (store = url && token ? new UpstashRecordStore(url, token) : new FileRecordStore(process.env.PORTAL_RECORDS_FILE));
