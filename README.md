@@ -6,7 +6,7 @@ Every day one unclaimed Portal is the **Portal of the day**. Anyone can take one
 
 > **Can you win today's Portal?**
 
-Live: **https://portalsweeper.vercel.app** (deploy in progress)
+Live: **https://portalsweeper.vercel.app**
 
 Built for [Portaldot Hacker House 2026](https://dorahacks.io/hackathon/portaldot-hacker-house-2026), Ecosystem DApps track.
 
@@ -74,6 +74,22 @@ Portaldot V3 runs two sides on one chain, and Portalsweeper uses both:
 
 Why native NFTs and not a Solidity contract: on the V3 testnet a contract locks a storage deposit of about 0.06 tPOT per byte of code (`revive.depositPerByte`). A small ERC-721 would lock hundreds of tPOT. A native NFT mint locks about 0.1 tPOT (`nfts.itemDeposit`).
 
+### Architecture
+
+```mermaid
+flowchart LR
+  P[Player's browser] -- "one move at a time" --> API[Next.js API on Vercel]
+  API -- "only the cells that opened" --> P
+  API <-- "move logs, results, streaks" --> DB[(Redis)]
+  API -- "board = secret salt + Portal + date" --> API
+  CRON[Daily timer] -- "00:05 UTC: post today's fingerprint" --> EVM[Portaldot EVM side<br/>0-value tx]
+  CRON -- "00:15 UTC: mint yesterday's Portal to the fastest wallet" --> NFT[Portaldot native side<br/>pallet-nfts, collection 5]
+  P -- "sign in with a wallet message" --> API
+  V[Anyone] -- "check the revealed salt against the fingerprint" --> EVM
+```
+
+The mines never leave the server while a game is running. The server replays the move log on the real board, keeps the clock, and records the result itself, so a player cannot send in a made-up score.
+
 ### On-chain record so far
 
 | What | Where |
@@ -82,6 +98,19 @@ Why native NFTs and not a Solidity contract: on the V3 testnet a contract locks 
 | Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
 | Portal collection (pallet-nfts) | Collection id **5**, created in block [`0x56619eef…eb6fd5`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x56619eef26eb975273e0edfe5bef0b6337a288a4ae23c53818b3d83ed0eb6fd5). Max 500, issuer-only mint |
 | Collection issuer (native) | `5GxegAnxmYtA8EQXCCuSy5KTJu7fLsR6THtXpx7bw3P6yeqc` |
+
+## Status at check-in (Oct 24)
+
+Done:
+- Live game: daily board for each of the 500 Portals, trait rules, shareable results, streaks
+- Portal of the day with one ranked try per wallet; every move checked on the server
+- Portal collection created on Portaldot V3 (pallet-nfts, collection id 5)
+- Daily fingerprint posted on the Portaldot EVM side, and a page to check it
+
+Still to do before Nov 6:
+- First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
+- More testing and polish on the live site
+- Demo video
 
 ## Reasons to come back
 
