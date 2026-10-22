@@ -108,6 +108,8 @@ Done:
 - Daily fingerprint posted on the Portaldot EVM side, and a page to check it
 
 Still to do before Nov 6:
+- **PvP:** challenge a friend by link, both play the same board, and the faster clear wins
+- **Stakes:** put up tPOT or a Portal NFT on a PvP match; the winner takes the pot
 - First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
 - More testing and polish on the live site
 - Demo video
