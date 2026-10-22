@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Board as BoardT, PortalMeta } from "@/lib/types";
-import { chord, flag, initGame, minesLeft, reveal, seconds, type GameState } from "./gameLogic";
+import { chord, flag, fromLive, initGame, minesLeft, reveal, seconds, type GameState } from "./gameLogic";
 import Board from "./Board";
 import PortalArt from "./PortalArt";
 import CommitChip from "./CommitChip";
@@ -12,6 +12,7 @@ import SoundToggle from "./SoundToggle";
 import { artName, portalLabel } from "@/lib/names";
 import { play, readMuted, soundForMove, unlockAudio, writeMuted, type MoveSummary } from "@/lib/sound";
 import type { Move } from "@/lib/game";
+import type { LiveState } from "@/lib/live";
 
 export type Mode = "daily" | "practice" | "cotd" | "cotd-free";
 type Saved = { won: boolean; seconds: number; moves: number };
@@ -27,10 +28,19 @@ function untilTomorrow(): string {
 }
 
 export default function GameScreen({
-  meta, board, mode, onAgain, address, onFinish, footer,
-}: { meta: PortalMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null; onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode }) {
+  meta, board, mode, onAgain, address, onFinish, footer, live, remote,
+}: {
+  meta: PortalMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null;
+  onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode;
+  // Server-checked play: the board has its mines hidden and every move goes to `remote`.
+  live?: LiveState | null; remote?: (m: Move) => Promise<LiveState>;
+}) {
   const date = board.date;
-  const [state, setState] = useState<GameState>(() => initGame(board));
+  const fresh = () => (live ? fromLive(null, live) : initGame(board));
+  const [state, setState] = useState<GameState>(fresh);
+  const [netErr, setNetErr] = useState(false);
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const pending = useRef(0);
   const [flagMode, setFlagMode] = useState(false);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [, tick] = useState(0);
@@ -38,15 +48,33 @@ export default function GameScreen({
   const storeKey = `portalsweeper:${meta.id}:${date}`;
 
   useEffect(() => {
-    setState(initGame(board));
+    setState(fresh());
     setSaved(null);
-    if (mode === "daily") {
+    if (mode === "daily" && !remote) {
       try {
         const raw = localStorage.getItem(storeKey);
         if (raw) setSaved(JSON.parse(raw) as Saved);
       } catch { /* storage may be blocked, play still works */ }
     }
-  }, [board, mode, storeKey]);
+  }, [board, mode, storeKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Moves go to the server one at a time, in order. Flags show at once; the screen takes the
+  // server's answer once nothing else is waiting.
+  function send(m: Move) {
+    if (!remote) return;
+    if (m.action === "flag") setState((s) => flag(s, m.idx));
+    pending.current++;
+    queue.current = queue.current.then(async () => {
+      try {
+        const next = await remote(m);
+        setNetErr(false);
+        if (--pending.current === 0) setState((s) => fromLive(s, next));
+      } catch {
+        pending.current--;
+        setNetErr(true);
+      }
+    });
+  }
 
   // Sound stays off until the first tap or key press (browser rule), then wins and losses can play.
   useEffect(() => {
@@ -114,6 +142,11 @@ export default function GameScreen({
 
   // Save the finished day once.
   useEffect(() => {
+    if (remote) {
+      if (state.status === "won" || state.status === "lost")
+        onFinish?.({ won: state.status === "won", seconds: seconds(state), moves: state.moves, moveList: state.g.moves.slice() });
+      return; // the server already recorded it
+    }
     if ((mode === "cotd" || mode === "cotd-free" || mode === "practice") && (state.status === "won" || state.status === "lost")) {
       // moveList is the full move log, kept for callers that want to replay a game.
       onFinish?.({ won: state.status === "won", seconds: seconds(state), moves: state.moves, moveList: state.g.moves.slice() });
@@ -177,9 +210,9 @@ export default function GameScreen({
                 meta={meta}
                 state={state}
                 flagMode={flagMode}
-                onReveal={(i) => setState((s) => reveal(board, s, i))}
-                onFlag={(i) => setState((s) => flag(s, i))}
-                onChord={(i) => setState((s) => chord(board, s, i))}
+                onReveal={(i) => (remote ? send({ action: "reveal", idx: i }) : setState((s) => reveal(board, s, i)))}
+                onFlag={(i) => (remote ? send({ action: "flag", idx: i }) : setState((s) => flag(s, i)))}
+                onChord={(i) => (remote ? send({ action: "chord", idx: i }) : setState((s) => chord(board, s, i)))}
               />
               {!done && (
                 <div className="mt-4 flex items-center justify-between gap-3">
@@ -195,6 +228,9 @@ export default function GameScreen({
                     Tap to dig. Hold a tile to flag.<br />Tap a number to clear around it.
                   </p>
                 </div>
+              )}
+              {netErr && (
+                <p className="toast" role="alert">Lost touch with the server, so that move may not have counted. Refresh to pick the game back up.</p>
               )}
               {state.shieldedAt.length > 0 && !done && (
                 <p className="toast" role="status">🛡 Your Frame took that hit. It is used up now.</p>

@@ -2,6 +2,7 @@
 // verifier replays); this file only adds a clock and flattens the state for drawing.
 import type { Board, Cell } from "@/lib/types";
 import * as G from "@/lib/game";
+import type { LiveState } from "@/lib/live";
 
 export type Status = "idle" | "playing" | "won" | "lost";
 
@@ -17,6 +18,7 @@ export type GameState = {
   moves: number;
   startedAt: number | null;
   endedAt: number | null;
+  final: number | null; // the server's time once a server-checked game is over
 };
 
 function view(g: G.GameState, startedAt: number | null, endedAt: number | null, now: number): GameState {
@@ -37,6 +39,7 @@ function view(g: G.GameState, startedAt: number | null, endedAt: number | null, 
     moves: g.moves.filter((m) => m.action !== "flag").length,
     startedAt: g.started ? (startedAt ?? now) : null,
     endedAt: over ? (endedAt ?? now) : null,
+    final: null,
   };
 }
 
@@ -59,11 +62,20 @@ export function chord(_b: Board, prev: GameState, i: number, now = Date.now()): 
   return step(prev, G.chord(prev.g, i), now);
 }
 
+// A server-checked game: take the server's state as it is, keeping the clock running smoothly.
+export function fromLive(prev: GameState | null, live: LiveState, now = Date.now()): GameState {
+  const g: G.GameState = { ...live, hit: live.hit };
+  const startedAt = live.started ? (prev?.startedAt ?? now - live.elapsed * 1000) : null;
+  const s = view(g, startedAt, prev?.endedAt ?? null, now);
+  return { ...s, startedAt, final: s.endedAt !== null ? live.elapsed : null };
+}
+
 export function minesLeft(b: Board, s: GameState): number {
   return b.mines - s.flagged.filter(Boolean).length;
 }
 
 export function seconds(s: GameState, now = Date.now()): number {
+  if (s.final !== null) return Math.floor(s.final);
   if (s.startedAt === null) return 0;
   return Math.max(0, Math.floor(((s.endedAt ?? now) - s.startedAt) / 1000));
 }

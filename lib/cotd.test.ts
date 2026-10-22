@@ -3,7 +3,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore, UpstashRecordStore, rankCotd, type CotdEntry, type RecordStore } from "./records";
-import { portalOfDay, finishRanked, pickPortalOfDay, recentClears, startRanked, summarize, type CotdDeps } from "./cotd";
+import { portalOfDay, moveRanked, pickPortalOfDay, recentClears, startRanked, summarize, type BoardFor, type CotdDeps } from "./cotd";
+import { generateBoard } from "./engine";
+import { replayLog } from "./live";
+import { getDailySalt } from "./salt";
+import type { PortalMeta } from "./types";
 import { PORTAL_SUPPLY } from "./types";
 
 // A tiny in-memory stand-in for the Upstash REST API: only the commands the store uses.
@@ -11,6 +15,7 @@ export function fakeUpstash() {
   const kv = new Map<string, string>();
   const sets = new Map<string, Set<string>>();
   const hashes = new Map<string, Map<string, string>>();
+  const lists = new Map<string, string[]>();
   const calls: unknown[][] = [];
   const run = (c: (string | number)[]): unknown => {
     const [op, key, ...a] = c.map(String);
@@ -33,6 +38,9 @@ export function fakeUpstash() {
       case "HGET": return hashes.get(key)?.get(a[0]) ?? null;
       case "HGETALL": return [...(hashes.get(key) ?? [])].flat();
       case "HDEL": return hashes.get(key)?.delete(a[0]) ? 1 : 0;
+      case "RPUSH": { const l = lists.get(key) ?? lists.set(key, []).get(key)!; l.push(a[0]); return l.length; }
+      case "LRANGE": return lists.get(key) ?? [];
+      case "EXPIRE": return 1;
       default: throw new Error(`fake: ${op}`);
     }
   };
@@ -158,12 +166,32 @@ describe("picking the Portal of the day", () => {
 describe("ranked tries", () => {
   const T0 = Date.parse("2026-10-20T12:00:00Z");
   const wallet = "0x" + "a".repeat(40);
+  const meta = (id: number): PortalMeta => ({ id, name: `Portal #${id}`, image: "", traits: [{ trait_type: "Tier", value: "Common" }] });
+  const board: BoardFor = async (id, date) => generateBoard(meta(id), date, getDailySalt(date));
   const mk = (over: Partial<CotdDeps> = {}, store: RecordStore = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"))) => {
     let t = T0;
-    const deps: CotdDeps = { store, now: () => t, recover: async () => wallet, ...over };
+    const deps = { store, now: () => t, recover: async () => wallet, board, ...over };
     return { deps, advance: (s: number) => { t += s * 1000; } };
   };
   const who = { address: wallet, signature: "0xsig" };
+  const date = "2026-10-20";
+
+  // Plays a whole ranked try on the server: opens safe cells (or a mine, to lose) one move at a time.
+  async function play(deps: CotdDeps & { board: BoardFor }, w: string, opts: { lose?: boolean; step?: () => void } = {}) {
+    const entry = (await deps.store.cotdEntry(date, w))!;
+    const real = await deps.board(entry.tokenId, date);
+    for (let n = 0; n < 500; n++) {
+      const g = replayLog(real, await deps.store.movesGet(`cotd:${date}:${w}`));
+      const pick = g.started && opts.lose
+        ? g.board.cells.findIndex((c, i) => c.mine && !g.flagged[i] && !g.revealed[i])
+        : g.board.cells.findIndex((c, i) => !c.mine && !g.revealed[i]);
+      opts.step?.();
+      const out = await moveRanked(deps, { address: w, signature: "s", date, move: { action: "reveal", idx: pick } });
+      if (!out.ok) return out;
+      if (out.live.status === "won" || out.live.status === "lost") return out;
+    }
+    throw new Error("game did not end");
+  }
 
   beforeAll(() => { process.env.PORTAL_SALT_SECRET = "test-secret"; });
 
@@ -173,38 +201,58 @@ describe("ranked tries", () => {
     expect(await startRanked(mk().deps, { address: "nope", signature: "x" })).toMatchObject({ ok: false, status: 400 });
   });
 
-  it("allows one try per wallet and ranks the fastest first", async () => {
+  it("never sends the mines before the game is over", async () => {
+    const m = mk();
+    const s1 = await startRanked(m.deps, who);
+    expect(s1.ok).toBe(true);
+    if (!s1.ok) return;
+    expect(s1.live.board.cells.every((c) => !c.mine && c.adj === 0)).toBe(true);
+    const one = await moveRanked(m.deps, { ...who, date, move: { action: "reveal", idx: 0 } });
+    expect(one.ok).toBe(true);
+    if (!one.ok) return;
+    one.live.board.cells.forEach((c, i) => { if (!one.live.revealed[i]) expect(c).toEqual({ mine: false, adj: 0 }); });
+    expect(one.live.board.cells.some((c) => c.mine)).toBe(false);
+  });
+
+  it("allows one try per wallet, times it on the server and ranks the fastest first", async () => {
     const m = mk();
     const s1 = await startRanked(m.deps, who);
     expect(s1).toMatchObject({ ok: true });
-    expect(s1.ok && s1.entry.tokenId).toBe(await portalOfDay(m.deps.store, "2026-10-20"));
-    expect(await startRanked(m.deps, who)).toMatchObject({ ok: false, status: 409 });
-    m.advance(40);
-    const f = await finishRanked(m.deps, { ...who, date: "2026-10-20", won: true, seconds: 30, moves: 20 });
+    expect(s1.ok && s1.entry.tokenId).toBe(await portalOfDay(m.deps.store, date));
+    // a refresh mid-try picks the same try back up
+    expect(await startRanked(m.deps, who)).toMatchObject({ ok: true });
+    const f = await play(m.deps, wallet, { step: () => m.advance(1) });
     expect(f).toMatchObject({ ok: true, rank: 1 });
-    expect(await finishRanked(m.deps, { ...who, date: "2026-10-20", won: true, seconds: 1, moves: 1 })).toMatchObject({ ok: false, status: 409 });
+    if (!f.ok) return;
+    expect(f.live.status).toBe("won");
+    expect(f.live.board.cells.some((c) => c.mine)).toBe(true); // the full board once it is over
+    const slow = (await m.deps.store.cotdEntry(date, wallet))!.seconds!;
+    expect(slow).toBeGreaterThan(5);
+    // the try is over: no new start, and later moves change nothing
+    expect(await startRanked(m.deps, who)).toMatchObject({ ok: false, status: 409 });
+    const late = await moveRanked(m.deps, { ...who, date, move: { action: "reveal", idx: 1 } });
+    expect(late.ok && late.rank).toBeUndefined();
 
-    // a second, faster wallet takes rank 1
+    // a second wallet that plays with no pauses takes rank 1
     const w2 = "0x" + "c".repeat(40);
     const m2 = { ...m.deps, recover: async () => w2 };
     await startRanked(m2, { address: w2, signature: "s" });
-    m.advance(20);
-    const f2 = await finishRanked(m2, { address: w2, signature: "s", date: "2026-10-20", won: true, seconds: 15, moves: 9 });
+    const f2 = await play(m2, w2);
     expect(f2).toMatchObject({ ok: true, rank: 1 });
     const sum = await summarize(m.deps.store, new Date(T0 + 70_000), w2);
-    expect(sum.leaderboard.map((r) => r.seconds)).toEqual([15, 30]);
+    expect(sum.leaderboard.map((r) => r.seconds)).toEqual([0, slow]);
     expect(sum.attempts).toBe(2);
     expect(sum.mine).toMatchObject({ finished: true, won: true, rank: 1 });
     expect(sum.nextUtc).toBe(Date.parse("2026-10-21T00:00:00Z"));
   });
 
-  it("refuses a time longer than the server clock, an unstarted finish and a closed day", async () => {
+  it("refuses a move before Start, a bad move and a closed day", async () => {
     const m = mk();
-    expect(await finishRanked(m.deps, { ...who, date: "2026-10-20", won: true, seconds: 5, moves: 1 })).toMatchObject({ ok: false, status: 400 });
+    expect(await moveRanked(m.deps, { ...who, date, move: { action: "reveal", idx: 0 } })).toMatchObject({ ok: false, status: 400 });
     await startRanked(m.deps, who);
-    m.advance(10);
-    expect(await finishRanked(m.deps, { ...who, date: "2026-10-20", won: true, seconds: 500, moves: 1 })).toMatchObject({ ok: false, status: 400 });
-    expect(await finishRanked(m.deps, { ...who, date: "2026-10-01", won: true, seconds: 5, moves: 1 })).toMatchObject({ ok: false, status: 400 });
+    expect(await moveRanked(m.deps, { ...who, date, move: { action: "dig", idx: 0 } })).toMatchObject({ ok: false, status: 400 });
+    expect(await moveRanked(m.deps, { ...who, date, move: { action: "reveal", idx: -1 } })).toMatchObject({ ok: false, status: 400 });
+    expect(await moveRanked(m.deps, { ...who, date: "2026-10-01", move: { action: "reveal", idx: 0 } })).toMatchObject({ ok: false, status: 400 });
   });
 
   it("does not rank a loss and shows yesterday's winner", async () => {
@@ -213,13 +261,12 @@ describe("ranked tries", () => {
     await store.cotdFinish("2026-10-19", wallet, { won: true, seconds: 41, moves: 3, at: 2 });
     const m = mk({}, store);
     await startRanked(m.deps, who);
-    m.advance(5);
-    const f = await finishRanked(m.deps, { ...who, date: "2026-10-20", won: false, seconds: 4, moves: 2 });
+    const f = await play(m.deps, wallet, { lose: true });
     expect(f).toMatchObject({ ok: true, rank: null });
     const sum = await summarize(store, new Date(T0 + 6000));
     expect(sum.leaderboard).toEqual([]);
     expect(sum.yesterday.winner?.seconds).toBe(41);
-    expect(rankCotd(await store.cotdEntries("2026-10-20"))).toEqual([]);
+    expect(rankCotd(await store.cotdEntries(date))).toEqual([]);
   });
 });
 

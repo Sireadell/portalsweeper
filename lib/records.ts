@@ -36,6 +36,9 @@ export type CotdFinish =
   | { ok: false; reason: "not-started" | "already-finished"; entry?: CotdEntry };
 export type CotdResult = { won: boolean; seconds: number; moves: number; at: number };
 
+// One move of a live game, as the server saw it: t is the server clock in ms.
+export type StoredMove = { action: "reveal" | "flag" | "chord"; idx: number; t: number };
+
 // Wins only, fastest first. Ties go to whoever finished first.
 export function rankCotd(entries: CotdEntry[]): CotdEntry[] {
   return entries
@@ -62,6 +65,9 @@ export interface RecordStore {
   // during the day can never change which Portal is up for grabs.
   featuredGet(date: string): Promise<number | null>;
   featuredSet(date: string, tokenId: number): Promise<number>; // returns the stored value
+  // The move log of a live game (a ranked try or a Portal's daily board), append only.
+  movesAdd(game: string, move: StoredMove): Promise<void>;
+  movesGet(game: string): Promise<StoredMove[]>;
 }
 
 // The first player to clear a Portal's board can claim that Portal as an NFT on Portaldot.
@@ -113,6 +119,7 @@ type Db = {
   cotd?: Record<string, Record<string, CotdEntry>>;
   claims?: Record<string, PortalClaim>;
   featured?: Record<string, number>;
+  moves?: Record<string, StoredMove[]>;
 };
 
 export class FileRecordStore implements RecordStore {
@@ -245,12 +252,25 @@ export class FileRecordStore implements RecordStore {
       return tokenId;
     });
   }
+
+  movesAdd(game: string, move: StoredMove): Promise<void> {
+    return this.serial(async () => {
+      const db = await this.load();
+      ((db.moves ??= {})[game] ??= []).push(move);
+      await this.save(db);
+    });
+  }
+
+  async movesGet(game: string) {
+    return (await this.load()).moves?.[game] ?? [];
+  }
 }
 
 // Hosted store on Upstash Redis over its REST API (plain fetch, no extra package).
 // Keys: portal:ids (set of token ids), portal:rec:ID, portal:lastwin:ID, portal:day:ID:DATE (the
 // one-result-per-day lock) and cotd:DATE (hash of wallet to entry).
-// portal:claims (hash of Portal number to its claim: who won it, and the mint) and portal:featured:DATE.
+// portal:claims (hash of Portal number to its claim: who won it, and the mint), portal:featured:DATE
+// and portal:moves:GAME (list of the moves of one live game).
 type Fetch = (
   url: string,
   init: { method: string; headers: Record<string, string>; body: string },
@@ -362,6 +382,17 @@ export class UpstashRecordStore implements RecordStore {
   async featuredSet(date: string, tokenId: number) {
     await this.cmd("SET", `portal:featured:${date}`, tokenId, "NX");
     return (await this.featuredGet(date)) ?? tokenId;
+  }
+
+  // RPUSH keeps the order moves arrived in. Logs are only needed while a day is live, so they expire.
+  async movesAdd(game: string, move: StoredMove) {
+    await this.cmd("RPUSH", `portal:moves:${game}`, JSON.stringify(move));
+    await this.cmd("EXPIRE", `portal:moves:${game}`, 3 * 86_400);
+  }
+
+  async movesGet(game: string) {
+    const rows = await this.cmd<string[]>("LRANGE", `portal:moves:${game}`, 0, -1);
+    return rows.map((r) => JSON.parse(r) as StoredMove);
   }
 }
 

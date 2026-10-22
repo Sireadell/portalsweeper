@@ -3,6 +3,8 @@ import { PORTAL_SUPPLY } from "./types";
 import { cotdMessage } from "./cotd-message";
 import { addDays, dailyCommit, utcToday } from "./salt";
 import { rankCotd, type CotdEntry, type RecordStore } from "./records";
+import { countMoves, parseMove, playMove, replayLog, toLive, type LiveState } from "./live";
+import type { Board } from "./types";
 
 // One unclaimed Portal is featured per UTC day, picked from the date and the public daily commit.
 // Anyone can recompute it once the commit is posted: id = keccak256("portal-of-the-day:DATE:COMMIT") mod 500 + 1,
@@ -53,48 +55,57 @@ async function whoSigned(deps: CotdDeps, address: unknown, signature: unknown, d
   }
 }
 
+// Builds the real board for a Portal on a day (server only: it needs the daily salt).
+export type BoardFor = (tokenId: number, date: string) => Promise<Board>;
+
+const gameKey = (date: string, wallet: string) => `cotd:${date}:${wallet}`;
+
+// Start (or pick back up) the one ranked try. A try that is still running comes back as it was,
+// so a refresh does not cost the try. A finished try cannot start again.
 export async function startRanked(
-  deps: CotdDeps,
+  deps: CotdDeps & { board: BoardFor },
   input: { address: unknown; signature: unknown },
-): Promise<{ ok: true; entry: CotdEntry } | CotdError | { ok: false; status: 409; error: string; entry: CotdEntry }> {
+): Promise<{ ok: true; entry: CotdEntry; live: LiveState } | CotdError | { ok: false; status: 409; error: string; entry: CotdEntry }> {
   const now = (deps.now ?? Date.now)();
   const date = utcToday(new Date(now));
   const who = await whoSigned(deps, input.address, input.signature, date);
   if (typeof who !== "string") return who;
   const out = await deps.store.cotdStart({ date, wallet: who, tokenId: await portalOfDay(deps.store, date), startedAt: now });
-  if (!out.ok) return { ok: false, status: 409, error: "You already took today's ranked try.", entry: out.entry };
-  return { ok: true, entry: out.entry };
+  if (!out.ok && out.entry.finishedAt) return { ok: false, status: 409, error: "You already took today's ranked try.", entry: out.entry };
+  const log = await deps.store.movesGet(gameKey(date, who));
+  const board = await deps.board(out.entry.tokenId, date);
+  return { ok: true, entry: out.entry, live: toLive(replayLog(board, log), log, now) };
 }
 
-export async function finishRanked(
-  deps: CotdDeps,
-  input: { address: unknown; signature: unknown; date: unknown; won: unknown; seconds: unknown; moves: unknown },
-): Promise<{ ok: true; entry: CotdEntry; rank: number | null } | CotdError> {
+// One move of a ranked try. The server keeps the mines, checks the move and keeps the clock.
+// When the move ends the game, the result is recorded right here: the browser never reports a time.
+export async function moveRanked(
+  deps: CotdDeps & { board: BoardFor },
+  input: { address: unknown; signature: unknown; date: unknown; move: unknown },
+): Promise<{ ok: true; live: LiveState; rank?: number | null } | CotdError> {
   const now = (deps.now ?? Date.now)();
   const today = utcToday(new Date(now));
   const date = input.date;
   // A try started just before midnight may finish just after it.
   if (typeof date !== "string" || (date !== today && date !== addDays(today, -1)))
     return { ok: false, status: 400, error: "That ranked day is closed." };
-  if (typeof input.won !== "boolean") return { ok: false, status: 400, error: "won must be true or false." };
-  if (typeof input.seconds !== "number" || !(input.seconds >= 0 && input.seconds <= 86_400))
-    return { ok: false, status: 400, error: "seconds is out of range." };
-  const moves = Array.isArray(input.moves) ? input.moves.length : input.moves;
-  if (typeof moves !== "number" || !Number.isInteger(moves) || moves < 0 || moves > 100_000)
-    return { ok: false, status: 400, error: "moves is out of range." };
+  const move = parseMove(input.move);
+  if (!move) return { ok: false, status: 400, error: "That move is not valid." };
   const who = await whoSigned(deps, input.address, input.signature, date);
   if (typeof who !== "string") return who;
   const cur = await deps.store.cotdEntry(date, who);
-  if (!cur) return { ok: false, status: 400, error: "Press Start before finishing a ranked try." };
-  // The clock on the server decides the longest believable time: nobody can take longer than has passed.
-  const elapsed = (now - cur.startedAt) / 1000;
-  if (input.seconds > elapsed + 3) return { ok: false, status: 400, error: "That time is longer than the try has been open." };
-  const seconds = Math.round(input.seconds * 10) / 10;
-  const out = await deps.store.cotdFinish(date, who, { won: input.won, seconds, moves, at: now });
-  if (!out.ok) return { ok: false, status: 409, error: out.reason === "not-started" ? "Press Start first." : "Your ranked try is already recorded." };
+  if (!cur) return { ok: false, status: 400, error: "Press Start before playing a ranked try." };
+  const board = await deps.board(cur.tokenId, date);
+  const key = gameKey(date, who);
+  const played = playMove(board, await deps.store.movesGet(key), move, now);
+  if (played.stored && !cur.finishedAt) await deps.store.movesAdd(key, played.stored);
+  const live = toLive(played.g, played.log, now);
+  if (!played.justEnded || cur.finishedAt) return { ok: true, live };
+  const out = await deps.store.cotdFinish(date, who, { won: played.g.status === "won", seconds: live.elapsed, moves: countMoves(played.g), at: now });
+  if (!out.ok) return { ok: true, live };
   const ranked = rankCotd(await deps.store.cotdEntries(date));
   const idx = ranked.findIndex((e) => e.wallet === who);
-  return { ok: true, entry: out.entry, rank: idx >= 0 ? idx + 1 : null };
+  return { ok: true, live, rank: idx >= 0 ? idx + 1 : null };
 }
 
 export type CotdSummary = {

@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Board, PortalMeta } from "@/lib/types";
+import type { Move } from "@/lib/game";
+import type { LiveState } from "@/lib/live";
 import { getOwnedPortalMetas } from "@/components/deps";
 import { todayUTC } from "@/components/dailySalt";
 import { useWallet } from "@/components/useWallet";
@@ -15,7 +17,7 @@ export default function PlayPage() {
   const [portals, setPortals] = useState<PortalMeta[] | null>(null);
   const [loadErr, setLoadErr] = useState(false);
   const [picked, setPicked] = useState<PortalMeta | null>(null);
-  const [board, setBoard] = useState<Board | null>(null);
+  const [board, setBoard] = useState<{ board: Board; live: LiveState } | null>(null);
   const [boardErr, setBoardErr] = useState(false);
   const date = todayUTC();
 
@@ -30,18 +32,29 @@ export default function PlayPage() {
     return () => { live = false; };
   }, [address]);
 
-  // The server builds today's board (it holds the salt), so the browser never sees a dev salt.
+  // The server builds today's board (it holds the salt) and keeps its mines: the browser gets a
+  // covered board and the game so far, then sends each move back.
   useEffect(() => {
     if (!picked) return;
     let live = true;
     setBoard(null);
     setBoardErr(false);
-    fetch(`/api/board?token=${picked.id}&date=${date}`, { cache: "no-store" })
-      .then((r) => (r.ok ? (r.json() as Promise<Board>) : Promise.reject(new Error("bad"))))
+    fetch(`/api/board?token=${picked.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<{ board: Board; live: LiveState }>) : Promise.reject(new Error("bad"))))
       .then((b) => live && setBoard(b))
       .catch(() => live && setBoardErr(true));
     return () => { live = false; };
   }, [picked, date]);
+
+  async function move(m: Move): Promise<LiveState> {
+    const r = await fetch("/api/board", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: picked!.id, move: m }),
+    });
+    if (!r.ok) throw new Error("move failed");
+    return (await r.json()).live as LiveState;
+  }
 
   return (
     <main className="page">
@@ -110,7 +123,7 @@ export default function PlayPage() {
       {address && picked && (
         <>
           <button className="btn-ghost mb-4" onClick={() => setPicked(null)}>← Switch Portal</button>
-          {board ? <GameScreen meta={picked} board={board} mode="daily" address={address} /> : boardErr ? (
+          {board ? <GameScreen meta={picked} board={board.board} live={board.live} remote={move} mode="daily" address={address} /> : boardErr ? (
             <p className="text-boom" role="alert">Could not load today's board. Check your connection and press Switch Portal, then pick again.</p>
           ) : <BoardSkeleton text="Loading today's board…" />}
         </>

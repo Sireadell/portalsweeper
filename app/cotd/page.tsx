@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Board, PortalMeta } from "@/lib/types";
+import type { Move } from "@/lib/game";
+import type { LiveState } from "@/lib/live";
 import { useWallet } from "@/components/useWallet";
 import GameScreen from "@/components/GameScreen";
 import CotdCard from "@/components/CotdCard";
@@ -22,7 +24,7 @@ export default function CotdPage() {
   const { address, error, busy, connect, disconnect } = useWallet();
   const [phase, setPhase] = useState<Phase>("ready");
   const [msg, setMsg] = useState("");
-  const [game, setGame] = useState<{ board: Board; meta: PortalMeta; date: string; sig: string } | null>(null);
+  const [game, setGame] = useState<{ board: Board; live: LiveState; meta: PortalMeta; date: string; sig: string } | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [free, setFree] = useState<{ board: Board; meta: PortalMeta; round: number } | null>(null);
 
@@ -51,7 +53,7 @@ export default function CotdPage() {
         setPhase("ready");
         return;
       }
-      setGame({ board: j.board, meta: j.meta, date: j.board.date, sig });
+      setGame({ board: j.board, live: j.live, meta: j.meta, date: j.board.date, sig });
       setPhase("playing");
     } catch {
       setMsg("Could not reach the server. Check your connection and try again.");
@@ -71,26 +73,33 @@ export default function CotdPage() {
     }
   }
 
-  async function finish(r: { won: boolean; seconds: number; moves: number }) {
-    if (!game || !address) return;
-    try {
-      const res = await fetch("/api/cotd", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "finish", address, signature: game.sig, date: game.date, ...r }),
-      });
-      const j = await res.json();
+  // Every move is checked on the server, which keeps the mines and the clock. The move that ends
+  // the game also records it, and the answer carries the rank.
+  async function move(m: Move): Promise<LiveState> {
+    if (!game || !address) throw new Error("no game");
+    const res = await fetch("/api/cotd", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "move", address, signature: game.sig, date: game.date, move: m }),
+    });
+    const j = await res.json();
+    if (!res.ok) {
+      setResult({ error: j.error ?? "Could not play that move." });
+      throw new Error(j.error);
+    }
+    const live = j.live as LiveState;
+    if (j.rank !== undefined) {
+      const won = live.status === "won";
       let top: number | null = null;
-      if (res.ok && r.won) {
+      if (won) {
         try {
           const t = await fetch("/api/cotd", { cache: "no-store" }).then((x) => x.json());
           top = t.leaderboard?.[0]?.seconds ?? null;
         } catch { /* the rank line still shows */ }
       }
-      setResult(res.ok ? { rank: j.rank, won: r.won, top, mine: r.seconds } : { error: j.error ?? "Could not record the result." });
-    } catch {
-      setResult({ error: "Could not reach the server to record your result." });
+      setResult({ rank: j.rank, won, top, mine: live.elapsed });
     }
+    return live;
   }
 
   const footer = result && (
@@ -147,7 +156,7 @@ export default function CotdPage() {
             ) : (
               <>
                 <p className="text-[14px] text-mute">
-                  You get one ranked try. Your wallet signs a short message (free, no transaction) and the clock starts on the server. Leaving the page uses up the try.
+                  You get one ranked try. Your wallet signs a short message (free, no transaction). The mines stay on the server and its clock times you from your first tap. If you leave, press Start again to pick the try back up, but the clock keeps running.
                 </p>
                 <button className="btn-main btn-lg mt-4" onClick={start} disabled={phase === "signing"}>
                   {phase === "signing" ? "Check your wallet…" : "Start my ranked try"}
@@ -170,7 +179,7 @@ export default function CotdPage() {
       )}
 
       {phase === "playing" && game && (
-        <GameScreen meta={game.meta} board={game.board} mode="cotd" address={address} onFinish={finish} footer={footer} />
+        <GameScreen meta={game.meta} board={game.board} live={game.live} remote={move} mode="cotd" address={address} footer={footer} />
       )}
     </main>
   );

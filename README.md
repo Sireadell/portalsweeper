@@ -43,7 +43,7 @@ The Portals are drawn by `scripts/gen-portals.mjs`, a seeded generator, so anyon
 ## Win the Portal of the day
 
 1. Each UTC day, one unclaimed Portal is featured.
-2. Connect any wallet and sign a message (no gas, no transaction) to take your one ranked try. The server starts the clock when you press Start.
+2. Connect any wallet and sign a message (no gas, no transaction) to take your one ranked try. The mines stay on the server: each tap is sent there, checked against the real board, and only the cells it opens come back. The server's clock times you from your first tap to your last move. A refresh picks the try back up; the clock keeps running.
 3. Just after midnight UTC, the fastest clear wins. The Portal is minted to the winner with Portaldot's native NFT pallet (`pallet-nfts`).
 4. The NFT goes to the native account that Portaldot links to your 0x wallet, so it shows up for that wallet with no extra setup.
 
@@ -97,7 +97,7 @@ Why native NFTs and not a Solidity contract: on the V3 testnet a contract locks 
 
 ## What this is not
 
-- **The board is sent to your browser.** The game runs in the browser, so a determined cheater could read the mines. The ranked try is timed by the server and you get one per wallet, but someone with many wallets gets many tries. Moving the board to the server is next on the list.
+- **One try per wallet, not per person.** Today's mines never reach the browser and the server keeps the time, so nobody can read the board or report a fake time. But someone with many wallets still gets many tries.
 - **The fairness check has a limit.** It proves boards were not changed afterwards, not that the site never saw the secret.
 - **No Portal has been won yet.** The award flow is tested (see `lib/award.test.ts`), but the first real mint happens after the first day with a winner.
 - **The Portals are my own design.** The art and the trait rules come from the generator in this repo.
