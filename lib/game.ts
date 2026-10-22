@@ -1,6 +1,6 @@
-// Potsweeper play logic. Pure functions: every call returns a new state.
+// Portalsweeper play logic. Pure functions: every call returns a new state.
 import { encodePacked, keccak256 } from "viem";
-import { computeCells, glazeStrength, neighbors, pickDistinct, rngStream } from "./engine";
+import { computeCells, coreStrength, neighbors, pickDistinct, rngStream } from "./engine";
 import type { Board } from "./types";
 
 export type MoveAction = "reveal" | "flag" | "chord";
@@ -20,13 +20,13 @@ export type GameState = {
 };
 
 // Cell indexes that must stay mine free for the first click, in order of preference.
-// Wide (reflective glaze) peek keeps the peek and its neighbours clear, then falls back.
+// Wide (blazing core) peek keeps the peek and its neighbours clear, then falls back.
 function protectionOptions(board: Board, click: number): number[][] {
   const { cols, rows } = board;
   const zone = (c: number) => [c, ...neighbors(c, cols, rows)];
   const peek = board.freePeek;
-  const glaze = board.rules.find((r) => r.id === "glaze-peek");
-  const wide = peek !== undefined && glaze !== undefined && glazeStrength(glaze.value) === "wide";
+  const core = board.rules.find((r) => r.id === "core-peek");
+  const wide = peek !== undefined && core !== undefined && coreStrength(core.value) === "wide";
   const opts: number[][] = [];
   if (wide) opts.push([...zone(click), ...zone(peek)]);
   opts.push(zone(click));
@@ -37,7 +37,7 @@ function protectionOptions(board: Board, click: number): number[][] {
 
 // Make the first click safe by moving mines out of the way. Deterministic:
 // the random stream comes from public board facts (token, date, commit, click).
-// The Charm pre-flagged mine never moves. The free peek cell stays safe.
+// The Sigil pre-flagged mine never moves. The free peek cell stays safe.
 export function applyFirstClick(board: Board, click: number): Board {
   const keep = board.freeFlag;
   if (click === keep) return board; // a flagged cell cannot be opened anyway

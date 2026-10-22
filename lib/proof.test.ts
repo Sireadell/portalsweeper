@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { keccak256, toBytes } from "viem";
 import { checkProof } from "./proof";
-import type { PotMeta } from "./types";
+import type { PortalMeta } from "./types";
 
-const meta: PotMeta = { id: 7, name: "Pot #7", image: "", traits: [{ trait_type: "Tier", value: "Common" }] };
+const meta: PortalMeta = { id: 7, name: "Portal #7", image: "", traits: [{ trait_type: "Tier", value: "Common" }] };
 const salt = "0x" + "11".repeat(32);
 const commit = keccak256(toBytes(salt));
 const date = "2026-10-18";

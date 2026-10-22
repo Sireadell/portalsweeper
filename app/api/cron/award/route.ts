@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
 import { addDays, isValidDate, utcToday } from "@/lib/salt";
 import { awardDay } from "@/lib/award";
-import { mintPot, potOwners } from "@/lib/native";
+import { mintPortal, portalOwners } from "@/lib/native";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Called once a day by the Vercel timer (vercel.json), just after midnight UTC: mints yesterday's
-// Pot of the day to the fastest ranked clear. ?date=YYYY-MM-DD re-runs an earlier day.
+// Portal of the day to the fastest ranked clear. ?date=YYYY-MM-DD re-runs an earlier day.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`)
@@ -19,8 +19,8 @@ export async function GET(req: Request) {
   const out = await awardDay(
     {
       store: getStore(),
-      mint: (id, wallet) => mintPot(id, wallet),
-      ownerOf: async (id) => (await potOwners([id])).get(id) ?? null,
+      mint: (id, wallet) => mintPortal(id, wallet),
+      ownerOf: async (id) => (await portalOwners([id])).get(id) ?? null,
     },
     date,
   );

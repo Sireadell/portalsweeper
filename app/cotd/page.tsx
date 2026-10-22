@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import type { Board, PotMeta } from "@/lib/types";
+import type { Board, PortalMeta } from "@/lib/types";
 import { useWallet } from "@/components/useWallet";
 import GameScreen from "@/components/GameScreen";
 import CotdCard from "@/components/CotdCard";
 import { cotdMessage } from "@/lib/cotd-message";
 import { todayUTC } from "@/components/dailySalt";
-import { generateBoard, getPotMeta } from "@/components/deps";
+import { generateBoard, getPortalMeta } from "@/components/deps";
 import { newPracticeSalt } from "@/lib/practice";
 
 type Phase = "ready" | "signing" | "playing";
@@ -22,9 +22,9 @@ export default function CotdPage() {
   const { address, error, busy, connect, disconnect } = useWallet();
   const [phase, setPhase] = useState<Phase>("ready");
   const [msg, setMsg] = useState("");
-  const [game, setGame] = useState<{ board: Board; meta: PotMeta; date: string; sig: string } | null>(null);
+  const [game, setGame] = useState<{ board: Board; meta: PortalMeta; date: string; sig: string } | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  const [free, setFree] = useState<{ board: Board; meta: PotMeta; round: number } | null>(null);
+  const [free, setFree] = useState<{ board: Board; meta: PortalMeta; round: number } | null>(null);
 
   async function start() {
     if (!address) return;
@@ -64,10 +64,10 @@ export default function CotdPage() {
     setMsg("");
     try {
       const today = await fetch("/api/cotd", { cache: "no-store" }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad"))));
-      const meta = await getPotMeta(today.tokenId);
+      const meta = await getPortalMeta(today.tokenId);
       setFree({ meta, board: generateBoard(meta, today.date, newPracticeSalt()), round: (free?.round ?? 0) + 1 });
     } catch {
-      setMsg("Could not load today's Pot. Try again.");
+      setMsg("Could not load today's Portal. Try again.");
     }
   }
 
@@ -109,7 +109,7 @@ export default function CotdPage() {
         </p>
       ) : (
         <p className="text-white">
-          Your ranked try is used. Come back for tomorrow's Pot.{" "}
+          Your ranked try is used. Come back for tomorrow's Portal.{" "}
           <Link href="/hall" className="text-mint underline-offset-2 hover:underline">See the Hall</Link>
         </p>
       )}
@@ -127,20 +127,20 @@ export default function CotdPage() {
       {phase !== "playing" && !free && (
         <section className="mx-auto max-w-[720px] pt-2">
           <p className="eyebrow">One shared board for everyone</p>
-          <h1 className="mb-5 mt-2 text-[32px] font-extrabold tracking-tight text-white sm:text-[40px]">Pot of the day</h1>
+          <h1 className="mb-5 mt-2 text-[32px] font-extrabold tracking-tight text-white sm:text-[40px]">Portal of the day</h1>
           <CotdCard hideActions />
           <div className="card mt-4 p-5 text-center sm:p-6">
             {!address ? (
               <>
-                <p className="text-[15px] text-text2">Connect any wallet to take today's ranked try. The fastest clear wins this Pot.</p>
+                <p className="text-[15px] text-text2">Connect any wallet to take today's ranked try. The fastest clear wins this Portal.</p>
                 <button className="btn-main btn-lg mt-4" onClick={connect} disabled={busy}>{busy ? "Waiting for your wallet…" : "Connect wallet"}</button>
                 {error && <p className="mt-3 text-[14px] text-boom" role="alert">{error}</p>}
                 <div className="mt-5 border-t border-edge pt-5">
-                  <p className="text-[14px] text-text2">No wallet? You can still play today's Pot. It will not be ranked.</p>
-                  <button className="btn-ghost mt-3" onClick={startFree}>Play today's Pot, unranked</button>
+                  <p className="text-[14px] text-text2">No wallet? You can still play today's Portal. It will not be ranked.</p>
+                  <button className="btn-ghost mt-3" onClick={startFree}>Play today's Portal, unranked</button>
                   {msg && <p className="mt-3 text-[14px] text-boom" role="alert">{msg}</p>}
                   <p className="mt-3 text-[14px] text-mute">
-                    Or try <Link href="/judge" className="text-mint underline-offset-2 hover:underline">Judge mode</Link> with any Pot.
+                    Or try <Link href="/judge" className="text-mint underline-offset-2 hover:underline">Judge mode</Link> with any Portal.
                   </p>
                 </div>
               </>
@@ -163,7 +163,7 @@ export default function CotdPage() {
         <>
           <GameScreen key={free.round} meta={free.meta} board={free.board} mode="cotd-free" onAgain={startFree} />
           <p className="mt-4 text-center text-[13px] text-mute">
-            Unranked try. Connect a wallet for the ranked try that can win this Pot.{" "}
+            Unranked try. Connect a wallet for the ranked try that can win this Portal.{" "}
             <button className="text-mint underline-offset-2 hover:underline" onClick={() => setFree(null)}>Back</button>
           </p>
         </>

@@ -1,5 +1,5 @@
-import { rankCotd, type PotClaim, type RecordStore } from "./records";
-import { potOfDay } from "./cotd";
+import { rankCotd, type PortalClaim, type RecordStore } from "./records";
+import { portalOfDay } from "./cotd";
 
 export type AwardDeps = {
   store: RecordStore;
@@ -10,19 +10,19 @@ export type AwardDeps = {
 
 export type AwardOutcome =
   | { status: "no-winner"; date: string; tokenId: number }
-  | { status: "minted"; claim: PotClaim }
-  | { status: "already"; claim: PotClaim }
+  | { status: "minted"; claim: PortalClaim }
+  | { status: "already"; claim: PortalClaim }
   | { status: "failed"; date: string; tokenId: number; error: string };
 
-// After a day ends, the fastest ranked clear of that day's Pot wins the Pot itself: it is minted
+// After a day ends, the fastest ranked clear of that day's Portal wins the Portal itself: it is minted
 // as a native Portaldot NFT to the winner's account. Safe to call again: a finished claim is left
 // alone, and a mint that already landed is recognised from the chain instead of being sent twice.
 export async function awardDay(deps: AwardDeps, date: string): Promise<AwardOutcome> {
-  const tokenId = await potOfDay(deps.store, date);
+  const tokenId = await portalOfDay(deps.store, date);
   const winner = rankCotd(await deps.store.cotdEntries(date)).find((e) => e.tokenId === tokenId);
   if (!winner) return { status: "no-winner", date, tokenId };
 
-  const fresh: PotClaim = { tokenId, wallet: winner.wallet, date, at: (deps.now ?? Date.now)(), status: "minting" };
+  const fresh: PortalClaim = { tokenId, wallet: winner.wallet, date, at: (deps.now ?? Date.now)(), status: "minting" };
   const lock = await deps.store.claimLock(fresh);
   let claim = lock.claim;
   if (!lock.ok && claim.status === "minted") return { status: "already", claim };

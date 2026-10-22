@@ -1,10 +1,10 @@
-// Potsweeper board engine. Fully deterministic: keccak256 and integer maths only.
+// Portalsweeper board engine. Fully deterministic: keccak256 and integer maths only.
 import { encodePacked, keccak256, toBytes } from "viem";
-import type { Board, Cell, PotMeta, FiredRule } from "./types";
+import type { Board, Cell, PortalMeta, FiredRule } from "./types";
 
 // ---------------------------------------------------------------------------
-// TRAIT RULE TABLE. The one place that maps Pot trait values to rules.
-// Values come from scripts/gen-pots.mjs; any unknown Tier falls back to Common.
+// TRAIT RULE TABLE. The one place that maps Portal trait values to rules.
+// Values come from scripts/gen-portals.mjs; any unknown Tier falls back to Common.
 // All sizes keep mine density between 12 and 20 percent.
 // ---------------------------------------------------------------------------
 export const TIER_TABLE: Record<string, { cols: number; rows: number; mines: number }> = {
@@ -16,26 +16,26 @@ export const TIER_TABLE: Record<string, { cols: number; rows: number; mines: num
 };
 export const DEFAULT_TIER = "Common";
 
-// Glaze: a reflective glaze (mirror, crystal, gold leaf) gives a wide peek (the safe cell and
-// its neighbours are kept mine free). A soft shine (gloss, pearl, satin) gives a plain peek.
-// Dull glazes (matte, raw, crackle, ash) give nothing. About 26 percent of Pots get a wide
+// Core: a blazing core (prism, starlight, solar) gives a wide peek (the safe cell and
+// its neighbours are kept mine free). A soft core (glow, pulse, shimmer) gives a plain peek.
+// Weak cores (dim, static, fractured, smoke) give nothing. About 26 percent of Portals get a wide
 // peek and about 54 percent get some peek.
-export const GLAZE_WIDE = /(mirror|crystal|gold leaf)/i;
-export const GLAZE_PLAIN = /(gloss|pearl|satin)/i;
+export const CORE_WIDE = /(prism|starlight|solar)/i;
+export const CORE_PLAIN = /(glow|pulse|shimmer)/i;
 
-// Lid: a solid lid (clay, iron, brass, stone) takes one hit. Cork, cloth or no lid is too weak.
-export const LID_SOLID = /\b(clay|iron|brass|stone) lid\b/i;
+// Frame: a solid frame (stone, iron, brass, obsidian) takes one hit. Vines, rope or no frame is too weak.
+export const FRAME_SOLID = /\b(stone|iron|brass|obsidian) frame\b/i;
 
-// Charm: any charm pre-flags one real mine. "None" means no charm, no rule.
+// Sigil: any sigil pre-flags one real mine. "None" means no sigil, no rule.
 
 export type PeekStrength = "none" | "plain" | "wide";
-export function glazeStrength(value: string): PeekStrength {
-  if (GLAZE_WIDE.test(value)) return "wide";
-  if (GLAZE_PLAIN.test(value)) return "plain";
+export function coreStrength(value: string): PeekStrength {
+  if (CORE_WIDE.test(value)) return "wide";
+  if (CORE_PLAIN.test(value)) return "plain";
   return "none";
 }
-export function lidGivesShield(value: string): boolean {
-  return LID_SOLID.test(value);
+export function frameGivesShield(value: string): boolean {
+  return FRAME_SOLID.test(value);
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ export function pickDistinct(list: number[], k: number, rand: (bound: number) =>
   return out;
 }
 
-function traitValue(meta: PotMeta, name: string): string | undefined {
+function traitValue(meta: PortalMeta, name: string): string | undefined {
   const t = meta.traits.find((x) => x.trait_type.toLowerCase() === name.toLowerCase());
   const v = t?.value?.trim();
   return v ? v : undefined;
@@ -99,7 +99,7 @@ function traitValue(meta: PotMeta, name: string): string | undefined {
 // ---------------------------------------------------------------------------
 // generateBoard
 // ---------------------------------------------------------------------------
-export function generateBoard(meta: PotMeta, date: string, salt: string): Board {
+export function generateBoard(meta: PortalMeta, date: string, salt: string): Board {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("date must be YYYY-MM-DD");
   const seed = keccak256(encodePacked(["uint256", "string", "string"], [BigInt(meta.id), date, salt]));
   const rand = rngStream(seed);
@@ -115,8 +115,8 @@ export function generateBoard(meta: PotMeta, date: string, salt: string): Board 
       trait: "Tier",
       value: tierRaw ?? "none",
       why: tierRaw && TIER_TABLE[tierRaw]
-        ? `${tierRaw} Pots get a ${cols} by ${rows} board with ${mines} mines.`
-        : `This Pot has no known Tier, so it gets the standard ${cols} by ${rows} board with ${mines} mines.`,
+        ? `${tierRaw} Portals get a ${cols} by ${rows} board with ${mines} mines.`
+        : `This Portal has no known Tier, so it gets the standard ${cols} by ${rows} board with ${mines} mines.`,
     },
   ];
 
@@ -134,50 +134,50 @@ export function generateBoard(meta: PotMeta, date: string, salt: string): Board 
   const safeIdx = all.filter((i) => !mine[i]);
   const mineIdx = all.filter((i) => mine[i]);
 
-  // Glaze: one free safe peek.
+  // Core: one free safe peek.
   let freePeek: number | undefined;
-  const glaze = traitValue(meta, "Glaze");
-  if (glaze) {
-    const s = glazeStrength(glaze);
+  const core = traitValue(meta, "Core");
+  if (core) {
+    const s = coreStrength(core);
     if (s !== "none") {
       const zeros = safeIdx.filter((i) => cells[i].adj === 0);
       const pool = s === "wide" && zeros.length > 0 ? zeros : safeIdx;
       freePeek = pool[rand(pool.length)];
       rules.push({
-        id: "glaze-peek",
-        trait: "Glaze",
-        value: glaze,
+        id: "core-peek",
+        trait: "Core",
+        value: core,
         why:
           s === "wide"
-            ? `The ${glaze} glaze reflects the board: one safe cell is marked for you, and the cells around it are kept clear.`
-            : `The ${glaze} glaze catches the light on one safe cell before you start.`,
+            ? `The ${core} core lights up the board: one safe cell is marked for you, and the cells around it are kept clear.`
+            : `The ${core} core lights one safe cell before you start.`,
       });
     }
   }
 
-  // Charm: pre-flag one real mine.
+  // Sigil: pre-flag one real mine.
   let freeFlag: number | undefined;
-  const charm = traitValue(meta, "Charm");
-  if (charm && charm.toLowerCase() !== "none") {
+  const sigil = traitValue(meta, "Sigil");
+  if (sigil && sigil.toLowerCase() !== "none") {
     freeFlag = mineIdx[rand(mineIdx.length)];
     rules.push({
-      id: "charm-flag",
-      trait: "Charm",
-      value: charm,
-      why: `The ${charm} charm senses one mine and flags it for you.`,
+      id: "sigil-flag",
+      trait: "Sigil",
+      value: sigil,
+      why: `The ${sigil} sigil senses one mine and flags it for you.`,
     });
   }
 
-  // Lid: one shield.
+  // Frame: one shield.
   let shields = 0;
-  const lid = traitValue(meta, "Lid");
-  if (lid && lidGivesShield(lid)) {
+  const frame = traitValue(meta, "Frame");
+  if (frame && frameGivesShield(frame)) {
     shields = 1;
     rules.push({
-      id: "lid-shield",
-      trait: "Lid",
-      value: lid,
-      why: `The ${lid} is solid: it protects you from one mine.`,
+      id: "frame-shield",
+      trait: "Frame",
+      value: frame,
+      why: `The ${frame} is solid: it protects you from one mine.`,
     });
   }
 

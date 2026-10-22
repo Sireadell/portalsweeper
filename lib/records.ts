@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export type PotRecord = {
+export type PortalRecord = {
   tokenId: number;
   plays: number;
   wins: number;
@@ -14,15 +14,15 @@ export type PotRecord = {
 export type DayResult = { tokenId: number; date: string; won: boolean; seconds: number; moves: number };
 
 export type SubmitOutcome =
-  | { ok: true; record: PotRecord }
-  | { ok: false; reason: "already-played"; record: PotRecord };
+  | { ok: true; record: PortalRecord }
+  | { ok: false; reason: "already-played"; record: PortalRecord };
 
-// Pot of the day: one ranked try per wallet per UTC day. startedAt is the server clock when the
+// Portal of the day: one ranked try per wallet per UTC day. startedAt is the server clock when the
 // wallet pressed Start, the other fields are filled in once when the try ends.
 export type CotdEntry = {
   date: string;
   wallet: string; // lowercase 0x address
-  tokenId: number; // the featured Pot that day
+  tokenId: number; // the featured Portal that day
   startedAt: number; // ms since epoch
   finishedAt?: number;
   won?: boolean;
@@ -46,27 +46,27 @@ export function rankCotd(entries: CotdEntry[]): CotdEntry[] {
 // Two stores implement this: FileRecordStore (local dev) and UpstashRecordStore (hosted).
 // getStore() picks Upstash when UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set.
 export interface RecordStore {
-  getRecord(tokenId: number): Promise<PotRecord>;
-  listRecords(): Promise<PotRecord[]>;
+  getRecord(tokenId: number): Promise<PortalRecord>;
+  listRecords(): Promise<PortalRecord[]>;
   submit(result: DayResult): Promise<SubmitOutcome>;
   cotdStart(entry: CotdEntry): Promise<CotdStart>;
   cotdFinish(date: string, wallet: string, r: CotdResult): Promise<CotdFinish>;
   cotdEntries(date: string): Promise<CotdEntry[]>;
   cotdEntry(date: string, wallet: string): Promise<CotdEntry | null>;
-  claimLock(claim: PotClaim): Promise<ClaimLock>;
-  claimSave(claim: PotClaim): Promise<void>;
+  claimLock(claim: PortalClaim): Promise<ClaimLock>;
+  claimSave(claim: PortalClaim): Promise<void>;
   claimDrop(tokenId: number): Promise<void>;
-  claimGet(tokenId: number): Promise<PotClaim | null>;
-  claimList(): Promise<PotClaim[]>;
-  // The Pot featured on a day is fixed the first time it is worked out, so a claim landing
-  // during the day can never change which Pot is up for grabs.
+  claimGet(tokenId: number): Promise<PortalClaim | null>;
+  claimList(): Promise<PortalClaim[]>;
+  // The Portal featured on a day is fixed the first time it is worked out, so a claim landing
+  // during the day can never change which Portal is up for grabs.
   featuredGet(date: string): Promise<number | null>;
   featuredSet(date: string, tokenId: number): Promise<number>; // returns the stored value
 }
 
-// The first player to clear a Pot's board can claim that Pot as an NFT on Portaldot.
-// The lock is taken before minting so only one claim per Pot can ever start.
-export type PotClaim = {
+// The first player to clear a Portal's board can claim that Portal as an NFT on Portaldot.
+// The lock is taken before minting so only one claim per Portal can ever start.
+export type PortalClaim = {
   tokenId: number;
   wallet: string; // lowercase 0x address of the winner (the NFT goes to its Portaldot account)
   date: string; // the day of the winning clear
@@ -75,13 +75,13 @@ export type PotClaim = {
   txHash?: string; // the native extrinsic hash once minted
   block?: number;
 };
-export type ClaimLock = { ok: true; claim: PotClaim } | { ok: false; claim: PotClaim };
+export type ClaimLock = { ok: true; claim: PortalClaim } | { ok: false; claim: PortalClaim };
 
 function finishEntry(cur: CotdEntry, r: CotdResult): CotdEntry {
   return { ...cur, finishedAt: r.at, won: r.won, seconds: r.seconds, moves: r.moves };
 }
 
-export function emptyRecord(tokenId: number): PotRecord {
+export function emptyRecord(tokenId: number): PortalRecord {
   return { tokenId, plays: 0, wins: 0, bestSeconds: null, currentStreak: 0, longestStreak: 0, lastDate: null };
 }
 
@@ -91,8 +91,8 @@ function dayBefore(date: string): string {
 
 // Pure streak maths. A win on the day after the last win continues the streak,
 // a win after a gap starts again at 1, a loss ends it.
-export function applyResult(rec: PotRecord, r: DayResult, lastWinDate: string | null): { rec: PotRecord; lastWinDate: string | null } {
-  const next: PotRecord = { ...rec, plays: rec.plays + 1, lastDate: r.date };
+export function applyResult(rec: PortalRecord, r: DayResult, lastWinDate: string | null): { rec: PortalRecord; lastWinDate: string | null } {
+  const next: PortalRecord = { ...rec, plays: rec.plays + 1, lastDate: r.date };
   let win = lastWinDate;
   if (r.won) {
     next.wins = rec.wins + 1;
@@ -107,11 +107,11 @@ export function applyResult(rec: PotRecord, r: DayResult, lastWinDate: string | 
 }
 
 type Db = {
-  records: Record<string, PotRecord>;
+  records: Record<string, PortalRecord>;
   lastWin: Record<string, string>;
   days: Record<string, DayResult>;
   cotd?: Record<string, Record<string, CotdEntry>>;
-  claims?: Record<string, PotClaim>;
+  claims?: Record<string, PortalClaim>;
   featured?: Record<string, number>;
 };
 
@@ -196,7 +196,7 @@ export class FileRecordStore implements RecordStore {
     return (await this.load()).cotd?.[date]?.[wallet] ?? null;
   }
 
-  claimLock(claim: PotClaim): Promise<ClaimLock> {
+  claimLock(claim: PortalClaim): Promise<ClaimLock> {
     return this.serial(async () => {
       const db = await this.load();
       const cur = (db.claims ??= {})[claim.tokenId];
@@ -207,7 +207,7 @@ export class FileRecordStore implements RecordStore {
     });
   }
 
-  claimSave(claim: PotClaim): Promise<void> {
+  claimSave(claim: PortalClaim): Promise<void> {
     return this.serial(async () => {
       const db = await this.load();
       (db.claims ??= {})[claim.tokenId] = claim;
@@ -248,9 +248,9 @@ export class FileRecordStore implements RecordStore {
 }
 
 // Hosted store on Upstash Redis over its REST API (plain fetch, no extra package).
-// Keys: pot:ids (set of token ids), pot:rec:ID, pot:lastwin:ID, pot:day:ID:DATE (the
+// Keys: portal:ids (set of token ids), portal:rec:ID, portal:lastwin:ID, portal:day:ID:DATE (the
 // one-result-per-day lock) and cotd:DATE (hash of wallet to entry).
-// pot:claims (hash of Pot number to its claim: who won it, and the mint) and pot:featured:DATE.
+// portal:claims (hash of Portal number to its claim: who won it, and the mint) and portal:featured:DATE.
 type Fetch = (
   url: string,
   init: { method: string; headers: Record<string, string>; body: string },
@@ -278,27 +278,27 @@ export class UpstashRecordStore implements RecordStore {
   }
 
   async getRecord(tokenId: number) {
-    return this.parse<PotRecord>(await this.cmd("GET", `pot:rec:${tokenId}`)) ?? emptyRecord(tokenId);
+    return this.parse<PortalRecord>(await this.cmd("GET", `portal:rec:${tokenId}`)) ?? emptyRecord(tokenId);
   }
 
   async listRecords() {
-    const ids = await this.cmd<string[]>("SMEMBERS", "pot:ids");
+    const ids = await this.cmd<string[]>("SMEMBERS", "portal:ids");
     if (!ids.length) return [];
-    const rows = await this.cmd<(string | null)[]>("MGET", ...ids.map((id) => `pot:rec:${id}`));
-    return rows.map((r) => this.parse<PotRecord>(r)).filter((r): r is PotRecord => r !== null);
+    const rows = await this.cmd<(string | null)[]>("MGET", ...ids.map((id) => `portal:rec:${id}`));
+    return rows.map((r) => this.parse<PortalRecord>(r)).filter((r): r is PortalRecord => r !== null);
   }
 
   async submit(result: DayResult): Promise<SubmitOutcome> {
     const id = result.tokenId;
     const cur = await this.getRecord(id);
     // SET NX is the one-result-per-day lock, so two quick requests cannot both count.
-    const first = await this.cmd("SET", `pot:day:${id}:${result.date}`, JSON.stringify(result), "NX");
+    const first = await this.cmd("SET", `portal:day:${id}:${result.date}`, JSON.stringify(result), "NX");
     if (first !== "OK") return { ok: false, reason: "already-played", record: cur };
-    const lastWin = await this.cmd<string | null>("GET", `pot:lastwin:${id}`);
+    const lastWin = await this.cmd<string | null>("GET", `portal:lastwin:${id}`);
     const { rec, lastWinDate } = applyResult(cur, result, lastWin);
-    await this.cmd("SET", `pot:rec:${id}`, JSON.stringify(rec));
-    if (lastWinDate) await this.cmd("SET", `pot:lastwin:${id}`, lastWinDate);
-    await this.cmd("SADD", "pot:ids", id);
+    await this.cmd("SET", `portal:rec:${id}`, JSON.stringify(rec));
+    if (lastWinDate) await this.cmd("SET", `portal:lastwin:${id}`, lastWinDate);
+    await this.cmd("SADD", "portal:ids", id);
     return { ok: true, record: rec };
   }
 
@@ -328,39 +328,39 @@ export class UpstashRecordStore implements RecordStore {
     return this.parse<CotdEntry>(await this.cmd("HGET", `cotd:${date}`, wallet));
   }
 
-  async claimLock(claim: PotClaim): Promise<ClaimLock> {
-    // HSETNX is the one-claim-per-Pot lock: two winners pressing Claim at once cannot both mint.
-    const made = await this.cmd<number>("HSETNX", "pot:claims", claim.tokenId, JSON.stringify(claim));
+  async claimLock(claim: PortalClaim): Promise<ClaimLock> {
+    // HSETNX is the one-claim-per-Portal lock: two winners pressing Claim at once cannot both mint.
+    const made = await this.cmd<number>("HSETNX", "portal:claims", claim.tokenId, JSON.stringify(claim));
     if (made === 1) return { ok: true, claim };
     return { ok: false, claim: (await this.claimGet(claim.tokenId)) ?? claim };
   }
 
-  async claimSave(claim: PotClaim) {
-    await this.cmd("HSET", "pot:claims", claim.tokenId, JSON.stringify(claim));
+  async claimSave(claim: PortalClaim) {
+    await this.cmd("HSET", "portal:claims", claim.tokenId, JSON.stringify(claim));
   }
 
   async claimDrop(tokenId: number) {
-    await this.cmd("HDEL", "pot:claims", tokenId);
+    await this.cmd("HDEL", "portal:claims", tokenId);
   }
 
   async claimGet(tokenId: number) {
-    return this.parse<PotClaim>(await this.cmd("HGET", "pot:claims", tokenId));
+    return this.parse<PortalClaim>(await this.cmd("HGET", "portal:claims", tokenId));
   }
 
   async claimList() {
-    const flat = await this.cmd<string[]>("HGETALL", "pot:claims");
-    const out: PotClaim[] = [];
-    for (let i = 1; i < flat.length; i += 2) out.push(JSON.parse(flat[i]) as PotClaim);
+    const flat = await this.cmd<string[]>("HGETALL", "portal:claims");
+    const out: PortalClaim[] = [];
+    for (let i = 1; i < flat.length; i += 2) out.push(JSON.parse(flat[i]) as PortalClaim);
     return out;
   }
 
   async featuredGet(date: string) {
-    const raw = await this.cmd<string | null>("GET", `pot:featured:${date}`);
+    const raw = await this.cmd<string | null>("GET", `portal:featured:${date}`);
     return raw ? Number(raw) : null;
   }
 
   async featuredSet(date: string, tokenId: number) {
-    await this.cmd("SET", `pot:featured:${date}`, tokenId, "NX");
+    await this.cmd("SET", `portal:featured:${date}`, tokenId, "NX");
     return (await this.featuredGet(date)) ?? tokenId;
   }
 }
@@ -370,7 +370,7 @@ export function getStore(): RecordStore {
   if (store) return store;
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-  return (store = url && token ? new UpstashRecordStore(url, token) : new FileRecordStore(process.env.POT_RECORDS_FILE));
+  return (store = url && token ? new UpstashRecordStore(url, token) : new FileRecordStore(process.env.PORTAL_RECORDS_FILE));
 }
 export function setStore(s: RecordStore) {
   store = s;

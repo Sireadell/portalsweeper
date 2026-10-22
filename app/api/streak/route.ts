@@ -5,7 +5,7 @@ import { cleanIds, streakFor } from "@/lib/streaks";
 
 export const dynamic = "force-dynamic";
 
-// ?ids=1,2,3 (the Pots the wallet holds) and optional &address=0x.. for Pot of the day wins.
+// ?ids=1,2,3 (the Portals the wallet holds) and optional &address=0x.. for Portal of the day wins.
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
   const address = q.get("address");

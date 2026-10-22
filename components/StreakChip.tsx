@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const KEY = "potsweeper:wallet";
+const KEY = "portalsweeper:wallet";
 export type KnownWallet = { address: string; ids: number[] };
 
 // The wallet connection lives in memory per page, so the play page leaves a note of the wallet
-// and its Pots here and the landing page and wall can read it back.
+// and its Portals here and the landing page and wall can read it back.
 export function rememberWallet(address: string, ids: number[]) {
   try { localStorage.setItem(KEY, JSON.stringify({ address, ids })); } catch { /* storage may be blocked */ }
 }

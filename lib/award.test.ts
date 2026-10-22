@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore } from "./records";
-import { potOfDay } from "./cotd";
+import { portalOfDay } from "./cotd";
 import { awardDay, type AwardDeps } from "./award";
 
 const D = "2026-10-20";
@@ -34,12 +34,12 @@ async function finish(store: FileRecordStore, wallet: string, tokenId: number, s
   await store.cotdFinish(D, wallet, { won, seconds, moves: 10, at: seconds * 1000 });
 }
 
-describe("awarding the Pot of the day", () => {
-  beforeAll(() => { process.env.POT_SALT_SECRET = "test-secret"; });
+describe("awarding the Portal of the day", () => {
+  beforeAll(() => { process.env.PORTAL_SALT_SECRET = "test-secret"; });
 
-  it("mints the Pot to the fastest clear", async () => {
+  it("mints the Portal to the fastest clear", async () => {
     const t = setup();
-    const id = await potOfDay(t.store, D);
+    const id = await portalOfDay(t.store, D);
     await finish(t.store, A, id, 40);
     await finish(t.store, B, id, 25);
     const out = await awardDay(t.deps, D);
@@ -49,7 +49,7 @@ describe("awarding the Pot of the day", () => {
 
   it("does nothing when nobody cleared it", async () => {
     const t = setup();
-    const id = await potOfDay(t.store, D);
+    const id = await portalOfDay(t.store, D);
     await finish(t.store, A, id, 40, false);
     expect(await awardDay(t.deps, D)).toEqual({ status: "no-winner", date: D, tokenId: id });
     expect(t.mints).toEqual([]);
@@ -57,7 +57,7 @@ describe("awarding the Pot of the day", () => {
 
   it("never mints twice when run again", async () => {
     const t = setup();
-    const id = await potOfDay(t.store, D);
+    const id = await portalOfDay(t.store, D);
     await finish(t.store, A, id, 40);
     await awardDay(t.deps, D);
     expect(await awardDay(t.deps, D)).toMatchObject({ status: "already" });
@@ -66,7 +66,7 @@ describe("awarding the Pot of the day", () => {
 
   it("retries the same winner after a failed mint, and notices a mint that already landed", async () => {
     const t = setup();
-    const id = await potOfDay(t.store, D);
+    const id = await portalOfDay(t.store, D);
     await finish(t.store, A, id, 40);
     t.setFail(true);
     expect(await awardDay(t.deps, D)).toMatchObject({ status: "failed" });

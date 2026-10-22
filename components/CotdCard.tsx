@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import PotArt from "./PotArt";
-import { potLabel } from "@/lib/names";
+import PortalArt from "./PortalArt";
+import { portalLabel } from "@/lib/names";
 
 export type CotdView = {
   date: string;
@@ -46,7 +46,7 @@ function useCotd() {
   return { data, err };
 }
 
-// Today's featured Pot with a countdown. `full` shows the whole leaderboard (Hall page);
+// Today's featured Portal with a countdown. `full` shows the whole leaderboard (Hall page);
 // `hideActions` drops the buttons when the page around it already has them.
 export default function CotdCard({ full = false, hideActions = false }: { full?: boolean; hideActions?: boolean }) {
   const { data, err } = useCotd();
@@ -56,22 +56,22 @@ export default function CotdCard({ full = false, hideActions = false }: { full?:
   if (!data)
     return (
       <section className="cotd-card" aria-busy>
-        <p className="text-[14px] text-mute" role="status">Loading today's Pot…</p>
+        <p className="text-[14px] text-mute" role="status">Loading today's Portal…</p>
       </section>
     );
   const top = full ? data.leaderboard : data.leaderboard.slice(0, 3);
 
   return (
-    <section className="cotd-card" aria-label="Pot of the day">
+    <section className="cotd-card" aria-label="Portal of the day">
       <div className="flex gap-4">
-        <div className="relative aspect-square w-[104px] shrink-0 overflow-hidden rounded-2xl border-2 border-pot/60 shadow-[0_14px_40px_-14px_rgba(131,110,249,0.9)] [container-type:inline-size] sm:w-[140px]">
-          <PotArt src={data.meta.image} tokenId={data.meta.id} className="h-full w-full" />
+        <div className="relative aspect-square w-[104px] shrink-0 overflow-hidden rounded-2xl border-2 border-portal/60 shadow-[0_14px_40px_-14px_rgba(131,110,249,0.9)] [container-type:inline-size] sm:w-[140px]">
+          <PortalArt src={data.meta.image} tokenId={data.meta.id} className="h-full w-full" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="eyebrow">Pot of the day</p>
-          <h2 className="mt-0.5 truncate text-[26px] font-extrabold leading-tight tracking-tight text-white">{potLabel(data.meta.id)}</h2>
+          <p className="eyebrow">Portal of the day</p>
+          <h2 className="mt-0.5 truncate text-[26px] font-extrabold leading-tight tracking-tight text-white">{portalLabel(data.meta.id)}</h2>
           <p className="mt-1 text-[13px] leading-snug text-text2">
-            One shared board. One ranked try per wallet; the fastest clear wins this Pot. New Pot in{" "}
+            One shared board. One ranked try per wallet; the fastest clear wins this Portal. New Portal in{" "}
             <b className="tabular-nums text-white">{clock || "--:--:--"}</b>
           </p>
           {!hideActions && (
@@ -116,9 +116,9 @@ export default function CotdCard({ full = false, hideActions = false }: { full?:
           <h3 className="text-[12px] font-semibold uppercase tracking-wider text-mute">Yesterday's winner</h3>
           <p className="mt-1 text-[#cfc9ea]">
             {data.yesterday.winner ? (
-              <><span className="text-white">{data.yesterday.winner.wallet}</span> cleared Pot #{data.yesterday.tokenId} in {fmt(data.yesterday.winner.seconds)}</>
+              <><span className="text-white">{data.yesterday.winner.wallet}</span> cleared Portal #{data.yesterday.tokenId} in {fmt(data.yesterday.winner.seconds)}</>
             ) : (
-              <>No winner for Pot #{data.yesterday.tokenId}.</>
+              <>No winner for Portal #{data.yesterday.tokenId}.</>
             )}
           </p>
         </div>

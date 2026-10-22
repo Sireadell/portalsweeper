@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { emptyRecord, type PotRecord } from "./records";
+import { emptyRecord, type PortalRecord } from "./records";
 import { cleanIds, longestRun, runDays, walletStreak } from "./streaks";
 
-const rec = (tokenId: number, over: Partial<PotRecord>): PotRecord => ({ ...emptyRecord(tokenId), ...over });
+const rec = (tokenId: number, over: Partial<PortalRecord>): PortalRecord => ({ ...emptyRecord(tokenId), ...over });
 
 describe("streaks", () => {
   it("expands a run across a month boundary", () => {
@@ -30,7 +30,7 @@ describe("streaks", () => {
     expect(walletStreak([r], after)).toMatchObject({ current: 1, clearedToday: false, atRisk: true });
   });
 
-  it("joins different Pots on different days into one wallet streak", () => {
+  it("joins different Portals on different days into one wallet streak", () => {
     const a = rec(1, { currentStreak: 1, longestStreak: 1, lastDate: "2026-10-19" });
     const b = rec(2, { currentStreak: 1, longestStreak: 1, lastDate: "2026-10-20" });
     expect(walletStreak([a, b], "2026-10-20")).toMatchObject({ current: 2, best: 2 });
@@ -42,7 +42,7 @@ describe("streaks", () => {
     expect(walletStreak([a, b], "2026-10-20").current).toBe(1);
   });
 
-  it("uses extra win days such as Pot of the day", () => {
+  it("uses extra win days such as Portal of the day", () => {
     expect(walletStreak([], "2026-10-20", ["2026-10-20", "2026-10-19"]).current).toBe(2);
   });
 

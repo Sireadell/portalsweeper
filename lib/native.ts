@@ -1,11 +1,11 @@
-// Portaldot native side: the Pot NFT collection lives in pallet-nfts, not in a Solidity contract.
+// Portaldot native side: the Portal NFT collection lives in pallet-nfts, not in a Solidity contract.
 // (On the V3 testnet a Solidity contract locks about 0.06 tPOT per byte of code; a native NFT
 // costs about 0.1 tPOT to mint.) Server only (imported by API routes): the minting key never reaches the browser.
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { Keyring } from "@polkadot/keyring";
 import { cryptoWaitReady, encodeAddress, decodeAddress } from "@polkadot/util-crypto";
 import { hexToU8a, u8aToHex } from "@polkadot/util";
-import { POT_COLLECTION_ID, POT_SUPPLY, PORTALDOT_WS } from "./types";
+import { PORTAL_COLLECTION_ID, PORTAL_SUPPLY, PORTALDOT_WS } from "./types";
 
 let apiPromise: Promise<ApiPromise> | null = null;
 export function getApi(): Promise<ApiPromise> {
@@ -18,7 +18,7 @@ export function getApi(): Promise<ApiPromise> {
   return apiPromise;
 }
 
-// pallet-revive maps an 0x (H160) wallet to the native account H160 ++ 0xEE x 12, so a Pot minted
+// pallet-revive maps an 0x (H160) wallet to the native account H160 ++ 0xEE x 12, so a Portal minted
 // to that account is owned by the player's 0x wallet with no extra setup.
 export function mappedAccount(h160: string): string {
   if (!/^0x[0-9a-fA-F]{40}$/.test(h160)) throw new Error("Not an 0x address.");
@@ -32,12 +32,12 @@ export function walletOf(account: string): string | null {
 }
 
 function collectionId(): number {
-  if (!Number.isInteger(POT_COLLECTION_ID) || POT_COLLECTION_ID < 0) throw new Error("POT_COLLECTION_ID is not set.");
-  return POT_COLLECTION_ID;
+  if (!Number.isInteger(PORTAL_COLLECTION_ID) || PORTAL_COLLECTION_ID < 0) throw new Error("PORTAL_COLLECTION_ID is not set.");
+  return PORTAL_COLLECTION_ID;
 }
 
-// Owner (native account) of each minted Pot. Unminted Pots are left out.
-export async function potOwners(ids: number[]): Promise<Map<number, string>> {
+// Owner (native account) of each minted Portal. Unminted Portals are left out.
+export async function portalOwners(ids: number[]): Promise<Map<number, string>> {
   const api = await getApi();
   const col = collectionId();
   const rows = await api.query.nfts.item.multi(ids.map((id) => [col, id]));
@@ -49,17 +49,17 @@ export async function potOwners(ids: number[]): Promise<Map<number, string>> {
   return out;
 }
 
-// Pot numbers held by an 0x wallet (through its mapped native account).
-export async function potsOfWallet(h160: string): Promise<number[]> {
+// Portal numbers held by an 0x wallet (through its mapped native account).
+export async function portalsOfWallet(h160: string): Promise<number[]> {
   const api = await getApi();
   const keys = await api.query.nfts.account.keys(mappedAccount(h160), collectionId());
-  return keys.map((k) => Number(k.args[2].toString())).filter((n) => n >= 1 && n <= POT_SUPPLY).sort((a, b) => a - b);
+  return keys.map((k) => Number(k.args[2].toString())).filter((n) => n >= 1 && n <= PORTAL_SUPPLY).sort((a, b) => a - b);
 }
 
 export type MintResult = { txHash: string; block: number; to: string };
 
-// Mints Pot `id` to the native account of `h160`, signed by the collection's issuer key (env ISSUER_MNEMONIC).
-export async function mintPot(id: number, h160: string): Promise<MintResult> {
+// Mints Portal `id` to the native account of `h160`, signed by the collection's issuer key (env ISSUER_MNEMONIC).
+export async function mintPortal(id: number, h160: string): Promise<MintResult> {
   const mnemonic = process.env.ISSUER_MNEMONIC;
   if (!mnemonic) throw new Error("ISSUER_MNEMONIC is not set.");
   await cryptoWaitReady();

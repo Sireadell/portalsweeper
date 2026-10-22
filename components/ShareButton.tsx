@@ -17,7 +17,7 @@ export default function ShareButton({ name, params, cols, rows }: { name: string
       const res = await fetch(cardPath(params));
       if (!res.ok) throw new Error("card");
       const blob = await res.blob();
-      const file = new File([blob], `potsweeper-${params.token}-${params.date}.png`, { type: "image/png" });
+      const file = new File([blob], `portalsweeper-${params.token}-${params.date}.png`, { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], text, url: link() });
         return;

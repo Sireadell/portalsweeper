@@ -6,13 +6,13 @@ import { findCommit } from "@/lib/commits";
 import { proofBadge } from "@/lib/proofBadge";
 import { TIER_TABLE, DEFAULT_TIER } from "@/lib/engine";
 import { formatTime, parseShareParams } from "@/lib/share";
-import { getPotMeta } from "../_deps";
+import { getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
 
 async function artDataUrl(id: number): Promise<string | null> {
   try {
-    const buf = await readFile(path.join(process.cwd(), "public", "pots", `${id}.webp`));
+    const buf = await readFile(path.join(process.cwd(), "public", "portals", `${id}.webp`));
     // The card renderer does not read webp, so turn it into a png first.
     const { default: sharp } = await import("sharp");
     const png = await sharp(buf).resize(900, 900, { fit: "cover" }).png().toBuffer();
@@ -27,14 +27,14 @@ export async function GET(req: Request) {
   const p = parseShareParams({ token: q.get("token"), date: q.get("date"), time: q.get("time") });
   if (!p || p.date > utcToday()) return new Response("Bad card link.", { status: 400 });
 
-  const name = `Pot #${p.token}`;
+  const name = `Portal #${p.token}`;
   let size = TIER_TABLE[DEFAULT_TIER];
   try {
-    const meta = await getPotMeta(p.token);
+    const meta = await getPortalMeta(p.token);
     const tier = meta.traits.find((t) => t.trait_type === "Tier")?.value;
     if (tier && TIER_TABLE[tier]) size = TIER_TABLE[tier];
   } catch {
-    return new Response("Unknown Pot.", { status: 404 });
+    return new Response("Unknown Portal.", { status: 404 });
   }
   const art = await artDataUrl(p.token);
   const post = await findCommit(p.date).catch(() => undefined);
@@ -44,7 +44,7 @@ export async function GET(req: Request) {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#0c0916", color: "#ece9fb", padding: "50px 60px", fontFamily: "sans-serif" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", fontSize: 44, fontWeight: 800, color: "#836ef9" }}>Potsweeper</div>
+          <div style={{ display: "flex", fontSize: 44, fontWeight: 800, color: "#836ef9" }}>Portalsweeper</div>
           <div style={{ display: "flex", fontSize: 32, color: "#8bf5c0", fontWeight: 700 }}>BOARD CLEARED</div>
         </div>
         <div style={{ display: "flex", marginTop: 30, alignSelf: "center", width: 912, height: 912, borderRadius: 40, overflow: "hidden", border: "6px solid #836ef9", background: "#16112a" }}>
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
             {`${badge.headline}:  ${badge.fingerprint}`}
           </div>
           <div style={{ display: "flex", fontSize: 19, color: "#9a93c4", marginTop: 4 }}>
-            {`${post?.txHash ? "Fingerprint posted on Portaldot before the day ended." : "Fingerprint set for the day."} Check: potsweeper.vercel.app${badge.verifyPath}`}
+            {`${post?.txHash ? "Fingerprint posted on Portaldot before the day ended." : "Fingerprint set for the day."} Check: portalsweeper.vercel.app${badge.verifyPath}`}
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { keccak256, toBytes } from "viem";
 import { addDays, commitOf, dailyCommit, getDailySalt, isRevealable, isValidDate } from "./salt";
 
 beforeAll(() => {
-  process.env.POT_SALT_SECRET = "test-secret-not-real";
+  process.env.PORTAL_SALT_SECRET = "test-secret-not-real";
 });
 
 describe("salt", () => {
@@ -21,9 +21,9 @@ describe("salt", () => {
 
   it("changes when the secret changes", () => {
     const a = getDailySalt("2026-10-20");
-    process.env.POT_SALT_SECRET = "other";
+    process.env.PORTAL_SALT_SECRET = "other";
     expect(getDailySalt("2026-10-20")).not.toBe(a);
-    process.env.POT_SALT_SECRET = "test-secret-not-real";
+    process.env.PORTAL_SALT_SECRET = "test-secret-not-real";
   });
 
   it("does not reveal early", () => {

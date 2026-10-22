@@ -22,7 +22,7 @@ describe("share urls", () => {
   });
   it("formats text", () => {
     expect(formatTime(95)).toBe("1:35");
-    expect(shareText("Pot #7", p, 8, 8)).toContain("8x8");
+    expect(shareText("Portal #7", p, 8, 8)).toContain("8x8");
     expect(shortFingerprint("0x" + "ab".repeat(32))).toMatch(/^0x.{8}\.\.\..{8}$/);
   });
 });

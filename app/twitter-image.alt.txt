@@ -1,1 +1,1 @@
-Potsweeper: a Pot half covered by minesweeper tiles, with the line Your Pot is the board.
+Portalsweeper: a Portal half covered by minesweeper tiles, with the line Your Portal is the board.

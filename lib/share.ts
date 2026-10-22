@@ -1,4 +1,4 @@
-import { POT_SUPPLY } from "./types";
+import { PORTAL_SUPPLY } from "./types";
 
 // Pure helpers for the share card. No wallet data ever goes in these URLs.
 export type ShareParams = { token: number; date: string; time: number };
@@ -29,7 +29,7 @@ export function parseShareParams(q: { token?: string | null; date?: string | nul
   const token = Number(q.token);
   const time = Number(q.time);
   const date = q.date ?? "";
-  if (!Number.isInteger(token) || token < 1 || token > POT_SUPPLY) return null;
+  if (!Number.isInteger(token) || token < 1 || token > PORTAL_SUPPLY) return null;
   if (!validDate(date)) return null;
   if (!Number.isInteger(time) || time < 0 || time > MAX_SHARE_SECONDS) return null;
   return { token, date, time };
@@ -40,7 +40,7 @@ export function formatTime(s: number): string {
 }
 
 export function shareText(name: string, p: ShareParams, cols: number, rows: number): string {
-  return `I cleared ${name} (${cols}x${rows}) in ${formatTime(p.time)} on Potsweeper, ${p.date}.`;
+  return `I cleared ${name} (${cols}x${rows}) in ${formatTime(p.time)} on Portalsweeper, ${p.date}.`;
 }
 
 export function shortFingerprint(commit: string): string {

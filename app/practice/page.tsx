@@ -1,19 +1,19 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Board, PotMeta } from "@/lib/types";
-import { POT_SUPPLY } from "@/lib/types";
-import { generateBoard, getPotMeta } from "@/components/deps";
+import type { Board, PortalMeta } from "@/lib/types";
+import { PORTAL_SUPPLY } from "@/lib/types";
+import { generateBoard, getPortalMeta } from "@/components/deps";
 import { todayUTC } from "@/components/dailySalt";
 import GameScreen from "@/components/GameScreen";
 import PracticeBar from "@/components/PracticeBar";
 import BoardSkeleton from "@/components/BoardSkeleton";
 import {
-  applyResult, EMPTY_STATS, newPracticeSalt, nextPotId, parsePotId, randomPotId, readStats, tilesForBoard, writeStats,
+  applyResult, EMPTY_STATS, newPracticeSalt, nextPortalId, parsePortalId, randomPortalId, readStats, tilesForBoard, writeStats,
   type PracticeStats,
 } from "@/lib/practice";
 
-type Round = { meta: PotMeta; salt: string };
+type Round = { meta: PortalMeta; salt: string };
 
 export default function PracticePage() {
   const [round, setRound] = useState<Round | null>(null);
@@ -28,23 +28,23 @@ export default function PracticePage() {
   const load = useCallback(async (id: number) => {
     setErr("");
     try {
-      const meta = await getPotMeta(id);
+      const meta = await getPortalMeta(id);
       won.current = false;
       setRound({ meta, salt: newPracticeSalt() });
       setInput(String(id));
-      setUpNext(nextPotId(id));
+      setUpNext(nextPortalId(id));
     } catch {
-      setErr("Could not load that Pot. Try another number.");
+      setErr("Could not load that Portal. Try another number.");
     }
   }, []);
 
-  // Start at once: ?id=420 picks a Pot, otherwise a random one. Saved scores come back from this browser.
+  // Start at once: ?id=420 picks a Portal, otherwise a random one. Saved scores come back from this browser.
   useEffect(() => {
     const s = readStats();
     statsRef.current = s;
     setStats(s);
-    const id = parsePotId(new URLSearchParams(window.location.search).get("id") ?? "");
-    load(id ?? randomPotId());
+    const id = parsePortalId(new URLSearchParams(window.location.search).get("id") ?? "");
+    load(id ?? randomPortalId());
   }, [load]);
 
   function finish(board: Board, r: { won: boolean }) {
@@ -57,14 +57,14 @@ export default function PracticePage() {
 
   function again() {
     if (!round) return;
-    // Won: chain on to the next Pot. Lost: same Pot, fresh board.
+    // Won: chain on to the next Portal. Lost: same Portal, fresh board.
     load(won.current ? upNext : round.meta.id);
   }
 
   function go(e: React.FormEvent) {
     e.preventDefault();
-    const n = parsePotId(input);
-    if (n === null) { setErr(`Type a number from 1 to ${POT_SUPPLY}.`); return; }
+    const n = parsePortalId(input);
+    if (n === null) { setErr(`Type a number from 1 to ${PORTAL_SUPPLY}.`); return; }
     load(n);
   }
 
@@ -77,13 +77,13 @@ export default function PracticePage() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-[22px] font-extrabold tracking-tight text-white">Practice</h1>
-            <span className="chip !border-pot/50 !text-[#c4b8ff]">No wallet · not ranked</span>
+            <span className="chip !border-portal/50 !text-[#c4b8ff]">No wallet · not ranked</span>
           </div>
-          <p className="mt-1 max-w-[52ch] text-[14px] leading-snug text-text2">Endless boards. Clear one and the next Pot is lined up for you.</p>
+          <p className="mt-1 max-w-[52ch] text-[14px] leading-snug text-text2">Endless boards. Clear one and the next Portal is lined up for you.</p>
         </div>
         <form onSubmit={go} className="flex w-full flex-wrap items-end gap-2 lg:w-auto">
           <label className="min-w-[120px] flex-1 lg:w-[160px] lg:flex-none">
-            <span className="mb-1 block text-[12px] font-semibold text-mute">Any Pot, 1 to {POT_SUPPLY}</span>
+            <span className="mb-1 block text-[12px] font-semibold text-mute">Any Portal, 1 to {PORTAL_SUPPLY}</span>
             <input
               inputMode="numeric"
               value={input}
@@ -93,8 +93,8 @@ export default function PracticePage() {
             />
           </label>
           <button type="submit" className="btn-main h-11 !py-0">Play</button>
-          <button type="button" className="btn-ghost h-11" onClick={() => load(randomPotId())} aria-label="Random">🎲<span className="hidden sm:inline">Random</span></button>
-          <button type="button" className="btn-ghost h-11" onClick={() => load(upNext)}>Next Pot →</button>
+          <button type="button" className="btn-ghost h-11" onClick={() => load(randomPortalId())} aria-label="Random">🎲<span className="hidden sm:inline">Random</span></button>
+          <button type="button" className="btn-ghost h-11" onClick={() => load(upNext)}>Next Portal →</button>
         </form>
       </header>
       {err && <p className="mx-auto mb-3 max-w-[1060px] text-[14px] text-boom" role="alert">{err}</p>}

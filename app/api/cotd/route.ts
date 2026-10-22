@@ -2,22 +2,22 @@ import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
 import { getDailySalt } from "@/lib/salt";
 import { finishRanked, startRanked, summarize, type CotdDeps } from "@/lib/cotd";
-import { generateBoard, getPotMeta } from "../_deps";
+import { generateBoard, getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "no-store" };
 
 const deps = (): CotdDeps => ({ store: getStore() });
 
-// Today's featured Pot, the leaderboard, yesterday's winner. ?address=0x.. adds that wallet's own status.
+// Today's featured Portal, the leaderboard, yesterday's winner. ?address=0x.. adds that wallet's own status.
 export async function GET(req: Request) {
   try {
     const address = new URL(req.url).searchParams.get("address");
     const s = await summarize(getStore(), new Date(), address);
-    const meta = await getPotMeta(s.tokenId);
+    const meta = await getPortalMeta(s.tokenId);
     return NextResponse.json({ ...s, meta: { id: meta.id, name: meta.name, image: meta.image } }, { headers: NO_STORE });
   } catch {
-    return NextResponse.json({ error: "Could not load the Pot of the day." }, { status: 500 });
+    return NextResponse.json({ error: "Could not load the Portal of the day." }, { status: 500 });
   }
 }
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     if (b.action === "start") {
       const out = await startRanked(deps(), { address: b.address, signature: b.signature });
       if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
-      const meta = await getPotMeta(out.entry.tokenId);
+      const meta = await getPortalMeta(out.entry.tokenId);
       const board = generateBoard(meta, out.entry.date, getDailySalt(out.entry.date));
       return NextResponse.json({ board, meta, startedAt: out.entry.startedAt }, { headers: NO_STORE });
     }

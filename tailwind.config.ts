@@ -13,7 +13,7 @@ const config: Config = {
         edge2: "#3d3170",
         text2: "#cfc9ea",
         mute: "#a69fc6",
-        pot: "#836ef9",
+        portal: "#836ef9",
         mint: "#8bf5c0",
         boom: "#ff5d73",
         gold: "#ffd166",

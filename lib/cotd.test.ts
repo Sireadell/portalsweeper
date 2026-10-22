@@ -3,8 +3,8 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore, UpstashRecordStore, rankCotd, type CotdEntry, type RecordStore } from "./records";
-import { potOfDay, finishRanked, pickPotOfDay, recentClears, startRanked, summarize, type CotdDeps } from "./cotd";
-import { POT_SUPPLY } from "./types";
+import { portalOfDay, finishRanked, pickPortalOfDay, recentClears, startRanked, summarize, type CotdDeps } from "./cotd";
+import { PORTAL_SUPPLY } from "./types";
 
 // A tiny in-memory stand-in for the Upstash REST API: only the commands the store uses.
 export function fakeUpstash() {
@@ -48,7 +48,7 @@ export function fakeUpstash() {
 const win = (tokenId: number, date: string, seconds = 60) => ({ tokenId, date, won: true, seconds, moves: 10 });
 
 const stores: [string, () => RecordStore][] = [
-  ["file", () => new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "pot-")), "r.json"))],
+  ["file", () => new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"))],
   ["upstash (fake fetch)", () => new UpstashRecordStore("https://x.upstash.io/", "tok", fakeUpstash().fetchImpl)],
 ];
 
@@ -68,7 +68,7 @@ describe.each(stores)("%s store", (_n, make) => {
     expect((await s.getRecord(99)).plays).toBe(0);
   });
 
-  it("handles the Pot of the day life cycle", async () => {
+  it("handles the Portal of the day life cycle", async () => {
     const s = make();
     const e: CotdEntry = { date: "2026-10-20", wallet: "0xaa", tokenId: 5, startedAt: 1000 };
     expect((await s.cotdStart(e)).ok).toBe(true);
@@ -86,7 +86,7 @@ describe("upstash store details", () => {
   it("sends the bearer token to the base url and trims a trailing slash", async () => {
     const fake = fakeUpstash();
     await new UpstashRecordStore("https://x.upstash.io///", "tok", fake.fetchImpl).getRecord(3);
-    expect(fake.calls[0]).toEqual(["https://x.upstash.io", "GET", "pot:rec:3"]);
+    expect(fake.calls[0]).toEqual(["https://x.upstash.io", "GET", "portal:rec:3"]);
   });
 
   it("throws on an error reply so a bad token is not silent", async () => {
@@ -120,37 +120,37 @@ describe("getStore picks by env", () => {
   });
 });
 
-describe("picking the Pot of the day", () => {
-  beforeAll(() => { process.env.POT_SALT_SECRET = "test-secret"; });
+describe("picking the Portal of the day", () => {
+  beforeAll(() => { process.env.PORTAL_SALT_SECRET = "test-secret"; });
 
   it("is deterministic, in range, and changes with the date or commit", () => {
-    const a = pickPotOfDay("2026-10-20", "0xabc");
-    expect(a).toBe(pickPotOfDay("2026-10-20", "0xabc"));
+    const a = pickPortalOfDay("2026-10-20", "0xabc");
+    expect(a).toBe(pickPortalOfDay("2026-10-20", "0xabc"));
     expect(a).toBeGreaterThanOrEqual(1);
-    expect(a).toBeLessThanOrEqual(POT_SUPPLY);
-    expect(pickPotOfDay("2026-10-21", "0xabc")).not.toBe(a);
+    expect(a).toBeLessThanOrEqual(PORTAL_SUPPLY);
+    expect(pickPortalOfDay("2026-10-21", "0xabc")).not.toBe(a);
   });
 
-  it("steps past Pots that are already taken", () => {
-    const a = pickPotOfDay("2026-10-20", "0xabc");
-    const next = (a % POT_SUPPLY) + 1;
-    expect(pickPotOfDay("2026-10-20", "0xabc", new Set([a]))).toBe(next);
-    expect(pickPotOfDay("2026-10-20", "0xabc", new Set([a, next]))).toBe((next % POT_SUPPLY) + 1);
+  it("steps past Portals that are already taken", () => {
+    const a = pickPortalOfDay("2026-10-20", "0xabc");
+    const next = (a % PORTAL_SUPPLY) + 1;
+    expect(pickPortalOfDay("2026-10-20", "0xabc", new Set([a]))).toBe(next);
+    expect(pickPortalOfDay("2026-10-20", "0xabc", new Set([a, next]))).toBe((next % PORTAL_SUPPLY) + 1);
   });
 
-  it("fixes the day's Pot once, skipping earlier wins and yesterday's Pot", async () => {
-    const store = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "pot-")), "r.json"));
-    const first = await potOfDay(store, "2026-10-20");
-    expect(await potOfDay(store, "2026-10-20")).toBe(first);
-    // a claim made today does not move today's Pot
+  it("fixes the day's Portal once, skipping earlier wins and yesterday's Portal", async () => {
+    const store = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"));
+    const first = await portalOfDay(store, "2026-10-20");
+    expect(await portalOfDay(store, "2026-10-20")).toBe(first);
+    // a claim made today does not move today's Portal
     await store.claimLock({ tokenId: first, wallet: "0x" + "a".repeat(40), date: "2026-10-20", at: 0, status: "minted" });
-    expect(await potOfDay(store, "2026-10-20")).toBe(first);
-    // tomorrow can never land on today's Pot
-    expect(await potOfDay(store, "2026-10-21")).not.toBe(first);
+    expect(await portalOfDay(store, "2026-10-20")).toBe(first);
+    // tomorrow can never land on today's Portal
+    expect(await portalOfDay(store, "2026-10-21")).not.toBe(first);
   });
 
-  it("spreads over many Pots across a year", () => {
-    const seen = new Set(Array.from({ length: 365 }, (_, i) => pickPotOfDay(`d${i}`, "0x1")));
+  it("spreads over many Portals across a year", () => {
+    const seen = new Set(Array.from({ length: 365 }, (_, i) => pickPortalOfDay(`d${i}`, "0x1")));
     expect(seen.size).toBeGreaterThan(220); // about 259 expected for 365 random picks from 500
   });
 });
@@ -158,14 +158,14 @@ describe("picking the Pot of the day", () => {
 describe("ranked tries", () => {
   const T0 = Date.parse("2026-10-20T12:00:00Z");
   const wallet = "0x" + "a".repeat(40);
-  const mk = (over: Partial<CotdDeps> = {}, store: RecordStore = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "pot-")), "r.json"))) => {
+  const mk = (over: Partial<CotdDeps> = {}, store: RecordStore = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"))) => {
     let t = T0;
     const deps: CotdDeps = { store, now: () => t, recover: async () => wallet, ...over };
     return { deps, advance: (s: number) => { t += s * 1000; } };
   };
   const who = { address: wallet, signature: "0xsig" };
 
-  beforeAll(() => { process.env.POT_SALT_SECRET = "test-secret"; });
+  beforeAll(() => { process.env.PORTAL_SALT_SECRET = "test-secret"; });
 
   it("rejects a bad signature and a mismatched signer", async () => {
     expect(await startRanked(mk({ recover: async () => { throw new Error("x"); } }).deps, who)).toMatchObject({ ok: false, status: 401 });
@@ -177,7 +177,7 @@ describe("ranked tries", () => {
     const m = mk();
     const s1 = await startRanked(m.deps, who);
     expect(s1).toMatchObject({ ok: true });
-    expect(s1.ok && s1.entry.tokenId).toBe(await potOfDay(m.deps.store, "2026-10-20"));
+    expect(s1.ok && s1.entry.tokenId).toBe(await portalOfDay(m.deps.store, "2026-10-20"));
     expect(await startRanked(m.deps, who)).toMatchObject({ ok: false, status: 409 });
     m.advance(40);
     const f = await finishRanked(m.deps, { ...who, date: "2026-10-20", won: true, seconds: 30, moves: 20 });
@@ -208,7 +208,7 @@ describe("ranked tries", () => {
   });
 
   it("does not rank a loss and shows yesterday's winner", async () => {
-    const store = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "pot-")), "r.json"));
+    const store = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"));
     await store.cotdStart({ date: "2026-10-19", wallet, tokenId: 9, startedAt: 1 });
     await store.cotdFinish("2026-10-19", wallet, { won: true, seconds: 41, moves: 3, at: 2 });
     const m = mk({}, store);
@@ -234,7 +234,7 @@ describe("cleared today and recent clears", () => {
     expect(recentClears(list, 1)).toHaveLength(1);
   });
   it("summarize reports zero clears without failing, and leaves unranked tries out", async () => {
-    const s = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "pot-")), "r.json"));
+    const s = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"));
     const sum = await summarize(s, new Date("2026-10-20T10:00:00Z"));
     expect(sum.cleared).toBe(0);
     expect(sum.recent).toEqual([]);

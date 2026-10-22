@@ -29,21 +29,21 @@ let cachedSecret: string | undefined;
 // Reads the server secret. In local dev only, a random one is created in .env.local
 // the first time it is needed. The value is never logged.
 function getSecret(): string {
-  const fromEnv = process.env.POT_SALT_SECRET;
+  const fromEnv = process.env.PORTAL_SALT_SECRET;
   if (fromEnv) return fromEnv;
   if (cachedSecret) return cachedSecret;
   if (process.env.NODE_ENV === "production") {
-    throw new Error("POT_SALT_SECRET is not set. Add a long random value to the server environment.");
+    throw new Error("PORTAL_SALT_SECRET is not set. Add a long random value to the server environment.");
   }
   const file = path.join(process.cwd(), ".env.local");
   if (existsSync(file)) {
-    const m = readFileSync(file, "utf8").match(/^POT_SALT_SECRET=(.+)$/m);
+    const m = readFileSync(file, "utf8").match(/^PORTAL_SALT_SECRET=(.+)$/m);
     if (m) return (cachedSecret = m[1].trim());
   }
   const secret = randomBytes(32).toString("hex");
-  appendFileSync(file, `${existsSync(file) ? "\n" : ""}POT_SALT_SECRET=${secret}\n`);
+  appendFileSync(file, `${existsSync(file) ? "\n" : ""}PORTAL_SALT_SECRET=${secret}\n`);
   cachedSecret = secret;
-  console.warn("[salt] POT_SALT_SECRET was missing, so a random one was saved to .env.local for local dev.");
+  console.warn("[salt] PORTAL_SALT_SECRET was missing, so a random one was saved to .env.local for local dev.");
   return secret;
 }
 

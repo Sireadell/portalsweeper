@@ -1,18 +1,18 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { PotMeta } from "@/lib/types";
-import { POT_SUPPLY } from "@/lib/types";
-import { potFromQuery } from "@/lib/names";
-import { generateBoard, getPotMeta } from "@/components/deps";
+import type { PortalMeta } from "@/lib/types";
+import { PORTAL_SUPPLY } from "@/lib/types";
+import { portalFromQuery } from "@/lib/names";
+import { generateBoard, getPortalMeta } from "@/components/deps";
 import { todayUTC } from "@/components/dailySalt";
 import GameScreen from "@/components/GameScreen";
 import BoardSkeleton from "@/components/BoardSkeleton";
 
-const rand = () => 1 + Math.floor(Math.random() * POT_SUPPLY);
+const rand = () => 1 + Math.floor(Math.random() * PORTAL_SUPPLY);
 
 export default function JudgePage() {
-  const [meta, setMeta] = useState<PotMeta | null>(null);
+  const [meta, setMeta] = useState<PortalMeta | null>(null);
   const [salt, setSalt] = useState("");
   const [input, setInput] = useState("");
   const [err, setErr] = useState("");
@@ -21,20 +21,20 @@ export default function JudgePage() {
   const load = useCallback(async (id: number, fixedSalt?: string) => {
     setErr("");
     try {
-      const m = await getPotMeta(id);
+      const m = await getPortalMeta(id);
       setMeta(m);
       setSalt(fixedSalt ?? `practice-${Date.now()}-${Math.random()}`);
       setInput(String(id));
     } catch {
-      setErr("Could not load that Pot. Try another number.");
+      setErr("Could not load that Portal. Try another number.");
     }
   }, []);
 
-  // Judges should be playing within seconds: start a random Pot straight away.
+  // Judges should be playing within seconds: start a random Portal straight away.
   // A link like /judge?id=420&salt=abc replays the same practice board.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    const id = potFromQuery(q, POT_SUPPLY);
+    const id = portalFromQuery(q, PORTAL_SUPPLY);
     const fixed = q.get("salt") ?? undefined;
     load(id ?? rand(), fixed);
   }, [load]);
@@ -42,8 +42,8 @@ export default function JudgePage() {
   function go(e: React.FormEvent) {
     e.preventDefault();
     const n = Number(input);
-    if (!Number.isInteger(n) || n < 1 || n > POT_SUPPLY) {
-      setErr(`Type a number from 1 to ${POT_SUPPLY}.`);
+    if (!Number.isInteger(n) || n < 1 || n > PORTAL_SUPPLY) {
+      setErr(`Type a number from 1 to ${PORTAL_SUPPLY}.`);
       return;
     }
     load(n);
@@ -58,12 +58,12 @@ export default function JudgePage() {
             <span className="chip !border-mint/40 !text-mint">No wallet · not ranked</span>
           </div>
           <p className="mt-1 max-w-[52ch] text-[14px] leading-snug text-text2">
-            Play any of the 500 Pots. Each one has its own rules from its traits. <Link href="/practice" className="link">Endless practice →</Link>
+            Play any of the 500 Portals. Each one has its own rules from its traits. <Link href="/practice" className="link">Endless practice →</Link>
           </p>
         </div>
         <form onSubmit={go} className="flex w-full flex-wrap items-end gap-2 lg:w-auto">
           <label className="min-w-[140px] flex-1 lg:w-[180px] lg:flex-none">
-            <span className="mb-1 block text-[12px] font-semibold text-mute">Pot number, 1 to {POT_SUPPLY}</span>
+            <span className="mb-1 block text-[12px] font-semibold text-mute">Portal number, 1 to {PORTAL_SUPPLY}</span>
             <input
               inputMode="numeric"
               value={input}

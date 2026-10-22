@@ -2,12 +2,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-// A looping demo for the home page: a real Pot's art under an 8 by 8 board.
+// A looping demo for the home page: a real Portal's art under an 8 by 8 board.
 // Tiles open one by one, the mines get flagged, then the board melts away and the art shows.
 // The mine layout here is a fixed picture for the demo, not a real daily board.
 const N = 8;
 const MINES = new Set([0, 1, 8, 7, 15, 56, 57, 63, 62, 29]);
-const POTS = [7, 9, 1, 209, 69];
+const PORTALS = [7, 9, 1, 209, 69];
 const NUM_COLOR = ["", "#7dd3fc", "#86efac", "#fda4af", "#c4b5fd", "#fdba74", "#5eead4", "#f9a8d4", "#f1f5f9"];
 
 function neighbours(i: number): number[] {
@@ -45,7 +45,7 @@ export default function HeroBoard() {
   const [step, setStep] = useState(Math.round(order.length * 0.4));
   const [phase, setPhase] = useState<"play" | "won" | "reset">("play");
   const [k, setK] = useState(0);
-  const id = POTS[k % POTS.length];
+  const id = PORTALS[k % PORTALS.length];
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // stays as a still picture
@@ -69,7 +69,7 @@ export default function HeroBoard() {
       <div className="hero-float">
         <div className="hero-board" data-phase={phase} aria-hidden>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/pots/${id}.webp`} alt="" className="board-art" draggable={false} />
+          <img src={`/portals/${id}.webp`} alt="" className="board-art" draggable={false} />
           <div className="board-shade" />
           <div className="board-grid" style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, fontSize: `calc(46cqw / ${N})` }}>
             {Array.from({ length: N * N }, (_, i) => {
@@ -89,10 +89,10 @@ export default function HeroBoard() {
       </div>
       <figcaption className="mt-5 flex flex-wrap items-center justify-between gap-2 text-[13px] text-mute">
         <span>
-          <b className="font-display text-[15px] text-white">Pot #{id}</b>{" "}
+          <b className="font-display text-[15px] text-white">Portal #{id}</b>{" "}
           {phase === "won" ? "cleared. The art is out." : "Each cleared tile opens a window onto the art."}
         </span>
-        <Link href={`/judge?id=${id}`} className="link text-[13px]">Play Pot #{id} →</Link>
+        <Link href={`/judge?id=${id}`} className="link text-[13px]">Play Portal #{id} →</Link>
       </figcaption>
     </figure>
   );

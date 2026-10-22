@@ -13,9 +13,9 @@
   --text: #f3f0ff;
   --text-2: #cfc9ea;
   --mute: #a69fc6;
-  --pot: #836ef9;
-  --pot-hi: #a493ff;
-  --pot-deep: #4b33c4;
+  --portal: #836ef9;
+  --portal-hi: #a493ff;
+  --portal-deep: #4b33c4;
   --mint: #8bf5c0;
   --boom: #ff5d73;
   --gold: #ffd166;
@@ -72,13 +72,13 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
   .btn-main {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-bold text-white;
     font-family: var(--font-display), var(--font-body), sans-serif;
-    background: linear-gradient(180deg, var(--pot-hi), var(--pot) 55%, #7258f0);
-    box-shadow: 0 4px 0 var(--pot-deep), 0 12px 30px -10px rgba(131, 110, 249, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    background: linear-gradient(180deg, var(--portal-hi), var(--portal) 55%, #7258f0);
+    box-shadow: 0 4px 0 var(--portal-deep), 0 12px 30px -10px rgba(131, 110, 249, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35);
     transition: transform 0.12s var(--ease-out), box-shadow 0.12s var(--ease-out), filter 0.15s;
     min-height: 44px;
   }
   .btn-main:hover { filter: brightness(1.08); }
-  .btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--pot-deep), 0 6px 18px -10px rgba(131, 110, 249, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+  .btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--portal-deep), 0 6px 18px -10px rgba(131, 110, 249, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
   .btn-main:disabled { opacity: 0.6; transform: none; }
 
   .btn-ghost {
@@ -87,7 +87,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
     transition: transform 0.12s var(--ease-out), box-shadow 0.12s, border-color 0.15s, color 0.15s;
     min-height: 40px;
   }
-  .btn-ghost:hover { border-color: var(--pot); color: #fff; }
+  .btn-ghost:hover { border-color: var(--portal); color: #fff; }
   .btn-ghost:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4); }
   .btn-on { border-color: var(--mint) !important; color: var(--mint) !important; background: rgba(139, 245, 192, 0.08); }
 
@@ -106,9 +106,9 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
     @apply h-11 w-full rounded-xl border border-edge2 bg-ink2 px-3 text-base text-white outline-none transition;
     box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.35);
   }
-  .field:focus { border-color: var(--pot); box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(131, 110, 249, 0.25); }
+  .field:focus { border-color: var(--portal); box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.35), 0 0 0 3px rgba(131, 110, 249, 0.25); }
 
-  .pick-card { @apply w-full rounded-2xl border border-edge bg-panel p-2 text-left transition hover:-translate-y-0.5 hover:border-pot; }
+  .pick-card { @apply w-full rounded-2xl border border-edge bg-panel p-2 text-left transition hover:-translate-y-0.5 hover:border-portal; }
 
   .rule-card {
     @apply relative flex gap-3 overflow-hidden rounded-2xl border border-edge p-3;
@@ -119,7 +119,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
   .rule-used { border-color: rgba(255, 93, 115, 0.6); background: rgba(255, 93, 115, 0.08); }
   .rule-ico {
     @apply grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg text-white;
-    background: linear-gradient(160deg, var(--pot-hi), var(--pot-deep));
+    background: linear-gradient(160deg, var(--portal-hi), var(--portal-deep));
     box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   .rule-state { @apply mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold; background: rgba(139, 245, 192, 0.12); color: var(--mint); }
@@ -155,7 +155,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
 .nav-scroll { scrollbar-width: none; }
 .nav-scroll::-webkit-scrollbar { display: none; }
 
-/* ---- Board: the Pot's art sits under the grid; cleared tiles are the window ---- */
+/* ---- Board: the Portal's art sits under the grid; cleared tiles are the window ---- */
 .board-wrap {
   position: relative;
   width: 100%;
@@ -332,12 +332,12 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
   contain-intrinsic-size: 34px;
   transition: transform 0.15s var(--ease-out), box-shadow 0.15s;
 }
-.wall-cell:hover, .wall-cell:focus-visible { --dim: rgba(17, 12, 32, 0.1); transform: scale(1.4); z-index: 3; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--pot); }
+.wall-cell:hover, .wall-cell:focus-visible { --dim: rgba(17, 12, 32, 0.1); transform: scale(1.4); z-index: 3; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--portal); }
 .wall-cell img { position: relative; width: 100%; height: 100%; object-fit: cover; display: block; }
-.wall-owned { outline: 2px solid var(--pot); outline-offset: -2px; }
+.wall-owned { outline: 2px solid var(--portal); outline-offset: -2px; }
 .wall-owned { --dim: rgba(17, 12, 32, 0.55); }
 
-/* ---- Pot of the day card ---- */
+/* ---- Portal of the day card ---- */
 .cotd-card { border: 1px solid var(--edge); background: linear-gradient(160deg, rgba(131, 110, 249, 0.14), transparent 50%), var(--panel); border-radius: var(--r-lg); padding: 18px; box-shadow: var(--lift); }
 
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

@@ -10,7 +10,7 @@ export default function PracticeBar({ stats, upNext }: { stats: PracticeStats; u
         <Cell label="Tiles cleared" value={stats.tiles.toLocaleString("en-US")} />
       </div>
       <p className="text-center text-[12px] leading-snug text-mute sm:flex-1 sm:text-left">
-        Clear a board and Pot #{upNext} is next. A boom ends the chain. Scores stay in this browser.
+        Clear a board and Portal #{upNext} is next. A boom ends the chain. Scores stay in this browser.
       </p>
     </section>
   );

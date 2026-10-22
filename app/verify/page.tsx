@@ -1,6 +1,6 @@
 import ProofSteps from "@/components/ProofSteps";
 
-export const metadata = { title: "Check a board", description: "Rebuild any past Potsweeper board in your browser and match it against the fingerprint posted on Portaldot." };
+export const metadata = { title: "Check a board", description: "Rebuild any past Portalsweeper board in your browser and match it against the fingerprint posted on Portaldot." };
 
 export default function VerifyPage() {
   return (

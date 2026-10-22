@@ -1,29 +1,29 @@
-import { POT_SUPPLY, type PotMeta } from "./types";
-import potsData from "../data/pots.json";
+import { PORTAL_SUPPLY, type PortalMeta } from "./types";
+import portalsData from "../data/portals.json";
 
-// Pot art and traits come from data/pots.json (drawn by scripts/gen-pots.mjs).
-// Who owns which Pot is read from Portaldot's native NFT pallet (lib/native.ts).
+// Portal art and traits come from data/portals.json (drawn by scripts/gen-portals.mjs).
+// Who owns which Portal is read from Portaldot's native NFT pallet (lib/native.ts).
 
-const byId = new Map<number, PotMeta>((potsData as PotMeta[]).map((c) => [c.id, c]));
+const byId = new Map<number, PortalMeta>((portalsData as PortalMeta[]).map((c) => [c.id, c]));
 
-export async function getPotMeta(id: number): Promise<PotMeta> {
+export async function getPortalMeta(id: number): Promise<PortalMeta> {
   const m = byId.get(id);
-  if (!m) throw new Error(`Unknown Pot id ${id}`);
+  if (!m) throw new Error(`Unknown Portal id ${id}`);
   return m;
 }
 
-export function isPotId(n: unknown): n is number {
-  return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= POT_SUPPLY;
+export function isPortalId(n: unknown): n is number {
+  return typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= PORTAL_SUPPLY;
 }
 
-// Pot numbers the 0x wallet holds on Portaldot. Loaded lazily so pages that never ask about
+// Portal numbers the 0x wallet holds on Portaldot. Loaded lazily so pages that never ask about
 // owners do not open a connection to the chain.
-export async function getOwnedPots(address: string): Promise<number[]> {
+export async function getOwnedPortals(address: string): Promise<number[]> {
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return [];
-  const { potsOfWallet } = await import("./native");
-  return potsOfWallet(address);
+  const { portalsOfWallet } = await import("./native");
+  return portalsOfWallet(address);
 }
 
-export async function holdsAnyPot(address: string): Promise<boolean> {
-  return (await getOwnedPots(address)).length > 0;
+export async function holdsAnyPortal(address: string): Promise<boolean> {
+  return (await getOwnedPortals(address)).length > 0;
 }

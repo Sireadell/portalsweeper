@@ -8,7 +8,7 @@
 export type Note = { freq: number; start: number; dur: number; gain: number; type: OscillatorType; to?: number; noise?: boolean };
 export type SoundKind = "win" | "lose" | "tap" | "open" | "flag" | "unflag" | "shield";
 
-const MUTE_KEY = "potsweeper:muted";
+const MUTE_KEY = "portalsweeper:muted";
 
 // Win: a quick rising major arpeggio ending on a held top note. Lose: two soft falling notes.
 const WIN_FREQS = [523.25, 659.25, 783.99, 1046.5];

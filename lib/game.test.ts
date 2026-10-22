@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { generateBoard, neighbors } from "./engine";
 import { applyFirstClick, chord, flag, newGame, replay, reveal, type GameState, type Move } from "./game";
-import { fakePot, randomPot } from "./engine.test";
+import { fakePortal, randomPortal } from "./engine.test";
 
 const D = "2026-10-20";
 
 describe("first click safety", () => {
   it("is always safe and opens an area on 200 boards", () => {
     for (let id = 1; id <= 200; id++) {
-      const b = generateBoard(randomPot(id), D, `s${id}`);
+      const b = generateBoard(randomPortal(id), D, `s${id}`);
       const click = (id * 7) % (b.cols * b.rows);
       if (click === b.freeFlag) continue;
       const s = reveal(newGame(b), click);
@@ -24,13 +24,13 @@ describe("first click safety", () => {
     }
   });
   it("relocation is deterministic", () => {
-    const b = generateBoard(fakePot(4, "Epic"), D, "s");
+    const b = generateBoard(fakePortal(4, "Epic"), D, "s");
     const a1 = JSON.stringify(applyFirstClick(b, 20).cells);
     const a2 = JSON.stringify(applyFirstClick(b, 20).cells);
     expect(a1).toBe(a2);
   });
   it("clicking right on a mine still lands safe", () => {
-    const b = generateBoard(fakePot(8, "Common"), D, "s");
+    const b = generateBoard(fakePortal(8, "Common"), D, "s");
     const m = b.cells.findIndex((c) => c.mine);
     const s = reveal(newGame(b), m);
     expect(s.status).not.toBe("lost");
@@ -39,7 +39,7 @@ describe("first click safety", () => {
 
 describe("play rules", () => {
   it("flag toggles, flagged cells cannot be revealed", () => {
-    const b = generateBoard(fakePot(2, "Common"), D, "s");
+    const b = generateBoard(fakePortal(2, "Common"), D, "s");
     let s = flag(newGame(b), 0);
     expect(s.flagged[0]).toBe(true);
     s = reveal(s, 0);
@@ -48,20 +48,20 @@ describe("play rules", () => {
     expect(s.flagged[0]).toBe(false);
   });
   it("Accessory mine starts flagged and stays flagged", () => {
-    const b = generateBoard(fakePot(2, "Common", undefined, undefined, "Cowrie"), D, "s");
+    const b = generateBoard(fakePortal(2, "Common", undefined, undefined, "Cowrie"), D, "s");
     let s = newGame(b);
     expect(s.flagged[b.freeFlag as number]).toBe(true);
     s = flag(s, b.freeFlag as number);
     expect(s.flagged[b.freeFlag as number]).toBe(true);
   });
   it("flood fill opens neighbours of a zero", () => {
-    const b = generateBoard(fakePot(2, "Epic"), D, "s");
+    const b = generateBoard(fakePortal(2, "Epic"), D, "s");
     const s = reveal(newGame(b), 0);
     const open = s.revealed.filter(Boolean).length;
     expect(open).toBeGreaterThan(1);
   });
   it("loses on a mine without a shield, ignores moves afterwards", () => {
-    const b = generateBoard(fakePot(3, "Common"), D, "s");
+    const b = generateBoard(fakePortal(3, "Common"), D, "s");
     let s = reveal(newGame(b), 0);
     const mine = s.board.cells.findIndex((c, i) => c.mine && !s.revealed[i]);
     s = reveal(s, mine);
@@ -70,7 +70,7 @@ describe("play rules", () => {
     expect(reveal(s, 1)).toBe(s);
   });
   it("shield survives exactly one mine", () => {
-    const b = generateBoard(fakePot(3, "Common", undefined, "Iron Lid"), D, "s");
+    const b = generateBoard(fakePortal(3, "Common", undefined, "Iron Frame"), D, "s");
     expect(b.shields).toBe(1);
     let s = reveal(newGame(b), 0);
     const mines = s.board.cells.map((c, i) => (c.mine ? i : -1)).filter((i) => i >= 0 && !s.revealed[i]);
@@ -82,7 +82,7 @@ describe("play rules", () => {
     expect(s.status).toBe("lost");
   });
   it("chord opens neighbours when flags match", () => {
-    const b = generateBoard(fakePot(12, "Epic"), D, "s");
+    const b = generateBoard(fakePortal(12, "Epic"), D, "s");
     let s = reveal(newGame(b), 0);
     // find a revealed number with hidden neighbours, flag its mines, chord it
     for (let i = 0; i < s.board.cells.length; i++) {
@@ -100,7 +100,7 @@ describe("play rules", () => {
     throw new Error("no chord candidate found");
   });
   it("chord does nothing with the wrong flag count", () => {
-    const b = generateBoard(fakePot(12, "Epic"), D, "s");
+    const b = generateBoard(fakePortal(12, "Epic"), D, "s");
     const s = reveal(newGame(b), 0);
     const i = s.board.cells.findIndex((c, k) => s.revealed[k] && !c.mine && c.adj > 0);
     expect(chord(s, i)).toBe(s);
@@ -117,13 +117,13 @@ function playToWin(s: GameState): GameState {
 
 describe("win detection and replay", () => {
   it("wins when all safe cells are open", () => {
-    const b = generateBoard(fakePot(21, "Uncommon"), D, "s");
+    const b = generateBoard(fakePortal(21, "Uncommon"), D, "s");
     const s = playToWin(reveal(newGame(b), 0));
     expect(s.status).toBe("won");
   });
   it("replay equals the live result for a win, a loss and mixed moves", () => {
     for (let id = 1; id <= 40; id++) {
-      const b = generateBoard(randomPot(id), D, `s${id}`);
+      const b = generateBoard(randomPortal(id), D, `s${id}`);
       let live = newGame(b);
       // scripted pseudo random moves
       for (let k = 0; k < 60 && live.status !== "won" && live.status !== "lost"; k++) {
@@ -138,7 +138,7 @@ describe("win detection and replay", () => {
       expect(re.board.cells).toEqual(live.board.cells);
       expect(re.shielded).toEqual(live.shielded);
     }
-    const b = generateBoard(fakePot(21, "Uncommon"), D, "s");
+    const b = generateBoard(fakePortal(21, "Uncommon"), D, "s");
     const won = playToWin(reveal(newGame(b), 0));
     const moves: Move[] = won.moves;
     expect(replay(b, moves).status).toBe("won");

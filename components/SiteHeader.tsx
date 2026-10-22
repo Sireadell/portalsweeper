@@ -4,16 +4,16 @@ import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/practice", label: "Practice" },
-  { href: "/play", label: "My Pots" },
-  { href: "/cotd", label: "Pot of the day" },
+  { href: "/play", label: "My Portals" },
+  { href: "/cotd", label: "Portal of the day" },
   { href: "/wall", label: "Reveal wall" },
   { href: "/hall", label: "Hall" },
   { href: "/verify", label: "Verify" },
-  // The optional Daily Pot shows in the menu only when it is switched on.
-  ...(process.env.NEXT_PUBLIC_POT_ENABLED === "true" ? [{ href: "/pot", label: "Daily Pot" }] : []),
+  // The optional Daily Portal shows in the menu only when it is switched on.
+  ...(process.env.NEXT_PUBLIC_PORTAL_ENABLED === "true" ? [{ href: "/portal", label: "Daily Portal" }] : []),
 ];
 
-// The logo is a tiny board: three covered tiles and one cleared tile showing a Pot.
+// The logo is a tiny board: three covered tiles and one cleared tile showing a Portal.
 export function Logo({ size = 30 }: { size?: number }) {
   return (
     <span className="relative grid shrink-0 grid-cols-2 gap-[2px] rounded-[9px] bg-ink2 p-[3px] ring-1 ring-edge2" style={{ width: size, height: size }} aria-hidden>
@@ -21,7 +21,7 @@ export function Logo({ size = 30 }: { size?: number }) {
       <span className="rounded-[4px] bg-gradient-to-br from-[#6452c6] to-[#34286f]" />
       <span className="rounded-[4px] bg-gradient-to-br from-[#6452c6] to-[#34286f]" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/pots/7.webp" alt="" className="h-full w-full rounded-[4px] object-cover" />
+      <img src="/portals/7.webp" alt="" className="h-full w-full rounded-[4px] object-cover" />
     </span>
   );
 }
@@ -32,9 +32,9 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-edge/70 bg-ink/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-3 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Potsweeper home">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="Portalsweeper home">
           <Logo />
-          <span className="font-display text-[18px] font-extrabold tracking-tight text-white">Potsweeper</span>
+          <span className="font-display text-[18px] font-extrabold tracking-tight text-white">Portalsweeper</span>
         </Link>
         <nav aria-label="Main" className="site-nav ml-4 hidden items-center gap-1 lg:flex">
           {NAV.map((n) => (

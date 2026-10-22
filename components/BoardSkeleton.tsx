@@ -1,5 +1,5 @@
-// Placeholder while a Pot loads: a board-shaped card that gently pulses.
-export default function BoardSkeleton({ text = "Picking a Pot…" }: { text?: string }) {
+// Placeholder while a Portal loads: a board-shaped card that gently pulses.
+export default function BoardSkeleton({ text = "Picking a Portal…" }: { text?: string }) {
   return (
     <div className="mx-auto w-full max-w-[1060px]" role="status">
       <p className="mb-3 text-[14px] text-mute">{text}</p>

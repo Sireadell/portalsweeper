@@ -1,8 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import type { Board as BoardT, PotMeta } from "@/lib/types";
+import type { Board as BoardT, PortalMeta } from "@/lib/types";
 import type { GameState } from "./gameLogic";
-import PotArt from "./PotArt";
+import PortalArt from "./PortalArt";
 
 const NUM_COLOR = ["", "#7dd3fc", "#86efac", "#fda4af", "#c4b5fd", "#fdba74", "#5eead4", "#f9a8d4", "#f1f5f9"];
 
@@ -21,7 +21,7 @@ const CONFETTI = Array.from({ length: 22 }, (_, k) => {
 
 type Props = {
   board: BoardT;
-  meta: PotMeta;
+  meta: PortalMeta;
   state: GameState;
   flagMode: boolean;
   onReveal: (i: number) => void;
@@ -76,9 +76,9 @@ export default function Board({ board, meta, state, flagMode, onReveal, onFlag, 
 
   return (
     <div className="board-wrap" data-status={state.status} style={{ aspectRatio: `${cols} / ${rows}` }}>
-      <PotArt src={meta.image} tokenId={meta.id} className="board-art absolute inset-0 h-full w-full" />
+      <PortalArt src={meta.image} tokenId={meta.id} className="board-art absolute inset-0 h-full w-full" />
       <div className="board-shade" />
-      <div role="grid" aria-label={`Pot #${meta.id} board, ${cols} by ${rows}`} className="board-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, fontSize: `calc(46cqw / ${cols})` }}>
+      <div role="grid" aria-label={`Portal #${meta.id} board, ${cols} by ${rows}`} className="board-grid" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, fontSize: `calc(46cqw / ${cols})` }}>
         {board.cells.map((_, i) => {
           const c = state.cells[i];
           const rev = state.revealed[i];

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore } from "./records";
 
-const fresh = () => new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "pot-")), "r.json"));
+const fresh = () => new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"));
 const win = (tokenId: number, date: string, seconds = 60) => ({ tokenId, date, won: true, seconds, moves: 10 });
 const loss = (tokenId: number, date: string) => ({ tokenId, date, won: false, seconds: 5, moves: 2 });
 

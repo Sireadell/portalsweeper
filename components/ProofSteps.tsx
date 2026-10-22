@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { checkProof, type ProofCheck, type ProofInput, type ProofVerdict } from "@/lib/proof";
 import { shortFingerprint } from "@/lib/share";
-import type { Board, PotMeta } from "@/lib/types";
+import type { Board, PortalMeta } from "@/lib/types";
 import { PORTALDOT_RPC, blockLink } from "@/lib/types";
 
 type Api = ProofInput & { tokenId: number; revealed: boolean };
@@ -29,7 +29,7 @@ async function getApi(token: string, date: string): Promise<Api> {
   const res = await fetch(`/api/verify?token=${encodeURIComponent(token)}&date=${encodeURIComponent(date)}`);
   const body = await res.json();
   if (!res.ok) throw new Error(body.error ?? "Something went wrong.");
-  return body as Api & { meta: PotMeta | null };
+  return body as Api & { meta: PortalMeta | null };
 }
 
 const COLORS = { pass: "var(--mint)", fail: "var(--boom)", wait: "#f5c96b", partial: "#f5c96b" } as const;
@@ -39,7 +39,7 @@ const mono = { fontFamily: "ui-monospace, monospace", wordBreak: "break-all" } a
 function StepHead({ n, title }: { n: number; title: string }) {
   return (
     <h2 className="flex items-center gap-3 text-lg font-bold text-white">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-pot text-sm font-extrabold shadow-[0_3px_0_#4b33c4]">{n}</span>
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-portal text-sm font-extrabold shadow-[0_3px_0_#4b33c4]">{n}</span>
       {title}
     </h2>
   );
@@ -108,11 +108,11 @@ export default function ProofSteps() {
       </section>
 
       <section className={card}>
-        <StepHead n={2} title="Pick a past day and a Pot" />
+        <StepHead n={2} title="Pick a past day and a Portal" />
         <p className="mt-2 text-[14px] leading-relaxed text-[#cfc9ea]">Your browser takes that day's revealed secret and builds the board again from scratch.</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="grid gap-1 text-[13px]">
-            Pot number
+            Portal number
             <input style={{ ...field, width: 110 }} inputMode="numeric" value={token} onChange={(e) => setToken(e.target.value)} />
           </label>
           <label className="grid gap-1 text-[13px]">
@@ -154,7 +154,7 @@ export default function ProofSteps() {
             </dl>
             {out.board && (
               <div className="mt-4">
-                <p className="mb-2 text-[12px] text-mute">Mine layout for Pot #{out.api.tokenId} on {out.api.date} (● is a mine, numbers count mines next to a square):</p>
+                <p className="mb-2 text-[12px] text-mute">Mine layout for Portal #{out.api.tokenId} on {out.api.date} (● is a mine, numbers count mines next to a square):</p>
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${out.board.cols}, minmax(0, 26px))`, gap: 2 }}>
                   {out.board.cells.map((c, i) => (
                     <div key={i} style={{ aspectRatio: "1", display: "grid", placeItems: "center", fontSize: 11, borderRadius: 4, background: c.mine ? "var(--boom)" : "var(--ink)", border: "1px solid var(--edge)", color: c.mine ? "#fff" : "#b9b2e0" }}>

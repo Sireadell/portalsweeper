@@ -34,7 +34,7 @@ function save() {
 async function main() {
   if (!isValidDate(date)) throw new Error(`Bad date "${date}". Use YYYY-MM-DD.`);
   // The live site holds the real secret, so by default the fingerprint is read from it. --local uses this machine's own secret.
-  const site = process.env.POT_SITE ?? "https://potsweeper.vercel.app";
+  const site = process.env.PORTAL_SITE ?? "https://portalsweeper.vercel.app";
   const commit = args.includes("--local")
     ? dailyCommit(date)
     : ((await (await fetch(`${site}/api/salt?date=${date}`)).json()) as { commit: string }).commit;

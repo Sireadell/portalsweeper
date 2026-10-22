@@ -1,6 +1,6 @@
 import { addDays } from "./salt";
-import { POT_SUPPLY } from "./types";
-import type { PotRecord, RecordStore } from "./records";
+import { PORTAL_SUPPLY } from "./types";
+import type { PortalRecord, RecordStore } from "./records";
 
 export type WalletStreak = {
   current: number;
@@ -10,9 +10,9 @@ export type WalletStreak = {
   atRisk: boolean;
 };
 
-// The days covered by a Pot's current run of wins. A run only exists while currentStreak is
+// The days covered by a Portal's current run of wins. A run only exists while currentStreak is
 // above zero, and then lastDate is the day of the latest win.
-export function runDays(rec: PotRecord): string[] {
+export function runDays(rec: PortalRecord): string[] {
   if (rec.currentStreak <= 0 || !rec.lastDate) return [];
   const out: string[] = [];
   for (let i = 0; i < rec.currentStreak; i++) out.push(addDays(rec.lastDate, -i));
@@ -31,11 +31,11 @@ export function longestRun(days: Set<string>): number {
   return best;
 }
 
-// Wallet streak = consecutive UTC days with at least one cleared ranked board across the Pots
-// the wallet holds. `extraWinDays` carries days known from other sources (Pot of the day wins).
+// Wallet streak = consecutive UTC days with at least one cleared ranked board across the Portals
+// the wallet holds. `extraWinDays` carries days known from other sources (Portal of the day wins).
 // Today not cleared yet does not break a streak until the day is over. Best is a floor: it
-// takes the largest of each Pot's own best and the longest stretch we can still see.
-export function walletStreak(records: PotRecord[], today: string, extraWinDays: Iterable<string> = []): WalletStreak {
+// takes the largest of each Portal's own best and the longest stretch we can still see.
+export function walletStreak(records: PortalRecord[], today: string, extraWinDays: Iterable<string> = []): WalletStreak {
   const days = new Set<string>(extraWinDays);
   for (const r of records) for (const d of runDays(r)) days.add(d);
   const clearedToday = days.has(today);
@@ -50,7 +50,7 @@ export function walletStreak(records: PotRecord[], today: string, extraWinDays: 
 }
 
 export function cleanIds(raw: string | null, max = 300): number[] {
-  const ids = (raw ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= POT_SUPPLY);
+  const ids = (raw ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= PORTAL_SUPPLY);
   return [...new Set(ids)].slice(0, max);
 }
 
@@ -67,7 +67,7 @@ export async function streakFor(store: RecordStore, ids: number[], address: stri
   return walletStreak(records, today, extra);
 }
 
-// Every Pot that anyone has ever cleared, from the real records.
+// Every Portal that anyone has ever cleared, from the real records.
 export async function clearedIds(store: RecordStore): Promise<number[]> {
   return (await store.listRecords()).filter((r) => r.wins > 0).map((r) => r.tokenId).sort((a, b) => a - b);
 }

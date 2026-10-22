@@ -1,6 +1,6 @@
 import { keccak256, toBytes } from "viem";
 import { generateBoard } from "./engine";
-import type { Board, PotMeta } from "./types";
+import type { Board, PortalMeta } from "./types";
 
 export type CheckState = "pass" | "fail" | "wait";
 export type ProofCheck = { label: string; state: CheckState; note: string };
@@ -10,7 +10,7 @@ export type ProofInput = {
   date: string;
   commit: string; // fingerprint our server shows for that day
   salt: string | null; // revealed secret, null while the day is live
-  meta: PotMeta | null;
+  meta: PortalMeta | null;
   chain: { found: boolean; data?: string; timestamp?: number; txHash?: string; block?: number; error?: string };
 };
 
@@ -57,10 +57,10 @@ export function checkProof(i: ProofInput): { verdict: ProofVerdict; headline: st
     checks.push({
       label: "Board rebuilt from the secret",
       state: same(board.commit, recomputed) ? "pass" : "fail",
-      note: `Rebuilt this Pot's board in your browser: ${board.cols} by ${board.rows}, ${board.mines} mines.`,
+      note: `Rebuilt this Portal's board in your browser: ${board.cols} by ${board.rows}, ${board.mines} mines.`,
     });
   } else {
-    checks.push({ label: "Board rebuilt from the secret", state: "wait", note: "This Pot's art data was not available, so the layout could not be drawn." });
+    checks.push({ label: "Board rebuilt from the secret", state: "wait", note: "This Portal's art data was not available, so the layout could not be drawn." });
   }
 
   if (!chain.found) {

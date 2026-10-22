@@ -1,22 +1,22 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { Board as BoardT, PotMeta } from "@/lib/types";
+import type { Board as BoardT, PortalMeta } from "@/lib/types";
 import { chord, flag, initGame, minesLeft, reveal, seconds, type GameState } from "./gameLogic";
 import Board from "./Board";
-import PotArt from "./PotArt";
+import PortalArt from "./PortalArt";
 import CommitChip from "./CommitChip";
 import RuleCards from "./RuleCards";
 import ShareButton from "./ShareButton";
 import ProofBadge from "./ProofBadge";
 import SoundToggle from "./SoundToggle";
-import { artName, potLabel } from "@/lib/names";
+import { artName, portalLabel } from "@/lib/names";
 import { play, readMuted, soundForMove, unlockAudio, writeMuted, type MoveSummary } from "@/lib/sound";
 import type { Move } from "@/lib/game";
 
 export type Mode = "daily" | "practice" | "cotd" | "cotd-free";
 type Saved = { won: boolean; seconds: number; moves: number };
 
-const RULE_ICON: Record<string, string> = { "tier-size": "▦", "glaze-peek": "✨", "charm-flag": "⚑", "lid-shield": "🛡" };
+const RULE_ICON: Record<string, string> = { "tier-size": "▦", "core-peek": "✨", "sigil-flag": "⚑", "frame-shield": "🛡" };
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 function untilTomorrow(): string {
@@ -28,14 +28,14 @@ function untilTomorrow(): string {
 
 export default function GameScreen({
   meta, board, mode, onAgain, address, onFinish, footer,
-}: { meta: PotMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null; onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode }) {
+}: { meta: PortalMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null; onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode }) {
   const date = board.date;
   const [state, setState] = useState<GameState>(() => initGame(board));
   const [flagMode, setFlagMode] = useState(false);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [, tick] = useState(0);
   const [muted, setMuted] = useState(false);
-  const storeKey = `potsweeper:${meta.id}:${date}`;
+  const storeKey = `portalsweeper:${meta.id}:${date}`;
 
   useEffect(() => {
     setState(initGame(board));
@@ -66,7 +66,7 @@ export default function GameScreen({
   }, [state.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Little sounds while playing: a click for an opened square, a rising run when a patch opens,
-  // a tick for flags, a ping when the Lid shield takes a hit.
+  // a tick for flags, a ping when the Frame shield takes a hit.
   const lastMove = useRef<MoveSummary | null>(null);
   useEffect(() => {
     const now: MoveSummary = {
@@ -87,7 +87,7 @@ export default function GameScreen({
   useEffect(() => {
     if (state.status !== "won") { setBestNote(null); return; }
     const secs = seconds(state);
-    const key = `potsweeper:best:${board.cols}x${board.rows}`;
+    const key = `portalsweeper:best:${board.cols}x${board.rows}`;
     try {
       const prev = Number(localStorage.getItem(key));
       if (!prev || secs < prev) {
@@ -135,8 +135,8 @@ export default function GameScreen({
   const finished = saved ?? (done ? { won: state.status === "won", seconds: seconds(state), moves: state.moves } : null);
   const sub =
     mode === "daily" ? `Today's board, ${date} (UTC)`
-      : mode === "cotd" ? `Pot of the day, ranked, ${date} (UTC)`
-        : mode === "cotd-free" ? `Pot of the day, not ranked, ${date} (UTC)`
+      : mode === "cotd" ? `Portal of the day, ranked, ${date} (UTC)`
+        : mode === "cotd-free" ? `Portal of the day, not ranked, ${date} (UTC)`
           : "Practice board, not ranked";
 
   return (
@@ -146,7 +146,7 @@ export default function GameScreen({
         <div className="min-w-0">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{potLabel(meta.id)}</h2>
+              <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
               <p className="text-[13px] text-mute">
                 {sub}{artName(meta) ? ` · Art: ${artName(meta)}` : ""}
               </p>
@@ -197,7 +197,7 @@ export default function GameScreen({
                 </div>
               )}
               {state.shieldedAt.length > 0 && !done && (
-                <p className="toast" role="status">🛡 Your Lid took that hit. It is used up now.</p>
+                <p className="toast" role="status">🛡 Your Frame took that hit. It is used up now.</p>
               )}
             </>
           )}
@@ -211,7 +211,7 @@ export default function GameScreen({
                 rules={board.rules.map((r) => `${r.trait}: ${r.value}`)} size={`${board.cols} by ${board.rows}`} bestNote={saved ? null : bestNote} />
               {finished.won && mode !== "practice" && mode !== "cotd-free" && <ProofBadge date={date} token={meta.id} commit={board.commit} />}
               {finished.won && (
-                <ShareButton name={potLabel(meta.id)} params={{ token: meta.id, date, time: Math.round(finished.seconds) }} cols={board.cols} rows={board.rows} />
+                <ShareButton name={portalLabel(meta.id)} params={{ token: meta.id, date, time: Math.round(finished.seconds) }} cols={board.cols} rows={board.rows} />
               )}
             </div>
           )}
@@ -219,7 +219,7 @@ export default function GameScreen({
           {footer}
 
           <div className="space-y-3">
-            <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mute">Rules from this Pot</h3>
+            <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mute">Rules from this Portal</h3>
             <RuleCards board={board} state={state} />
             <CommitChip commit={board.commit} />
           </div>
@@ -239,18 +239,18 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote }: {
-  meta: PotMeta; won: boolean; secs: number; moves: number; mode: Mode; onAgain?: () => void; rules: string[]; size: string; bestNote?: string | null;
+  meta: PortalMeta; won: boolean; secs: number; moves: number; mode: Mode; onAgain?: () => void; rules: string[]; size: string; bestNote?: string | null;
 }) {
   if (won) {
     return (
       <section className="reveal-card" aria-live="polite">
         <div className="flex items-center gap-4">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-mint/60 shadow-[0_10px_30px_-10px_rgba(139,245,192,0.7)] [container-type:inline-size]">
-            <PotArt src={meta.image} tokenId={meta.id} className="h-full w-full" />
+            <PortalArt src={meta.image} tokenId={meta.id} className="h-full w-full" />
           </div>
           <div className="min-w-0">
             <p className="eyebrow">Board cleared</p>
-            <h3 className="mt-1 truncate text-[30px] font-extrabold leading-none tracking-tight text-white">{potLabel(meta.id)}</h3>
+            <h3 className="mt-1 truncate text-[30px] font-extrabold leading-none tracking-tight text-white">{portalLabel(meta.id)}</h3>
             <p className="mt-1.5 text-[13px] text-text2">Its art is fully revealed.</p>
           </div>
         </div>
@@ -266,7 +266,7 @@ function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote 
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {rules.map((r) => (<li key={r} className="chip">{r}</li>))}
         </ul>
-        {(mode === "practice" || mode === "cotd-free") && onAgain && <button className="btn-main mt-4 w-full sm:w-auto" onClick={onAgain}>{mode === "cotd-free" ? "Play today's Pot again" : "Play another Pot"}</button>}
+        {(mode === "practice" || mode === "cotd-free") && onAgain && <button className="btn-main mt-4 w-full sm:w-auto" onClick={onAgain}>{mode === "cotd-free" ? "Play today's Portal again" : "Play another Portal"}</button>}
         {mode !== "practice" && mode !== "cotd-free" && <p className="mt-3 text-[13px] text-mute">Next board in {untilTomorrow()}.</p>}
       </section>
     );
@@ -277,7 +277,7 @@ function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote 
       <h3 className="mt-1 text-[30px] font-extrabold leading-none text-white">Boom.</h3>
       <p className="mt-2 text-[14px] text-[#f0d3da]">
         {mode !== "practice" && mode !== "cotd-free"
-          ? `${potLabel(meta.id)} stays hidden today. A fresh board opens in ${untilTomorrow()}. Come back tomorrow.`
+          ? `${portalLabel(meta.id)} stays hidden today. A fresh board opens in ${untilTomorrow()}. Come back tomorrow.`
           : "That one got you. Practice boards are free, so try again."}
       </p>
       {(mode === "practice" || mode === "cotd-free") && onAgain && <button className="btn-main mt-4 w-full sm:w-auto" onClick={onAgain}>Try again</button>}
@@ -285,10 +285,10 @@ function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote 
   );
 }
 
-function SavedDay({ meta, saved }: { meta: PotMeta; saved: Saved }) {
+function SavedDay({ meta, saved }: { meta: PortalMeta; saved: Saved }) {
   return (
     <div className="board-wrap board-saved" data-status={saved.won ? "won" : "lost"} style={{ aspectRatio: "1 / 1" }}>
-      <PotArt src={meta.image} tokenId={meta.id} className="board-art absolute inset-0 h-full w-full" />
+      <PortalArt src={meta.image} tokenId={meta.id} className="board-art absolute inset-0 h-full w-full" />
       <div className="board-shade" />
       {saved.won && <div className="board-sheen" aria-hidden />}
     </div>

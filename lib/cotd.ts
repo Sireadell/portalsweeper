@@ -1,26 +1,26 @@
 import { keccak256, recoverMessageAddress, toBytes, type Hex } from "viem";
-import { POT_SUPPLY } from "./types";
+import { PORTAL_SUPPLY } from "./types";
 import { cotdMessage } from "./cotd-message";
 import { addDays, dailyCommit, utcToday } from "./salt";
 import { rankCotd, type CotdEntry, type RecordStore } from "./records";
 
-// One unclaimed Pot is featured per UTC day, picked from the date and the public daily commit.
-// Anyone can recompute it once the commit is posted: id = keccak256("pot-of-the-day:DATE:COMMIT") mod 500 + 1,
-// then step forward past Pots already won on an earlier day and the Pot featured the day before.
-export function pickPotOfDay(date: string, commit: string, taken: ReadonlySet<number> = new Set()): number {
-  const h = BigInt(keccak256(toBytes(`pot-of-the-day:${date}:${commit}`)));
-  let id = Number(h % BigInt(POT_SUPPLY)) + 1;
-  for (let i = 0; i < POT_SUPPLY && taken.has(id); i++) id = (id % POT_SUPPLY) + 1;
+// One unclaimed Portal is featured per UTC day, picked from the date and the public daily commit.
+// Anyone can recompute it once the commit is posted: id = keccak256("portal-of-the-day:DATE:COMMIT") mod 500 + 1,
+// then step forward past Portals already won on an earlier day and the Portal featured the day before.
+export function pickPortalOfDay(date: string, commit: string, taken: ReadonlySet<number> = new Set()): number {
+  const h = BigInt(keccak256(toBytes(`portal-of-the-day:${date}:${commit}`)));
+  let id = Number(h % BigInt(PORTAL_SUPPLY)) + 1;
+  for (let i = 0; i < PORTAL_SUPPLY && taken.has(id); i++) id = (id % PORTAL_SUPPLY) + 1;
   return id;
 }
 
-export async function potOfDay(store: RecordStore, date: string): Promise<number> {
+export async function portalOfDay(store: RecordStore, date: string): Promise<number> {
   const fixed = await store.featuredGet(date);
   if (fixed) return fixed;
   const taken = new Set((await store.claimList()).filter((c) => c.date < date).map((c) => c.tokenId));
   const prev = await store.featuredGet(addDays(date, -1));
   if (prev) taken.add(prev);
-  return store.featuredSet(date, pickPotOfDay(date, dailyCommit(date), taken));
+  return store.featuredSet(date, pickPortalOfDay(date, dailyCommit(date), taken));
 }
 
 export function nextUtcMidnight(now: Date = new Date()): number {
@@ -61,7 +61,7 @@ export async function startRanked(
   const date = utcToday(new Date(now));
   const who = await whoSigned(deps, input.address, input.signature, date);
   if (typeof who !== "string") return who;
-  const out = await deps.store.cotdStart({ date, wallet: who, tokenId: await potOfDay(deps.store, date), startedAt: now });
+  const out = await deps.store.cotdStart({ date, wallet: who, tokenId: await portalOfDay(deps.store, date), startedAt: now });
   if (!out.ok) return { ok: false, status: 409, error: "You already took today's ranked try.", entry: out.entry };
   return { ok: true, entry: out.entry };
 }
@@ -127,13 +127,13 @@ export async function summarize(store: RecordStore, now: Date = new Date(), addr
   const win = rankCotd(prevEntries)[0];
   const out: CotdSummary = {
     date,
-    tokenId: await potOfDay(store, date),
+    tokenId: await portalOfDay(store, date),
     nextUtc: nextUtcMidnight(now),
     attempts: entries.length,
     cleared: ranked.length,
     recent: recentClears(entries),
     leaderboard: board,
-    yesterday: { date: prev, tokenId: (await store.featuredGet(prev)) ?? (await potOfDay(store, prev)), winner: win ? { wallet: shortWallet(win.wallet), seconds: win.seconds! } : null },
+    yesterday: { date: prev, tokenId: (await store.featuredGet(prev)) ?? (await portalOfDay(store, prev)), winner: win ? { wallet: shortWallet(win.wallet), seconds: win.seconds! } : null },
   };
   if (address) {
     const w = address.toLowerCase();

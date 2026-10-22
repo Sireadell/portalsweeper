@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyResult, EMPTY_STATS, isPracticeSalt, newPracticeSalt, nextPotId, parsePotId, randomPotId, tilesForBoard } from "./practice";
-import { POT_SUPPLY } from "./types";
+import { applyResult, EMPTY_STATS, isPracticeSalt, newPracticeSalt, nextPortalId, parsePortalId, randomPortalId, tilesForBoard } from "./practice";
+import { PORTAL_SUPPLY } from "./types";
 
 describe("practice salt", () => {
   it("is fresh each time and well formed", () => {
@@ -14,18 +14,18 @@ describe("practice salt", () => {
   });
 });
 
-describe("pot picking", () => {
-  it("stays in range and never repeats the current Pot", () => {
-    expect(randomPotId(() => 0)).toBe(1);
-    expect(randomPotId(() => 0.9999999)).toBe(POT_SUPPLY);
-    expect(nextPotId(1, () => 0)).toBe(2);
-    expect(nextPotId(POT_SUPPLY, () => 0.9999999)).toBe(1);
+describe("portal picking", () => {
+  it("stays in range and never repeats the current Portal", () => {
+    expect(randomPortalId(() => 0)).toBe(1);
+    expect(randomPortalId(() => 0.9999999)).toBe(PORTAL_SUPPLY);
+    expect(nextPortalId(1, () => 0)).toBe(2);
+    expect(nextPortalId(PORTAL_SUPPLY, () => 0.9999999)).toBe(1);
   });
   it("parses ids", () => {
-    expect(parsePotId("420")).toBe(420);
-    expect(parsePotId("0")).toBeNull();
-    expect(parsePotId("1970")).toBeNull();
-    expect(parsePotId("x")).toBeNull();
+    expect(parsePortalId("420")).toBe(420);
+    expect(parsePortalId("0")).toBeNull();
+    expect(parsePortalId("1970")).toBeNull();
+    expect(parsePortalId("x")).toBeNull();
   });
 });
 
