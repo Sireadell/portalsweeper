@@ -80,7 +80,8 @@ Why native NFTs and not a Solidity contract: on the V3 testnet a contract locks 
 |---|---|
 | First fingerprint post, 2026-10-22 | EVM tx `0xbdab89b89b034f57296e912129cc45b093eb5403e4682dbfa3f23791bd01b872`, [block 148888](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888) |
 | Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
-| Portal collection (pallet-nfts) | Created next, once the issuer account is funded |
+| Portal collection (pallet-nfts) | Collection id **5**, created in block [`0x56619eef…eb6fd5`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x56619eef26eb975273e0edfe5bef0b6337a288a4ae23c53818b3d83ed0eb6fd5). Max 500, issuer-only mint |
+| Collection issuer (native) | `5GxegAnxmYtA8EQXCCuSy5KTJu7fLsR6THtXpx7bw3P6yeqc` |
 
 ## Reasons to come back
 
