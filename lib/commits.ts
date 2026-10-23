@@ -48,7 +48,7 @@ export async function readStoredPost(date: string, doFetch: Fetcher = fetch): Pr
 }
 
 export async function saveStoredPost(post: CommitPost, doFetch: Fetcher = fetch): Promise<boolean> {
-  if (!redisConfig()) return false;
+  if (!process.env.REDIS_URL && !redisConfig()) return false;
   await redis(["SET", `commit:${post.date}`, JSON.stringify(post)], doFetch);
   return true;
 }
