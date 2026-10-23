@@ -8,6 +8,8 @@ Every day one unclaimed Portal is the **Portal of the day**. Anyone can take one
 
 Live: **https://portalsweeper.vercel.app**
 
+Demo video (2 min): **https://youtu.be/VoFko5kYYdk**
+
 Built for [Portaldot Hacker House 2026](https://dorahacks.io/hackathon/portaldot-hacker-house-2026), Ecosystem DApps track.
 
 ## Try it in one minute, no wallet
@@ -76,6 +78,8 @@ Why native NFTs and not a Solidity contract: on the V3 testnet a contract locks 
 
 ### Architecture
 
+![How Portalsweeper fits together: the browser, our server, and Portaldot's EVM side and NFT module](docs/architecture.png)
+
 ```mermaid
 flowchart LR
   P[Player's browser] -- "one move at a time" --> API[Next.js API on Vercel]
@@ -90,14 +94,18 @@ flowchart LR
 
 The mines never leave the server while a game is running. The server replays the move log on the real board, keeps the clock, and records the result itself, so a player cannot send in a made-up score.
 
-### On-chain record so far
+### Portaldot testnet deployment
 
-| What | Where |
+| What | Value |
 |---|---|
-| First fingerprint post, 2026-10-22 | EVM tx `0xbdab89b89b034f57296e912129cc45b093eb5403e4682dbfa3f23791bd01b872`, [block 148888](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888) |
+| Network | Portaldot V3 testnet, `wss://test-node-v3.portaldot.dev`. EVM side chain id 420420777, RPC `https://test-evm-rpc-v3.portaldot.dev` |
+| Portal collection | Native NFT pallet (pallet-nfts), collection id **5**, max 500, only the issuer can mint. Created in block [`0x56619eef…eb6fd5`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x56619eef26eb975273e0edfe5bef0b6337a288a4ae23c53818b3d83ed0eb6fd5) |
+| Collection issuer | `5GxegAnxmYtA8EQXCCuSy5KTJu7fLsR6THtXpx7bw3P6yeqc` |
+| First daily fingerprint | 2026-10-22, tx `0xbdab89b89b034f57296e912129cc45b093eb5403e4682dbfa3f23791bd01b872`, [block 148888](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888) |
 | Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
-| Portal collection (pallet-nfts) | Collection id **5**, created in block [`0x56619eef…eb6fd5`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x56619eef26eb975273e0edfe5bef0b6337a288a4ae23c53818b3d83ed0eb6fd5). Max 500, issuer-only mint |
-| Collection issuer (native) | `5GxegAnxmYtA8EQXCCuSy5KTJu7fLsR6THtXpx7bw3P6yeqc` |
+| Portals minted so far | None. The first mint happens after the first day with a winner. |
+
+There is no contract address. The Portals use Portaldot's built-in NFT module instead of a contract, and the fingerprint is a plain 0-value transaction.
 
 ## Status at check-in (Oct 24)
 
@@ -106,13 +114,13 @@ Done:
 - Portal of the day with one ranked try per wallet; every move checked on the server
 - Portal collection created on Portaldot V3 (pallet-nfts, collection id 5)
 - Daily fingerprint posted on the Portaldot EVM side, and a page to check it
+- Demo video: https://youtu.be/VoFko5kYYdk
 
 Still to do before Nov 6:
 - **PvP:** challenge a friend by link, both play the same board, and the faster clear wins
 - **Stakes:** put up tPOT or a Portal NFT on a PvP match; the winner takes the pot
 - First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
 - More testing and polish on the live site
-- Demo video
 
 ## Reasons to come back
 
@@ -135,6 +143,14 @@ Still to do before Nov 6:
 - **The Portals are my own design.** The art and the trait rules come from the generator in this repo.
 - **Records live on a free database.** That is fine for now, but it is not built for a large crowd.
 - **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value.
+
+## Development log
+
+| Date | What changed |
+|---|---|
+| 2026-10-19 to 22 | Built Chogsweeper on Monad, the game this one grew from ([repo](https://github.com/Sireadell/chogsweeper)) |
+| 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Created collection 5 on the native NFT pallet. Posted the first daily fingerprint (block 148888) |
+| 2026-10-23 | Demo video, pitch deck and architecture diagram |
 
 ## Where this came from
 
@@ -191,5 +207,5 @@ Nothing secret is ever written in this repo.
 |---|---|
 | Portaldot V3 testnet | Daily fingerprints (EVM side) and the Portal NFTs (native pallet-nfts) |
 | Next.js, viem and @polkadot/api | The site, the EVM reads and the native NFT calls |
-| Upstash Redis | Records, streaks, the wall, Portal of the day and claims |
+| Redis (Vercel Redis on the live site; Upstash also works) | Records, streaks, the wall, Portal of the day and claims |
 | Vercel | Hosting and the two daily timers |
