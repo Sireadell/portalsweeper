@@ -129,7 +129,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
     );
 
   const me = address?.toLowerCase() ?? null;
-  const mine = view.players.find((p) => p.wallet && p.wallet === me);
+  const mine = view.players.find((p) => p.joined && p.wallet === me);
   const iAmCreator = me !== null && view.players[0].wallet === me;
   const myDone = !!mine?.finished;
 

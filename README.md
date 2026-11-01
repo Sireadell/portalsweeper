@@ -151,6 +151,7 @@ Still to do before Nov 6:
 | 2026-10-19 to 22 | Built Chogsweeper on Monad, the game this one grew from ([repo](https://github.com/Sireadell/chogsweeper)) |
 | 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Created collection 5 on the native NFT pallet. Posted the first daily fingerprint (block 148888) |
 | 2026-10-23 | Demo video, pitch deck and architecture diagram |
+| 2026-11-01 | Friend challenges: send a link, you and a friend play the same hidden board, and the faster clear wins |
 
 ## Where this came from
 
