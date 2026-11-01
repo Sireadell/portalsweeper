@@ -118,7 +118,7 @@ Done:
 
 Still to do before Nov 6:
 - **PvP:** challenge a friend by link, both play the same board, and the faster clear wins
-- **Stakes:** put up tPOT or a Portal NFT on a PvP match; the winner takes the pot
+- **Stakes:** built and tested behind a flag, waiting for the PvP flow to call it (see `docs/stakes.md`). tPOT only, no Portal NFT stakes
 - First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
 - More testing and polish on the live site
 
@@ -142,7 +142,8 @@ Still to do before Nov 6:
 - **No Portal has been won yet.** The award flow is tested (see `lib/award.test.ts`), but the first real mint happens after the first day with a winner.
 - **The Portals are my own design.** The art and the trait rules come from the generator in this repo.
 - **Records live on a free database.** That is fine for now, but it is not built for a large crowd.
-- **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value.
+- **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value. Stakes on a match use that testnet tPOT, so nothing real is ever at risk.
+- **Stakes are trusted escrow.** Players send tPOT to a wallet our server controls, and the server pays the winner. It is plain transfers, not a contract, so you have to trust the server to pay the right person. Details and limits in `docs/stakes.md`.
 
 ## Development log
 
@@ -152,6 +153,7 @@ Still to do before Nov 6:
 | 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Created collection 5 on the native NFT pallet. Posted the first daily fingerprint (block 148888) |
 | 2026-10-23 | Demo video, pitch deck and architecture diagram |
 | 2026-11-01 | Friend challenges: send a link, you and a friend play the same hidden board, and the faster clear wins |
+| 2026-11-01 | Added stakes for matches: both players send tPOT to an escrow wallet, the server checks the transfer on Portaldot, and the winner is paid the pot. Behind a flag until the PvP flow is in |
 
 ## Where this came from
 
@@ -197,6 +199,7 @@ npx tsx scripts/post-commit.ts --dry-run
 | `POSTER_PRIVATE_KEY` | Key of the small EVM wallet that posts the daily fingerprint |
 | `ISSUER_MNEMONIC` | Key of the native account that owns the Portal collection and mints the winners' Portals |
 | `PORTAL_COLLECTION_ID`, `NEXT_PUBLIC_PORTAL_COLLECTION_ID` | The pallet-nfts collection id |
+| `ESCROW_PRIVATE_KEY`, `NEXT_PUBLIC_STAKES` | Key of the escrow wallet that holds stakes, and `1` to switch stakes on |
 | `CRON_SECRET` | Protects the two daily timers |
 | `REDIS_URL` (Vercel Redis), or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Records store. One of the two is required on a hosted site |
 
