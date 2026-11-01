@@ -10,6 +10,8 @@ import { PORTAL_SUPPLY, type Board } from "./types";
 import { challengeCreateMessage, challengePlayMessage } from "./challenge-message";
 import { utcToday } from "./salt";
 import { countMoves, parseMove, playMove, replayLog, toLive, type LiveState } from "./live";
+import { createStake, parseTpot, type StakeDeps, type StakeRecord } from "./stakes";
+import { resolveStake } from "./challengeStakes";
 import type { Challenge, ChallengeEntries, ChallengeEntry, ChallengeSlot, RecordStore } from "./records";
 
 export const CHALLENGE_LIFE_MS = 24 * 3_600_000; // how long a link stays open for a second player
@@ -23,6 +25,7 @@ export type ChallengeDeps = {
   board: (c: Challenge) => Promise<Board>; // the real board (server only: it needs the seed)
   newId?: () => string;
   newSeed?: () => string;
+  stakes?: StakeDeps | null; // set only when stakes are switched on; without it challenges ignore stakes
 };
 
 const recoverDefault = (message: string, signature: string) => recoverMessageAddress({ message, signature: signature as Hex });
@@ -145,6 +148,13 @@ export function challengeView(ch: Challenge, entries: ChallengeEntries, now: num
   };
 }
 
+// Pays the winner or refunds, once the challenge is settled. Does nothing without stakes, and a stake
+// that is already paid is just returned, so this is safe to call on every read and every move.
+export async function resolveChallengeStake(deps: ChallengeDeps, id: string, now: number = (deps.now ?? Date.now)()): Promise<StakeRecord | null> {
+  if (!deps.stakes) return null;
+  return resolveStake(deps.stakes, id, await getChallengeWinner(deps.store, id, now));
+}
+
 export async function getChallengeView(store: RecordStore, id: string, now: number = Date.now()): Promise<ChallengeView | null> {
   const ch = await store.challengeGet(id);
   return ch ? challengeView(ch, await store.challengeEntries(id), now) : null;
@@ -155,12 +165,22 @@ export async function getChallengeView(store: RecordStore, id: string, now: numb
 // ---------------------------------------------------------------------------
 export async function createChallenge(
   deps: ChallengeDeps,
-  input: { address: unknown; signature: unknown; tokenId?: unknown },
+  input: { address: unknown; signature: unknown; tokenId?: unknown; stakeTpot?: unknown },
 ): Promise<{ ok: true; challenge: ChallengeView } | ChallengeError> {
   const now = (deps.now ?? Date.now)();
   const date = utcToday(new Date(now));
   const who = await whoSigned(deps, input.address, input.signature, challengeCreateMessage(date));
   if (typeof who !== "string") return who;
+  let stakeTpot: string | null = null;
+  if (deps.stakes && input.stakeTpot !== undefined && input.stakeTpot !== null && input.stakeTpot !== "" && input.stakeTpot !== "0") {
+    try {
+      if (typeof input.stakeTpot !== "string") throw new Error("Amount must be a plain number like 0.05.");
+      parseTpot(input.stakeTpot);
+      stakeTpot = input.stakeTpot;
+    } catch (e) {
+      return { ok: false, status: 400, error: e instanceof Error ? e.message : "That stake is not valid." };
+    }
+  }
   const seed = (deps.newSeed ?? (() => `0x${randomBytes(32).toString("hex")}`))();
   let tokenId = portalForSeed(seed);
   if (input.tokenId !== undefined) {
@@ -170,7 +190,16 @@ export async function createChallenge(
   }
   for (let tries = 0; tries < 5; tries++) {
     const ch: Challenge = { id: (deps.newId ?? (() => randomBytes(6).toString("hex")))(), seed, tokenId, date, creator: who, createdAt: now, expiresAt: now + CHALLENGE_LIFE_MS };
-    if (await deps.store.challengeCreate(ch)) return { ok: true, challenge: challengeView(ch, {}, now) };
+    if (await deps.store.challengeCreate(ch)) {
+      if (stakeTpot && deps.stakes) {
+        try {
+          await createStake(deps.stakes, ch.id, { creator: who, amountTpot: stakeTpot });
+        } catch {
+          return { ok: false, status: 500, error: "The challenge was made but its stake could not be set. Make a new one." };
+        }
+      }
+      return { ok: true, challenge: challengeView(ch, {}, now) };
+    }
   }
   return { ok: false, status: 500, error: "Could not make a challenge. Try again." };
 }
@@ -196,6 +225,13 @@ export async function startChallenge(
   if (entry && entry.wallet !== who) return { ok: false, status: 409, error: "This challenge already has two players." };
   if (!entry) {
     if (now > ch.expiresAt) return { ok: false, status: 410, error: "This challenge link has expired." };
+    // With a stake on the table nobody sits down until both have locked theirs, and only those two may.
+    const stake = deps.stakes ? await deps.stakes.store.get(ch.id) : null;
+    if (stake) {
+      if (stake.status !== "locked" && stake.status !== "open") return { ok: false, status: 403, error: "The stake on this challenge is closed." };
+      if (!stake.locks.some((l) => l.wallet === who)) return { ok: false, status: 403, error: "Lock your stake first. Both players must put up the same stake before anyone plays." };
+      if (stake.status !== "locked") return { ok: false, status: 403, error: "Waiting for the other player to lock their stake." };
+    }
     const seat = await deps.store.challengeSeat(ch.id, slot, { wallet: who, startedAt: now });
     if (!seat.ok && seat.entry.wallet !== who) return { ok: false, status: 409, error: "This challenge already has two players." };
     entry = seat.entry;
@@ -232,5 +268,7 @@ export async function moveChallenge(
   const live = toLive(played.g, played.log, now);
   if (!played.justEnded || cur.finishedAt) return { ok: true, live };
   await deps.store.challengeFinish(ch.id, slot, { won: played.g.status === "won", seconds: live.elapsed, moves: countMoves(played.g), at: now });
+  // The pot is paid by whoever sees the result first; if that fails the page or the timer tries again.
+  try { await resolveChallengeStake(deps, ch.id, now); } catch (e) { console.error("stake payout failed", ch.id, e instanceof Error ? e.message : e); }
   return { ok: true, live, challenge: (await getChallengeView(deps.store, ch.id, now)) ?? undefined };
 }

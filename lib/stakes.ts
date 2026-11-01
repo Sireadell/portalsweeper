@@ -42,6 +42,7 @@ export interface StakeStore {
   save(rec: StakeRecord): Promise<void>;
   claimTx(txHash: string, challengeId: string): Promise<boolean>; // one transfer can back one lock only
   releaseTx(txHash: string): Promise<void>;
+  listLive(): Promise<string[]>; // challenge ids whose stake is still open or locked (for the timer)
 }
 
 export type StakeDeps = { store: StakeStore; chain: StakeChain; now?: () => number };
@@ -173,6 +174,9 @@ export class MemoryStakeStore implements StakeStore {
   async releaseTx(tx: string) {
     this.txs.delete(tx);
   }
+  async listLive() {
+    return [...this.recs.values()].filter((r) => r.status === "open" || r.status === "locked").map((r) => r.challengeId);
+  }
 }
 
 // Same Redis the rest of the site uses: REDIS_URL, else Upstash REST. Without either (local dev),
@@ -196,10 +200,16 @@ export class RedisStakeStore implements StakeStore {
     return raw ? (JSON.parse(raw) as StakeRecord) : null;
   }
   async create(rec: StakeRecord) {
-    return (await this.cmd("SET", `stake:${rec.challengeId}`, JSON.stringify(rec), "NX")) === "OK";
+    const made = (await this.cmd("SET", `stake:${rec.challengeId}`, JSON.stringify(rec), "NX")) === "OK";
+    if (made) await this.cmd("SADD", "stakes:live", rec.challengeId);
+    return made;
   }
   async save(rec: StakeRecord) {
     await this.cmd("SET", `stake:${rec.challengeId}`, JSON.stringify(rec));
+    if (rec.status === "settled" || rec.status === "refunded") await this.cmd("SREM", "stakes:live", rec.challengeId);
+  }
+  async listLive() {
+    return (await this.cmd<string[] | null>("SMEMBERS", "stakes:live")) ?? [];
   }
   async claimTx(tx: string, id: string) {
     return (await this.cmd("SET", `staketx:${tx}`, id, "NX")) === "OK";

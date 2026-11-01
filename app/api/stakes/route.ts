@@ -1,29 +1,14 @@
 import { NextResponse } from "next/server";
-import { createStake, formatTpot, getStake, getStakeStore, lockStake, potWei, stakesEnabled, type StakeRecord } from "@/lib/stakes";
+import { createStake, getStake, getStakeStore, lockStake, stakesEnabled } from "@/lib/stakes";
+import { stakeView } from "@/lib/challengeStakes";
+import { getStore } from "@/lib/records";
+import { getChallengeWinner } from "@/lib/challenge";
 import { portaldotStakeChain } from "@/lib/stakeChain";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const off = () => NextResponse.json({ error: "Stakes are not switched on." }, { status: 404 });
-
-// What the page needs to show a pot. Nothing private is in a stake record.
-function view(r: StakeRecord, escrow?: string) {
-  return {
-    challengeId: r.challengeId,
-    status: r.status,
-    stakeTpot: formatTpot(r.amountWei),
-    potTpot: formatTpot(potWei(r)),
-    creator: r.creator,
-    opponent: r.opponent ?? null,
-    locks: r.locks,
-    winner: r.winner ?? null,
-    payoutTx: r.payoutTx ?? null,
-    refundTxs: r.refundTxs ?? [],
-    escrow: escrow ?? null,
-    note: "Testnet tPOT, no value.",
-  };
-}
 
 function escrowOrNull(): string | undefined {
   try {
@@ -38,7 +23,7 @@ export async function GET(req: Request) {
   const id = new URL(req.url).searchParams.get("challenge");
   if (!id) return NextResponse.json({ error: "Missing challenge." }, { status: 400 });
   const rec = await getStake({ store: getStakeStore(), chain: portaldotStakeChain() }, id);
-  return rec ? NextResponse.json(view(rec, escrowOrNull()), { headers: { "Cache-Control": "no-store" } }) : NextResponse.json({ error: "No stake on this challenge." }, { status: 404 });
+  return rec ? NextResponse.json(stakeView(rec, escrowOrNull()), { headers: { "Cache-Control": "no-store" } }) : NextResponse.json({ error: "No stake on this challenge." }, { status: 404 });
 }
 
 // { action: "create", challengeId, wallet, amountTpot } or { action: "lock", challengeId, wallet, txHash }.
@@ -54,12 +39,16 @@ export async function POST(req: Request) {
   const deps = { store: getStakeStore(), chain: portaldotStakeChain() };
   try {
     if (b.action === "create") {
+      // A challenge sets its own stake when it is made; adding one to an existing challenge is refused.
+      if (await getStore().challengeGet(String(b.challengeId ?? ""))) throw new Error("A stake is set when the challenge is made.");
       const rec = await createStake(deps, String(b.challengeId ?? ""), { creator: String(b.wallet ?? ""), amountTpot: String(b.amountTpot ?? "") });
-      return NextResponse.json(view(rec, escrowOrNull()));
+      return NextResponse.json(stakeView(rec, escrowOrNull()));
     }
     if (b.action === "lock") {
+      const over = await getChallengeWinner(getStore(), String(b.challengeId ?? ""));
+      if (over.found && over.settled) throw new Error("This challenge is over, so do not send a stake to it.");
       const rec = await lockStake(deps, String(b.challengeId ?? ""), String(b.wallet ?? ""), String(b.txHash ?? ""));
-      return NextResponse.json(view(rec, escrowOrNull()));
+      return NextResponse.json(stakeView(rec, escrowOrNull()));
     }
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   } catch (e) {

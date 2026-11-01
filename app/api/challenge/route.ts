@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
-import { createChallenge, getChallengeView, isChallengeId, moveChallenge, startChallenge, type ChallengeDeps } from "@/lib/challenge";
+import { createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
+import { getStakeStore, stakesEnabled } from "@/lib/stakes";
+import { portaldotStakeChain } from "@/lib/stakeChain";
+import { stakeView } from "@/lib/challengeStakes";
 import { generateBoard, getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +12,29 @@ const NO_STORE = { "Cache-Control": "no-store" };
 const deps = (): ChallengeDeps => ({
   store: getStore(),
   board: async (c) => generateBoard(await getPortalMeta(c.tokenId), c.date, c.seed),
+  stakes: stakesEnabled() ? { store: getStakeStore(), chain: portaldotStakeChain() } : null,
 });
+
+function escrowOrUndefined(d: ChallengeDeps): string | undefined {
+  try {
+    return d.stakes?.chain.escrowAddress();
+  } catch {
+    return undefined;
+  }
+}
+
+// The stake on a challenge, or undefined when stakes are off or there is none. Reading it also pays out
+// or refunds a settled challenge, so the result screen shows the transaction.
+async function stakeFor(d: ChallengeDeps, id: string) {
+  if (!d.stakes) return undefined;
+  try {
+    const rec = (await resolveChallengeStake(d, id)) ?? (await d.stakes.store.get(id));
+    return rec ? stakeView(rec, escrowOrUndefined(d)) : undefined;
+  } catch {
+    const rec = await d.stakes.store.get(id);
+    return rec ? stakeView(rec, escrowOrUndefined(d)) : undefined; // payout will be retried on the next read
+  }
+}
 
 // GET ?id=ID: the public view of a challenge. No seed, no mines, and no times until it is settled.
 // winner is the lowercase wallet of the winner once settled is true (null for a draw or an expired link).
@@ -20,7 +45,8 @@ export async function GET(req: Request) {
     const challenge = await getChallengeView(getStore(), id, Date.now());
     if (!challenge) return NextResponse.json({ error: "That challenge link does not exist." }, { status: 404 });
     const meta = await getPortalMeta(challenge.tokenId);
-    return NextResponse.json({ challenge, meta: { id: meta.id, name: meta.name, image: meta.image } }, { headers: NO_STORE });
+    const stake = await stakeFor(deps(), id);
+    return NextResponse.json({ challenge, meta: { id: meta.id, name: meta.name, image: meta.image }, ...(stake ? { stake } : {}) }, { headers: NO_STORE });
   } catch {
     return NextResponse.json({ error: "Could not load that challenge." }, { status: 500 });
   }
@@ -38,9 +64,10 @@ export async function POST(req: Request) {
   }
   try {
     if (b.action === "create") {
-      const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId });
+      const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId, stakeTpot: b.stakeTpot });
       if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
-      return NextResponse.json({ challenge: out.challenge }, { headers: NO_STORE });
+      const stake = await stakeFor(deps(), out.challenge.id);
+      return NextResponse.json({ challenge: out.challenge, ...(stake ? { stake } : {}) }, { headers: NO_STORE });
     }
     if (b.action === "start") {
       const out = await startChallenge(deps(), { id: b.id, address: b.address, signature: b.signature });
@@ -51,7 +78,8 @@ export async function POST(req: Request) {
     if (b.action === "move") {
       const out = await moveChallenge(deps(), { id: b.id, address: b.address, signature: b.signature, move: b.move });
       if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
-      return NextResponse.json({ live: out.live, challenge: out.challenge }, { headers: NO_STORE });
+      const stake = out.challenge ? await stakeFor(deps(), out.challenge.id) : undefined;
+      return NextResponse.json({ live: out.live, challenge: out.challenge, ...(stake ? { stake } : {}) }, { headers: NO_STORE });
     }
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   } catch {
