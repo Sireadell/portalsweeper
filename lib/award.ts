@@ -42,3 +42,12 @@ export async function awardDay(deps: AwardDeps, date: string): Promise<AwardOutc
     return { status: "failed", date, tokenId, error: e instanceof Error ? e.message : "Mint failed." };
   }
 }
+
+// A mint that failed leaves its claim as "minting". The timer only looks at yesterday, so without this
+// a failed day would never be tried again. Retries every unfinished claim from an earlier day.
+export async function awardStuck(deps: AwardDeps, today: string, except?: string): Promise<AwardOutcome[]> {
+  const stuck = (await deps.store.claimList()).filter((c) => c.status === "minting" && c.date < today && c.date !== except);
+  const out: AwardOutcome[] = [];
+  for (const c of stuck.sort((a, b) => a.date.localeCompare(b.date))) out.push(await awardDay(deps, c.date));
+  return out;
+}

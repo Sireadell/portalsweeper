@@ -58,16 +58,40 @@ export async function portalsOfWallet(h160: string): Promise<number[]> {
 
 export type MintResult = { txHash: string; block: number; to: string };
 
-// Mints Portal `id` to the native account of `h160`, signed by the collection's issuer key (env ISSUER_MNEMONIC).
-export async function mintPortal(id: number, h160: string): Promise<MintResult> {
+// Accepts an 0x wallet or a Portaldot (SS58) account and gives the native account that will own the Portal.
+export function recipientAccount(input: string): string {
+  const v = input.trim();
+  if (/^0x[0-9a-fA-F]{40}$/.test(v)) return mappedAccount(v);
+  try {
+    if (v.startsWith("0x")) throw new Error("hex");
+    const raw = decodeAddress(v);
+    if (raw.length !== 32) throw new Error("length");
+    return encodeAddress(raw, 42);
+  } catch {
+    throw new Error("Not a valid 0x wallet or Portaldot account address.");
+  }
+}
+
+const MINT_TIMEOUT_MS = 45_000;
+
+// Mints Portal `id` to an 0x wallet (or SS58 account), signed by the collection's issuer key (env ISSUER_MNEMONIC).
+export async function mintPortal(id: number, recipient: string): Promise<MintResult> {
   const mnemonic = process.env.ISSUER_MNEMONIC;
   if (!mnemonic) throw new Error("ISSUER_MNEMONIC is not set.");
   await cryptoWaitReady();
   const issuer = new Keyring({ type: "sr25519", ss58Format: 42 }).addFromUri(mnemonic.trim());
   const api = await getApi();
-  const to = mappedAccount(h160);
+  const to = recipientAccount(recipient);
   const tx = api.tx.nfts.mint(collectionId(), id, to, null);
   return new Promise<MintResult>((resolve, reject) => {
+    // A dropped transaction never reports back; give up before the server timer is killed so the failure is logged.
+    const timer = setTimeout(() => reject(new Error("Mint timed out waiting for a block.")), MINT_TIMEOUT_MS);
+    const done = <T,>(f: (v: T) => void) => (v: T) => {
+      clearTimeout(timer);
+      f(v);
+    };
+    const ok = done(resolve);
+    const fail = done(reject);
     tx.signAndSend(issuer, ({ status, dispatchError, txHash }) => {
       if (dispatchError) {
         const msg = dispatchError.isModule
@@ -76,15 +100,15 @@ export async function mintPortal(id: number, h160: string): Promise<MintResult> 
               return `${m.section}.${m.name}`;
             })()
           : dispatchError.toString();
-        reject(new Error(`Mint failed: ${msg}`));
+        fail(new Error(`Mint failed: ${msg}`));
         return;
       }
       if (status.isInBlock) {
         api.rpc.chain
           .getHeader(status.asInBlock)
-          .then((h) => resolve({ txHash: txHash.toHex(), block: h.number.toNumber(), to }))
-          .catch(reject);
+          .then((h) => ok({ txHash: txHash.toHex(), block: h.number.toNumber(), to }))
+          .catch(fail);
       }
-    }).catch(reject);
+    }).catch(fail);
   });
 }
