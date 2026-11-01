@@ -47,6 +47,32 @@ export function rankCotd(entries: CotdEntry[]): CotdEntry[] {
     .sort((a, b) => a.seconds! - b.seconds! || (a.finishedAt ?? 0) - (b.finishedAt ?? 0));
 }
 
+// Friend challenge: two wallets play the same hidden board. The seed stays on the server and is
+// never sent to a browser. Each player has one entry (seat), filled in once when their try ends.
+export type ChallengeSlot = "creator" | "opponent";
+export type Challenge = {
+  id: string;
+  seed: string; // 0x hex, secret: the mines come from it
+  tokenId: number; // the Portal whose traits set the board size and rules
+  date: string; // UTC day the challenge was made (part of the board seed)
+  creator: string; // lowercase 0x address
+  createdAt: number; // ms since epoch, server clock
+  expiresAt: number; // nobody can start a try after this
+};
+export type ChallengeEntry = {
+  wallet: string; // lowercase 0x address
+  startedAt: number;
+  finishedAt?: number;
+  won?: boolean;
+  seconds?: number;
+  moves?: number;
+};
+export type ChallengeEntries = Partial<Record<ChallengeSlot, ChallengeEntry>>;
+export type ChallengeSeat = { ok: true; entry: ChallengeEntry } | { ok: false; entry: ChallengeEntry };
+export type ChallengeFinish =
+  | { ok: true; entry: ChallengeEntry }
+  | { ok: false; reason: "not-started" | "already-finished"; entry?: ChallengeEntry };
+
 // Two stores implement this: FileRecordStore (local dev) and UpstashRecordStore (hosted).
 // getStore() picks plain Redis when REDIS_URL is set, else Upstash when UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set.
 export interface RecordStore {
@@ -69,6 +95,13 @@ export interface RecordStore {
   // The move log of a live game (a ranked try or a Portal's daily board), append only.
   movesAdd(game: string, move: StoredMove): Promise<void>;
   movesGet(game: string): Promise<StoredMove[]>;
+  // Friend challenges. challengeCreate is false when the id is taken. challengeSeat takes a seat once
+  // (a second caller gets the entry already there). challengeFinish fills in a seat's result once.
+  challengeCreate(c: Challenge): Promise<boolean>;
+  challengeGet(id: string): Promise<Challenge | null>;
+  challengeSeat(id: string, slot: ChallengeSlot, entry: ChallengeEntry): Promise<ChallengeSeat>;
+  challengeEntries(id: string): Promise<ChallengeEntries>;
+  challengeFinish(id: string, slot: ChallengeSlot, r: CotdResult): Promise<ChallengeFinish>;
 }
 
 // The first player to clear a Portal's board can claim that Portal as an NFT on Portaldot.
@@ -84,7 +117,7 @@ export type PortalClaim = {
 };
 export type ClaimLock = { ok: true; claim: PortalClaim } | { ok: false; claim: PortalClaim };
 
-function finishEntry(cur: CotdEntry, r: CotdResult): CotdEntry {
+function finishEntry<E extends CotdEntry | ChallengeEntry>(cur: E, r: CotdResult): E {
   return { ...cur, finishedAt: r.at, won: r.won, seconds: r.seconds, moves: r.moves };
 }
 
@@ -121,6 +154,7 @@ type Db = {
   claims?: Record<string, PortalClaim>;
   featured?: Record<string, number>;
   moves?: Record<string, StoredMove[]>;
+  challenges?: Record<string, { c: Challenge; p: ChallengeEntries }>;
 };
 
 export class FileRecordStore implements RecordStore {
@@ -265,6 +299,50 @@ export class FileRecordStore implements RecordStore {
   async movesGet(game: string) {
     return (await this.load()).moves?.[game] ?? [];
   }
+
+  challengeCreate(c: Challenge): Promise<boolean> {
+    return this.serial(async () => {
+      const db = await this.load();
+      if ((db.challenges ??= {})[c.id]) return false;
+      db.challenges[c.id] = { c, p: {} };
+      await this.save(db);
+      return true;
+    });
+  }
+
+  async challengeGet(id: string) {
+    return (await this.load()).challenges?.[id]?.c ?? null;
+  }
+
+  challengeSeat(id: string, slot: ChallengeSlot, entry: ChallengeEntry): Promise<ChallengeSeat> {
+    return this.serial(async () => {
+      const db = await this.load();
+      const row = db.challenges?.[id];
+      if (!row) return { ok: false as const, entry };
+      if (row.p[slot]) return { ok: false as const, entry: row.p[slot]! };
+      row.p[slot] = entry;
+      await this.save(db);
+      return { ok: true as const, entry };
+    });
+  }
+
+  async challengeEntries(id: string) {
+    return (await this.load()).challenges?.[id]?.p ?? {};
+  }
+
+  challengeFinish(id: string, slot: ChallengeSlot, r: CotdResult): Promise<ChallengeFinish> {
+    return this.serial(async () => {
+      const db = await this.load();
+      const row = db.challenges?.[id];
+      const cur = row?.p[slot];
+      if (!row || !cur) return { ok: false as const, reason: "not-started" as const };
+      if (cur.finishedAt) return { ok: false as const, reason: "already-finished" as const, entry: cur };
+      const entry = finishEntry(cur, r);
+      row.p[slot] = entry;
+      await this.save(db);
+      return { ok: true as const, entry };
+    });
+  }
 }
 
 // Hosted store on Upstash Redis over its REST API (plain fetch, no extra package).
@@ -394,6 +472,39 @@ export class UpstashRecordStore implements RecordStore {
   async movesGet(game: string) {
     const rows = await this.cmd<string[]>("LRANGE", `portal:moves:${game}`, 0, -1);
     return rows.map((r) => JSON.parse(r) as StoredMove);
+  }
+
+  // A challenge is one JSON value (challenge:ID, written once with NX) plus a hash of its two seats
+  // (challenge:ID:seats, fields creator and opponent). HSETNX is the one-seat-per-slot lock.
+  async challengeCreate(c: Challenge) {
+    return (await this.cmd("SET", `challenge:${c.id}`, JSON.stringify(c), "NX")) === "OK";
+  }
+
+  async challengeGet(id: string) {
+    return this.parse<Challenge>(await this.cmd("GET", `challenge:${id}`));
+  }
+
+  async challengeSeat(id: string, slot: ChallengeSlot, entry: ChallengeEntry): Promise<ChallengeSeat> {
+    const made = await this.cmd<number>("HSETNX", `challenge:${id}:seats`, slot, JSON.stringify(entry));
+    if (made === 1) return { ok: true, entry };
+    const cur = this.parse<ChallengeEntry>(await this.cmd("HGET", `challenge:${id}:seats`, slot));
+    return { ok: false, entry: cur ?? entry };
+  }
+
+  async challengeEntries(id: string) {
+    const flat = await this.cmd<string[]>("HGETALL", `challenge:${id}:seats`);
+    const out: ChallengeEntries = {};
+    for (let i = 0; i + 1 < flat.length; i += 2) out[flat[i] as ChallengeSlot] = JSON.parse(flat[i + 1]) as ChallengeEntry;
+    return out;
+  }
+
+  async challengeFinish(id: string, slot: ChallengeSlot, r: CotdResult): Promise<ChallengeFinish> {
+    const cur = this.parse<ChallengeEntry>(await this.cmd("HGET", `challenge:${id}:seats`, slot));
+    if (!cur) return { ok: false, reason: "not-started" };
+    if (cur.finishedAt) return { ok: false, reason: "already-finished", entry: cur };
+    const entry = finishEntry(cur, r);
+    await this.cmd("HSET", `challenge:${id}:seats`, slot, JSON.stringify(entry));
+    return { ok: true, entry };
   }
 }
 
