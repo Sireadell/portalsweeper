@@ -20,7 +20,9 @@ export type StakeRecord = {
   status: StakeStatus;
   winner?: string;
   payoutTx?: string; // the pot going to the winner
+  payoutBlock?: number;
   refundTxs?: string[];
+  refundBlocks?: number[];
   createdAt: number;
   settledAt?: number;
 };
@@ -128,7 +130,7 @@ export async function settleStake(deps: StakeDeps, challengeId: string, winner: 
   const w = winner.toLowerCase();
   if (!rec.locks.some((l) => l.wallet === w)) throw new Error("The winner is not a player in this stake.");
   const sent = await deps.chain.send(w, potWei(rec));
-  const next: StakeRecord = { ...rec, status: "settled", winner: w, payoutTx: sent.txHash, settledAt: (deps.now ?? Date.now)() };
+  const next: StakeRecord = { ...rec, status: "settled", winner: w, payoutTx: sent.txHash, payoutBlock: sent.block, settledAt: (deps.now ?? Date.now)() };
   await deps.store.save(next);
   return next;
 }
@@ -139,8 +141,13 @@ export async function refundStake(deps: StakeDeps, challengeId: string): Promise
   if (!rec) throw new Error("No stake on this challenge.");
   if (rec.status === "settled" || rec.status === "refunded") return rec;
   const txs: string[] = [];
-  for (const l of rec.locks) txs.push((await deps.chain.send(l.wallet, BigInt(rec.amountWei))).txHash);
-  const next: StakeRecord = { ...rec, status: "refunded", refundTxs: txs, settledAt: (deps.now ?? Date.now)() };
+  const blocks: number[] = [];
+  for (const l of rec.locks) {
+    const sent = await deps.chain.send(l.wallet, BigInt(rec.amountWei));
+    txs.push(sent.txHash);
+    if (sent.block !== undefined) blocks.push(sent.block);
+  }
+  const next: StakeRecord = { ...rec, status: "refunded", refundTxs: txs, refundBlocks: blocks, settledAt: (deps.now ?? Date.now)() };
   await deps.store.save(next);
   return next;
 }

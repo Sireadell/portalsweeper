@@ -16,7 +16,9 @@ export function stakeView(r: StakeRecord, escrow?: string) {
     locks: r.locks,
     winner: r.winner ?? null,
     payoutTx: r.payoutTx ?? null,
+    payoutBlock: r.payoutBlock ?? null,
     refundTxs: r.refundTxs ?? [],
+    refundBlocks: r.refundBlocks ?? [],
     escrow: escrow ?? null,
     note: "Testnet tPOT, no value.",
   };

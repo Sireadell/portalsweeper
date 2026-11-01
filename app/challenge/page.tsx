@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useWallet } from "@/components/useWallet";
 import { signText } from "@/components/signing";
 import { todayUTC } from "@/components/dailySalt";
+import { StakeSelector } from "@/components/StakePanel";
 import { challengeCreateMessage } from "@/lib/challenge-message";
 
 export default function NewChallengePage() {
@@ -12,6 +13,7 @@ export default function NewChallengePage() {
   const router = useRouter();
   const [making, setMaking] = useState(false);
   const [msg, setMsg] = useState("");
+  const [stake, setStake] = useState("0");
 
   async function make() {
     if (!address) return;
@@ -29,7 +31,7 @@ export default function NewChallengePage() {
       const r = await fetch("/api/challenge", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "create", address, signature: sig }),
+        body: JSON.stringify({ action: "create", address, signature: sig, ...(stake !== "0" ? { stakeTpot: stake } : {}) }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Could not make the challenge.");
@@ -65,6 +67,8 @@ export default function NewChallengePage() {
               </>
             ) : (
               <>
+                <StakeSelector value={stake} onChange={setStake} />
+                {stake !== "0" && <p className="mb-3 text-[13px] text-mute">Each player puts up {stake} tPOT before playing. The winner takes both. Testnet tPOT, no value.</p>}
                 <button className="btn-main btn-lg" onClick={make} disabled={making}>{making ? "Check your wallet…" : "Make a challenge link"}</button>
                 {msg && <p className="mt-3 text-[14px] text-boom" role="alert">{msg}</p>}
               </>

@@ -156,6 +156,7 @@ Still to do before Nov 6:
 | 2026-10-23 | Demo video, pitch deck and architecture diagram |
 | 2026-11-01 | Friend challenges: send a link, you and a friend play the same hidden board, and the faster clear wins |
 | 2026-11-01 | Added stakes for matches: both players send tPOT to an escrow wallet, the server checks the transfer on Portaldot, and the winner is paid the pot. Behind a flag until the PvP flow is in |
+| 2026-11-01 | Connected stakes to friend challenges: a challenge can carry a tPOT stake, nobody plays until both have locked it, and the winner is paid (or a draw or expiry refunded) automatically. Fake chain only so far, behind a flag |
 | 2026-11-01 | Made the daily award retry a day whose mint failed, time out a stuck mint, log its result, and refuse bad recipient addresses. Added a script to mint one Portal by hand. No Portal minted yet |
 
 ## Where this came from

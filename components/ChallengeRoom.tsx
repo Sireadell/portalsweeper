@@ -11,6 +11,13 @@ import { signText } from "./signing";
 import GameScreen from "./GameScreen";
 import PortalArt from "./PortalArt";
 import { portalLabel } from "@/lib/names";
+import { blockLink } from "@/lib/types";
+import { PotDisplay } from "./StakePanel";
+import { sendAndLockStake } from "./stakeLock";
+import { stakesEnabled } from "@/lib/stakesFlag";
+import type { stakeView } from "@/lib/challengeStakes";
+
+type Stake = ReturnType<typeof stakeView>;
 
 type View = ChallengeView;
 type Info = { id: number; name: string; image: string };
@@ -37,6 +44,7 @@ function outcomeText(p: ChallengePlayerView): string {
 function usePoll(id: string) {
   const [view, setView] = useState<View | null>(null);
   const [info, setInfo] = useState<Info | null>(null);
+  const [stake, setStake] = useState<Stake | null>(null);
   const [missing, setMissing] = useState(false);
   const load = useCallback(async () => {
     try {
@@ -46,6 +54,7 @@ function usePoll(id: string) {
       const j = await r.json();
       setView(j.challenge);
       setInfo(j.meta);
+      setStake(j.stake ?? null);
     } catch { /* the next poll tries again */ }
   }, [id]);
   useEffect(() => { void load(); }, [load]);
@@ -55,7 +64,7 @@ function usePoll(id: string) {
     const t = setInterval(load, 5000);
     return () => clearInterval(t);
   }, [settled, load]);
-  return { view, setView, info, missing };
+  return { view, setView, info, missing, stake, setStake };
 }
 
 export default function ChallengeRoom({ id }: { id: string }) {
@@ -64,7 +73,8 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const [signing, setSigning] = useState(false);
   const [msg, setMsg] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
-  const { view, setView, info, missing } = usePoll(id);
+  const { view, setView, info, missing, stake, setStake } = usePoll(id);
+  const [locking, setLocking] = useState(false);
 
   async function start() {
     if (!address) return;
@@ -95,6 +105,20 @@ export default function ChallengeRoom({ id }: { id: string }) {
     }
   }
 
+  async function lock() {
+    if (!address || !stake?.escrow) return;
+    setMsg("");
+    setLocking(true);
+    try {
+      const j = await sendAndLockStake({ challengeId: id, wallet: address, escrow: stake.escrow, stakeTpot: stake.stakeTpot });
+      setStake(j as Stake);
+    } catch (e) {
+      setMsg(e instanceof Error && e.message ? e.message : "Could not lock the stake.");
+    } finally {
+      setLocking(false);
+    }
+  }
+
   // Every move goes to the server, which keeps the mines and the clock. The move that ends the game
   // records it there, and the answer carries the challenge so the result can show at once.
   async function move(m: Move): Promise<LiveState> {
@@ -110,6 +134,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
       throw new Error(j.error);
     }
     if (j.challenge) setView(j.challenge);
+    if (j.stake) setStake(j.stake);
     return j.live as LiveState;
   }
 
@@ -133,8 +158,11 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const iAmCreator = me !== null && view.players[0].wallet === me;
   const myDone = !!mine?.finished;
 
+  const showStake = stakesEnabled() && !!stake;
+  const myLock = !!stake && !!me && stake.locks.some((l) => l.wallet === me);
+  const bothLocked = stake?.status === "locked";
   const footer = (
-    <ChallengeStatus view={view} me={me} failed={failed} />
+    <ChallengeStatus view={view} me={me} failed={failed} stake={showStake ? stake : null} />
   );
 
   return (
@@ -170,10 +198,11 @@ export default function ChallengeRoom({ id }: { id: string }) {
           </div>
 
           {view.settled ? (
-            <ChallengeResult view={view} me={me} />
+            <ChallengeResult view={view} me={me} stake={showStake ? stake : null} />
           ) : (
             <>
               <InviteLink />
+              {showStake && stake && <PotDisplay stakeTpot={stake.stakeTpot} potTpot={stake.potTpot} locked={stake.locks.length} />}
               <div className="card mt-4 p-5 text-center sm:p-6">
                 {myDone ? (
                   <p className="text-[15px] text-text2">Your try is done. <b className="text-white">Waiting for the other player to finish.</b> This page updates by itself.</p>
@@ -187,6 +216,17 @@ export default function ChallengeRoom({ id }: { id: string }) {
                   </>
                 ) : view.status === "expired" ? (
                   <p className="text-[15px] text-text2">This challenge ran out before a second player joined.</p>
+                ) : showStake && stake && stake.status === "open" && !myLock ? (
+                  <>
+                    <p className="text-[15px] text-text2">
+                      This challenge has a stake. Put up <b className="text-white">{stake.stakeTpot} tPOT</b> to play. Nobody plays until both of you have. The winner takes the pot. Testnet tPOT, no value.
+                    </p>
+                    <button className="btn-main btn-lg mt-4" onClick={lock} disabled={locking || !stake.escrow}>
+                      {locking ? "Check your wallet…" : `Lock ${stake.stakeTpot} tPOT`}
+                    </button>
+                  </>
+                ) : showStake && stake && !bothLocked && !mine ? (
+                  <p className="text-[15px] text-text2">Your stake is locked. <b className="text-white">Waiting for the other player to lock theirs.</b> This page updates by itself, then you can start.</p>
                 ) : (
                   <>
                     <p className="text-[14px] text-mute">
@@ -266,13 +306,13 @@ function Seats({ view, me }: { view: View; me: string | null }) {
 }
 
 // Shown under the board while playing, and once the result is in.
-function ChallengeStatus({ view, me, failed }: { view: View; me: string | null; failed: string | null }) {
+function ChallengeStatus({ view, me, failed, stake }: { view: View; me: string | null; failed: string | null; stake: Stake | null }) {
   return (
     <section className="cotd-card mt-4" role="status" aria-live="polite">
       {failed ? (
         <p className="text-boom">{failed}</p>
       ) : view.settled ? (
-        <ChallengeResult view={view} me={me} compact />
+        <ChallengeResult view={view} me={me} stake={stake} compact />
       ) : view.players.some((p) => p.wallet === me && p.finished) ? (
         <p className="text-white">Your try is done. <b>Waiting for the other player to finish.</b> The result shows here by itself.</p>
       ) : (
@@ -282,7 +322,41 @@ function ChallengeStatus({ view, me, failed }: { view: View; me: string | null; 
   );
 }
 
-export function ChallengeResult({ view, me, compact = false }: { view: View; me: string | null; compact?: boolean }) {
+// The V3 testnet has no transaction explorer, so a payout links to its block in the Node Console and
+// always shows the transaction hash.
+function TxRef({ label, tx, block }: { label: string; tx: string; block?: number | null }) {
+  return (
+    <span className="mr-3 break-all">
+      {block != null ? <a className="text-mint underline-offset-2 hover:underline" href={blockLink(block)} target="_blank" rel="noreferrer">{label}</a> : label}
+      <span className="ml-1 text-[12px] text-mute">{tx.slice(0, 10)}…{tx.slice(-6)}</span>
+    </span>
+  );
+}
+
+function StakeResult({ stake }: { stake: Stake }) {
+  const paid = stake.status === "settled" && stake.payoutTx;
+  const refunded = stake.status === "refunded";
+  return (
+    <div className="mt-4 rounded-xl border border-edge bg-ink2 px-3 py-2.5 text-[14px] text-text2" data-testid="stake-result">
+      <p>
+        Stake: <b className="text-white">{stake.stakeTpot} tPOT</b> each · Pot: <b className="text-white">{stake.potTpot} tPOT</b>
+      </p>
+      {paid && stake.payoutTx && (
+        <p className="mt-1">Paid to {short(stake.winner)}. <TxRef label="Payout transaction" tx={stake.payoutTx} block={stake.payoutBlock} /></p>
+      )}
+      {refunded && (
+        <p className="mt-1">
+          {stake.refundTxs.length ? "Stakes returned to the wallets they came from. " : "Nothing was locked, so nothing moved. "}
+          {stake.refundTxs.map((t, i) => <TxRef key={t} label={`Refund ${i + 1}`} tx={t} block={stake.refundBlocks[i]} />)}
+        </p>
+      )}
+      {!paid && !refunded && <p className="mt-1">The payout is on its way. This page updates by itself.</p>}
+      <p className="mt-1 text-[12px] text-mute">{stake.note}</p>
+    </div>
+  );
+}
+
+export function ChallengeResult({ view, me, stake = null, compact = false }: { view: View; me: string | null; stake?: Stake | null; compact?: boolean }) {
   const [note, setNote] = useState("");
   const iPlayed = view.players.some((p) => p.wallet === me);
   const headline = !view.winner
@@ -323,6 +397,7 @@ export function ChallengeResult({ view, me, compact = false }: { view: View; me:
           </li>
         ))}
       </ul>
+      {stake && <StakeResult stake={stake} />}
       <div className="mt-4 flex flex-wrap gap-2">
         <button type="button" className="btn-main !px-5 !py-2.5 text-[15px]" onClick={share}>Share result</button>
         <Link href="/challenge" className="btn-ghost">Challenge someone else</Link>
