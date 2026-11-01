@@ -14,7 +14,7 @@ import { play, readMuted, soundForMove, unlockAudio, writeMuted, type MoveSummar
 import type { Move } from "@/lib/game";
 import type { LiveState } from "@/lib/live";
 
-export type Mode = "daily" | "practice" | "cotd" | "cotd-free";
+export type Mode = "daily" | "practice" | "cotd" | "cotd-free" | "challenge";
 type Saved = { won: boolean; seconds: number; moves: number };
 
 const RULE_ICON: Record<string, string> = { "tier-size": "▦", "core-peek": "✨", "sigil-flag": "⚑", "frame-shield": "🛡" };
@@ -170,7 +170,8 @@ export default function GameScreen({
     mode === "daily" ? `Today's board, ${date} (UTC)`
       : mode === "cotd" ? `Portal of the day, ranked, ${date} (UTC)`
         : mode === "cotd-free" ? `Portal of the day, not ranked, ${date} (UTC)`
-          : "Practice board, not ranked";
+          : mode === "challenge" ? "Friend challenge, same board for both of you"
+            : "Practice board, not ranked";
 
   return (
     <div className="mx-auto w-full max-w-[1060px]">
@@ -245,8 +246,8 @@ export default function GameScreen({
             <div>
               <Outcome meta={meta} won={finished.won} secs={finished.seconds} moves={finished.moves} mode={mode} onAgain={onAgain}
                 rules={board.rules.map((r) => `${r.trait}: ${r.value}`)} size={`${board.cols} by ${board.rows}`} bestNote={saved ? null : bestNote} />
-              {finished.won && mode !== "practice" && mode !== "cotd-free" && <ProofBadge date={date} token={meta.id} commit={board.commit} />}
-              {finished.won && (
+              {finished.won && mode !== "practice" && mode !== "cotd-free" && mode !== "challenge" && <ProofBadge date={date} token={meta.id} commit={board.commit} />}
+              {finished.won && mode !== "challenge" && (
                 <ShareButton name={portalLabel(meta.id)} params={{ token: meta.id, date, time: Math.round(finished.seconds) }} cols={board.cols} rows={board.rows} />
               )}
             </div>
@@ -296,14 +297,14 @@ function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote 
           <div className="stat-tile"><dt className="stat-label">Board</dt><dd className="stat-value !text-[16px] !leading-[28px]">{size}</dd></div>
         </dl>
         <p className="mt-3 text-[14px] text-text2">
-          Cleared in {fmt(secs)} with {moves} moves.{mode === "practice" ? " Practice runs are not ranked." : mode === "cotd-free" ? " This try is not ranked." : ""}
+          Cleared in {fmt(secs)} with {moves} moves.{mode === "practice" ? " Practice runs are not ranked." : mode === "cotd-free" ? " This try is not ranked." : mode === "challenge" ? " The faster clear wins the challenge." : ""}
         </p>
         {bestNote && <p className="mt-2 text-[14px] font-semibold text-mint" data-testid="best-note">{bestNote}</p>}
         <ul className="mt-3 flex flex-wrap gap-1.5">
           {rules.map((r) => (<li key={r} className="chip">{r}</li>))}
         </ul>
         {(mode === "practice" || mode === "cotd-free") && onAgain && <button className="btn-main mt-4 w-full sm:w-auto" onClick={onAgain}>{mode === "cotd-free" ? "Play today's Portal again" : "Play another Portal"}</button>}
-        {mode !== "practice" && mode !== "cotd-free" && <p className="mt-3 text-[13px] text-mute">Next board in {untilTomorrow()}.</p>}
+        {mode !== "practice" && mode !== "cotd-free" && mode !== "challenge" && <p className="mt-3 text-[13px] text-mute">Next board in {untilTomorrow()}.</p>}
       </section>
     );
   }
@@ -312,7 +313,9 @@ function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote 
       <p className="eyebrow !text-[#ff9aab]">Mine hit</p>
       <h3 className="mt-1 text-[30px] font-extrabold leading-none text-white">Boom.</h3>
       <p className="mt-2 text-[14px] text-[#f0d3da]">
-        {mode !== "practice" && mode !== "cotd-free"
+        {mode === "challenge"
+          ? "That one got you, and your one try is used. If your friend clears it, they win."
+          : mode !== "practice" && mode !== "cotd-free"
           ? `${portalLabel(meta.id)} stays hidden today. A fresh board opens in ${untilTomorrow()}. Come back tomorrow.`
           : "That one got you. Practice boards are free, so try again."}
       </p>

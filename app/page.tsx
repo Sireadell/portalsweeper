@@ -22,6 +22,7 @@ const MODES = [
   { href: "/practice", title: "Practice", tag: "No wallet", text: "Endless boards. Clear one and the next Portal is lined up. Build a chain.", art: [34, 69, 333] },
   { href: "/play", title: "My Portals", tag: "Ranked daily", text: "Connect the wallet that holds your Portals. Each one gets one ranked board a day.", art: [420, 209, 2] },
   { href: "/cotd", title: "Portal of the day", tag: "One shared board", text: "Everyone plays the same unclaimed Portal. One ranked try per wallet. The fastest clear wins the Portal as an NFT.", art: [250, 500, 42] },
+  { href: "/challenge", title: "Challenge a friend", tag: "Player vs player", text: "Send a link. You and a friend play the same hidden board, one try each, and the faster clear wins.", art: [88, 140, 301] },
   { href: "/wall", title: "Reveal wall", tag: "500 Portals", text: "When anyone clears a Portal on its daily board, it lights up here in full colour.", art: [12, 345, 405] },
   { href: "/verify", title: "Check a board", tag: "Fairness", text: "Rebuild any past board in your browser and match it against the post on Portaldot.", art: [55, 99, 170] },
 ];
