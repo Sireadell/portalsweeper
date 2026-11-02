@@ -7,6 +7,10 @@ import PortalArt from "./PortalArt";
 import CommitChip from "./CommitChip";
 import RuleCards from "./RuleCards";
 import RuleBanner from "./RuleBanner";
+import TwistPicker from "./TwistPicker";
+import ShardBar from "./ShardBar";
+import { twistById, isHardcore, type TwistId } from "@/lib/twists";
+import { emptyShards, loadShards, recordClear, saveShards, WEEKDAYS, type ShardState } from "@/lib/shards";
 import ShareButton from "./ShareButton";
 import ProofBadge from "./ProofBadge";
 import SoundToggle from "./SoundToggle";
@@ -43,6 +47,12 @@ export default function GameScreen({
   const queue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
   const [flagMode, setFlagMode] = useState(false);
+  const [twistId, setTwistId] = useState<TwistId>("classic");
+  const twist = twistById(twistId);
+  const [shards, setShards] = useState<ShardState>(emptyShards);
+  const [shardNote, setShardNote] = useState<string | null>(null);
+  useEffect(() => { setShards(loadShards()); }, []);
+  useEffect(() => { setTwistId("classic"); setShardNote(null); }, [board]);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [, tick] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -110,6 +120,20 @@ export default function GameScreen({
     const kind = soundForMove(prev, now);
     if (kind) play(kind, muted);
   }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A ranked clear earns that weekday's Shard. Practice boards never do.
+  useEffect(() => {
+    if (state.status !== "won" || (mode !== "daily" && mode !== "cotd")) return;
+    const tier = board.rules.find((r) => r.id === "tier-size")?.value;
+    const r = recordClear(loadShards(), { date, tokenId: meta.id, won: true, ranked: true, tier, twist: twistId });
+    if (r.earned !== null) {
+      saveShards(r.state);
+      setShards(r.state);
+      setShardNote(`Shard earned: ${WEEKDAYS[r.earned]}.`);
+    } else if (r.blockedHard) {
+      setShardNote("No Shard for this weekend clear. Weekend Shards need a hard clear: a Rare or bigger Portal, a twist, or a friend win.");
+    }
+  }, [state.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Personal best per board size, kept in this browser only.
   const [bestNote, setBestNote] = useState<string | null>(null);
@@ -207,12 +231,14 @@ export default function GameScreen({
             <SavedDay meta={meta} saved={saved} />
           ) : (
             <>
+              <TwistPicker value={twistId} onChange={setTwistId} locked={state.startedAt !== null} />
               <div className="relative">
               <RuleBanner board={board} />
               <Board
                 board={board}
                 meta={meta}
                 state={state}
+                twist={twist}
                 flagMode={flagMode}
                 onReveal={(i) => (remote ? send({ action: "reveal", idx: i }) : setState((s) => reveal(board, s, i)))}
                 onFlag={(i) => (remote ? send({ action: "flag", idx: i }) : setState((s) => flag(s, i)))}
@@ -221,16 +247,18 @@ export default function GameScreen({
               </div>
               {!done && (
                 <div className="mt-4 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    aria-pressed={flagMode}
-                    onClick={() => setFlagMode((f) => !f)}
-                    className={`btn-ghost !min-h-[44px] !px-4 !text-[14px] ${flagMode ? "btn-on" : ""}`}
-                  >
-                    ⚑ Flag mode {flagMode ? "on" : "off"}
-                  </button>
+                  {twist.noFlags ? <span className="text-[13px] font-semibold text-mute">No flags in {twist.name}</span> : (
+                    <button
+                      type="button"
+                      aria-pressed={flagMode}
+                      onClick={() => setFlagMode((f) => !f)}
+                      className={`btn-ghost !min-h-[44px] !px-4 !text-[14px] ${flagMode ? "btn-on" : ""}`}
+                    >
+                      ⚑ Flag mode {flagMode ? "on" : "off"}
+                    </button>
+                  )}
                   <p className="text-right text-[12px] leading-snug text-mute">
-                    Tap to dig. Hold a tile to flag.<br />Tap a number to clear around it.
+                    {twist.noFlags ? "Tap to dig." : "Tap to dig. Hold a tile to flag."}<br />{twist.noChord ? "No number tapping in Street Rules." : "Tap a number to clear around it."}
                   </p>
                 </div>
               )}
@@ -250,6 +278,7 @@ export default function GameScreen({
             <div>
               <Outcome meta={meta} won={finished.won} secs={finished.seconds} moves={finished.moves} mode={mode} onAgain={onAgain}
                 rules={board.rules.map((r) => `${r.trait}: ${r.value}`)} size={`${board.cols} by ${board.rows}`} bestNote={saved ? null : bestNote} />
+              {finished.won && !saved && isHardcore(twistId) && <p className="mt-3"><span className="hardcore-badge">Hardcore</span> <span className="text-[13px] text-text2">Cleared with no help.</span></p>}
               {finished.won && mode !== "practice" && mode !== "cotd-free" && mode !== "challenge" && <ProofBadge date={date} token={meta.id} commit={board.commit} />}
               {finished.won && mode !== "challenge" && (
                 <ShareButton name={portalLabel(meta.id)} params={{ token: meta.id, date, time: Math.round(finished.seconds) }} cols={board.cols} rows={board.rows} />
@@ -258,6 +287,8 @@ export default function GameScreen({
           )}
 
           {footer}
+
+          <ShardBar shards={shards} note={shardNote} />
 
           <div className="space-y-3">
             <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mute">Rules from this Portal</h3>

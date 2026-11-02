@@ -377,3 +377,19 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
   .hero-float { animation: none; }
   * { animation-duration: 0.01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
 }
+
+/* Harmattan: a number is clear for 2 seconds, then fades out over 1 second and stays gone. */
+.num-fade { animation: numfade 3s linear both; }
+@keyframes numfade { 0%, 66% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Twist picker and Shard bar */
+.twist-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.twist-btn { min-height: 40px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.04); color: #e6e9f5; font-size: 13px; font-weight: 600; }
+.twist-btn[aria-pressed="true"] { background: rgba(139,245,192,0.16); border-color: rgba(139,245,192,0.7); color: #fff; }
+.twist-btn:disabled { opacity: 0.5; }
+.shard-bar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.shard { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; border-radius: 12px; border: 1px dashed rgba(255,255,255,0.2); font-size: 11px; color: #9aa3bd; }
+.shard b { font-size: 18px; line-height: 1; }
+.shard[data-got="true"] { border-style: solid; border-color: rgba(139,245,192,0.8); background: rgba(139,245,192,0.14); color: #fff; }
+.shard[data-hard="true"][data-got="false"] { border-color: rgba(255,209,102,0.6); }
+.hardcore-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #ffd166; color: #1a1306; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
