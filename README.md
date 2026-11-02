@@ -40,7 +40,7 @@ Every Portal has eight traits (Tier, Gate, Rift, Core, Frame, Sigil, Pattern, Re
 
 Board sizes: 307 Portals play 8 by 8, 147 play 9 by 9, 25 play 10 by 10, 15 play 12 by 12 and 6 play 14 by 14.
 
-The Portals are drawn by `scripts/gen-portals.mjs`, a seeded generator, so anyone can rebuild the exact same 500 Portals from the code. The patterns include Adire and Kente.
+The seeded script rebuilds the same Portal traits and artisan assignments. Portraits are AI-made and layered from the source pictures in `public/artisans`, so those files are needed to reproduce the artwork. The current set has one source picture for each of six trades, with more to be added. The patterns include Adire and Kente.
 
 ## Win the Portal of the day
 
@@ -142,7 +142,7 @@ Still to do before Nov 6:
 - **One try per wallet, not per person.** Today's mines never reach the browser and the server keeps the time, so nobody can read the board or report a fake time. But someone with many wallets still gets many tries.
 - **The fairness check has a limit.** It proves boards were not changed afterwards, not that the site never saw the secret.
 - **No Portal has been won yet.** The award flow is tested (see `lib/award.test.ts`), but the first real mint happens after the first day with a winner.
-- **The Portals are my own design.** The art and the trait rules come from the generator in this repo.
+- **The Portal frames and trait rules are my own design.** The artisan portraits are AI-made source pictures layered into the generated frames.
 - **Records live on a free database.** That is fine for now, but it is not built for a large crowd.
 - **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value. Stakes on a match use that testnet tPOT, so nothing real is ever at risk.
 - **Stakes are trusted escrow.** Players send tPOT to a wallet our server controls, and the server pays the winner. It is plain transfers, not a contract, so you have to trust the server to pay the right person. Details and limits in `docs/stakes.md`.
