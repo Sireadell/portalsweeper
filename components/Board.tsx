@@ -16,7 +16,7 @@ const CONFETTI = Array.from({ length: 22 }, (_, k) => {
     "--dy": `${Math.round(Math.sin(a) * r - 12)}cqw`,
     "--r": `${(k % 2 ? 1 : -1) * (180 + k * 23)}deg`,
     "--t": `${0.45 + (k % 4) * 0.06}s`,
-    "--c": ["#8bf5c0", "#a493ff", "#ffd166", "#ff8fa3", "#7dd3fc"][k % 5],
+    "--c": ["#6FCF97", "#F2C873", "#ffd166", "#ff8fa3", "#7dd3fc"][k % 5],
   } as React.CSSProperties;
 });
 

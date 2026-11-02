@@ -10,7 +10,7 @@ import RuleBanner from "./RuleBanner";
 import TwistPicker from "./TwistPicker";
 import ShardBar from "./ShardBar";
 import { twistById, isHardcore, type TwistId } from "@/lib/twists";
-import { emptyShards, loadShards, recordClear, saveShards, WEEKDAYS, type ShardState } from "@/lib/shards";
+import { emptyShards, loadShards, recordClear, saveShards, WEEKDAYS, type ShardState ,shardCount, SET_SIZE} from "@/lib/shards";
 import ShareButton from "./ShareButton";
 import ProofBadge from "./ProofBadge";
 import SoundToggle from "./SoundToggle";
@@ -206,7 +206,7 @@ export default function GameScreen({
           <div className="mb-2 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
-              <p className="text-[13px] text-mute">
+              <p className="hidden text-[13px] text-mute sm:block">
                 {sub}{artName(meta) ? ` · Art: ${artName(meta)}` : ""}
               </p>
             </div>
@@ -288,7 +288,7 @@ export default function GameScreen({
 
           {footer}
 
-          <ShardBar shards={shards} note={shardNote} />
+          <details className="group rounded-xl border border-edge bg-panel/60 px-3 py-2" open={!!shardNote}><summary className="cursor-pointer select-none text-[13px] font-semibold text-text2">Daily shards {shardCount(shards)}/{SET_SIZE}</summary><div className="mt-2"><ShardBar shards={shards} note={shardNote} /></div></details>
 
           <div className="space-y-3">
             <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mute">Rules from this Portal</h3>
@@ -345,9 +345,9 @@ function Outcome({ meta, won, secs, moves, mode, onAgain, rules, size, bestNote 
   }
   return (
     <section className="lost-card" aria-live="polite">
-      <p className="eyebrow !text-[#ff9aab]">Mine hit</p>
+      <p className="eyebrow !text-[#F6A3AA]">Mine hit</p>
       <h3 className="mt-1 text-[30px] font-extrabold leading-none text-white">Boom.</h3>
-      <p className="mt-2 text-[14px] text-[#f0d3da]">
+      <p className="mt-2 text-[14px] text-[#EBD6C8]">
         {mode === "challenge"
           ? "That one got you, and your one try is used. If your friend clears it, they win."
           : mode !== "practice" && mode !== "cotd-free"

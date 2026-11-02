@@ -77,7 +77,7 @@ export default function PracticePage() {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-[22px] font-extrabold tracking-tight text-white">Practice</h1>
-            <span className="chip !border-portal/50 !text-[#c4b8ff]">No wallet · not ranked</span>
+            <span className="chip !border-portal/50 !text-[#F2C873]">No wallet · not ranked</span>
           </div>
           
         </div>
@@ -94,7 +94,7 @@ export default function PracticePage() {
           </label>
           <button type="submit" className="btn-main h-11 !py-0">Play</button>
           <button type="button" className="btn-ghost h-11" onClick={() => load(randomPortalId())} aria-label="Random">🎲<span className="hidden sm:inline">Random</span></button>
-          <button type="button" className="btn-ghost h-11" onClick={() => load(upNext)}>Next Portal →</button>
+          <button type="button" className="btn-ghost h-11" onClick={() => load(upNext)}>Next<span className="hidden sm:inline">&nbsp;Portal</span> →</button>
         </form>
       </header>
       {err && <p className="mx-auto mb-3 max-w-[1060px] text-[14px] text-boom" role="alert">{err}</p>}

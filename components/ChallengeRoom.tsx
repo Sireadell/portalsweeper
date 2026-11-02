@@ -297,7 +297,7 @@ function Seats({ view, me }: { view: View; me: string | null }) {
             <span className="text-white">
               {p.role === "creator" ? "Challenger" : "Friend"} · {short(p.wallet)}{p.wallet && p.wallet === me ? " (you)" : ""}
             </span>
-            <span className="text-[#cfc9ea]">{!p.joined ? (p.role === "creator" ? "Not started" : "Seat open") : p.finished ? "Finished" : "Playing"}</span>
+            <span className="text-[#D4CCBF]">{!p.joined ? (p.role === "creator" ? "Not started" : "Seat open") : p.finished ? "Finished" : "Playing"}</span>
           </li>
         ))}
       </ul>
@@ -393,7 +393,7 @@ export function ChallengeResult({ view, me, stake = null, compact = false }: { v
             <span className="min-w-0 truncate text-white">
               {p.wallet && p.wallet === view.winner ? "🏆 " : ""}{p.role === "creator" ? "Challenger" : "Friend"} · {short(p.wallet)}{p.wallet && p.wallet === me ? " (you)" : ""}
             </span>
-            <span className="shrink-0 tabular-nums text-[#cfc9ea]">{outcomeText(p)}{p.finished && p.won && p.moves ? ` · ${p.moves} moves` : ""}</span>
+            <span className="shrink-0 tabular-nums text-[#D4CCBF]">{outcomeText(p)}{p.finished && p.won && p.moves ? ` · ${p.moves} moves` : ""}</span>
           </li>
         ))}
       </ul>

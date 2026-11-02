@@ -5,17 +5,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#0b0814",
-        ink2: "#110c20",
-        panel: "#17112b",
-        panel2: "#1f1838",
-        edge: "#2c2350",
-        edge2: "#3d3170",
-        text2: "#cfc9ea",
-        mute: "#a69fc6",
-        portal: "#836ef9",
-        mint: "#8bf5c0",
-        boom: "#ff5d73",
+        ink: "#14110F",
+        ink2: "#1A1613",
+        panel: "#1E1A17",
+        panel2: "#26211D",
+        edge: "#332D27",
+        edge2: "#4A423A",
+        text2: "#D4CCBF",
+        mute: "#A39B8E",
+        portal: "#E8B04A",
+        mint: "#6FCF97",
+        boom: "#F0707A",
         gold: "#ffd166",
       },
       fontFamily: {

@@ -48,7 +48,7 @@ export default function Home() {
         <div className="lg:col-start-1 lg:row-start-1">
           <p className="eyebrow">A daily puzzle on Portaldot</p>
           <h1 className="mt-3 text-[44px] font-extrabold leading-[0.98] tracking-[-0.03em] text-white sm:text-[64px] lg:text-[76px]">
-            Your Portal is<br /><span className="bg-gradient-to-r from-[#b9abff] via-[#a493ff] to-mint bg-clip-text text-transparent">the board.</span>
+            Your Portal is<br /><span className="bg-gradient-to-r from-[#b9abff] via-[#F2C873] to-mint bg-clip-text text-transparent">the board.</span>
           </h1>
           <p className="lead mt-5 max-w-[36ch]">
             Portalsweeper turns each of 500 Portals into its own minesweeper board, new every day. The Portal&apos;s traits change the rules. Clear the board and its art appears. Win the Portal of the day and the Portal is yours, minted on Portaldot.
@@ -84,7 +84,7 @@ export default function Home() {
                 ["Clear the board", "Every safe tile you open shows more of the art. Clear it all to see the whole Portal."],
               ].map(([t, d], i) => (
                 <li key={t} className="flex gap-3 sm:block">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-portal font-display text-[15px] font-extrabold text-white shadow-[0_3px_0_#4b33c4]">{i + 1}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-portal font-display text-[15px] font-extrabold text-[#1A1206] shadow-[0_3px_0_#9C6F1F]">{i + 1}</span>
                   <div className="sm:mt-3">
                     <p className="font-display text-[16px] font-bold text-white">{t}</p>
                     <p className="mt-0.5 text-[14px] leading-snug text-text2">{d}</p>

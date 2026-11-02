@@ -32,14 +32,14 @@ async function getApi(token: string, date: string): Promise<Api> {
   return body as Api & { meta: PortalMeta | null };
 }
 
-const COLORS = { pass: "var(--mint)", fail: "var(--boom)", wait: "#f5c96b", partial: "#f5c96b" } as const;
+const COLORS = { pass: "var(--mint)", fail: "var(--boom)", wait: "#E8B04A", partial: "#E8B04A" } as const;
 const MARK = { pass: "✓", fail: "✗", wait: "…" } as const;
 const mono = { fontFamily: "ui-monospace, monospace", wordBreak: "break-all" } as const;
 
 function StepHead({ n, title }: { n: number; title: string }) {
   return (
     <h2 className="flex items-center gap-3 text-lg font-bold text-white">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-portal text-sm font-extrabold shadow-[0_3px_0_#4b33c4]">{n}</span>
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-portal text-sm font-extrabold text-[#1A1206] shadow-[0_3px_0_#9C6F1F]">{n}</span>
       {title}
     </h2>
   );
@@ -84,7 +84,7 @@ export default function ProofSteps() {
     <div className="mt-6 space-y-4">
       <section className={card}>
         <StepHead n={1} title="See today's fingerprint" />
-        <p className="mt-2 text-[14px] leading-relaxed text-[#cfc9ea]">Posted on Portaldot each morning. It locks in today's secret before anyone plays.</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#D4CCBF]">Posted on Portaldot each morning. It locks in today's secret before anyone plays.</p>
         {nowErr && <p className="mt-3 text-boom">{nowErr}</p>}
         {!now && !nowErr && <p className="mt-3 text-mute">Loading...</p>}
         {now && (
@@ -101,7 +101,7 @@ export default function ProofSteps() {
                 )}
               </p>
             ) : (
-              <p style={{ color: "#f5c96b" }}>Not posted on Portaldot yet for today. The fingerprint above is what our server shows now. Step 2 works on any finished day.</p>
+              <p style={{ color: "#E8B04A" }}>Not posted on Portaldot yet for today. The fingerprint above is what our server shows now. Step 2 works on any finished day.</p>
             )}
           </div>
         )}
@@ -109,7 +109,7 @@ export default function ProofSteps() {
 
       <section className={card}>
         <StepHead n={2} title="Pick a past day and a Portal" />
-        <p className="mt-2 text-[14px] leading-relaxed text-[#cfc9ea]">Your browser takes that day's revealed secret and builds the board again from scratch.</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#D4CCBF]">Your browser takes that day's revealed secret and builds the board again from scratch.</p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="grid gap-1 text-[13px]">
             Portal number
@@ -141,7 +141,7 @@ export default function ProofSteps() {
               {out.checks.map((c) => (
                 <li key={c.label} className="flex gap-2">
                   <span style={{ color: COLORS[c.state], width: 16 }}>{MARK[c.state]}</span>
-                  <span><strong>{c.label}.</strong> <span className="text-[#cfc9ea]">{c.note}</span></span>
+                  <span><strong>{c.label}.</strong> <span className="text-[#D4CCBF]">{c.note}</span></span>
                 </li>
               ))}
             </ul>
@@ -157,7 +157,7 @@ export default function ProofSteps() {
                 <p className="mb-2 text-[12px] text-mute">Mine layout for Portal #{out.api.tokenId} on {out.api.date} (● is a mine, numbers count mines next to a square):</p>
                 <div style={{ display: "grid", gridTemplateColumns: `repeat(${out.board.cols}, minmax(0, 26px))`, gap: 2 }}>
                   {out.board.cells.map((c, i) => (
-                    <div key={i} style={{ aspectRatio: "1", display: "grid", placeItems: "center", fontSize: 11, borderRadius: 4, background: c.mine ? "var(--boom)" : "var(--ink)", border: "1px solid var(--edge)", color: c.mine ? "#fff" : "#b9b2e0" }}>
+                    <div key={i} style={{ aspectRatio: "1", display: "grid", placeItems: "center", fontSize: 11, borderRadius: 4, background: c.mine ? "var(--boom)" : "var(--ink)", border: "1px solid var(--edge)", color: c.mine ? "#fff" : "#B9B0A0" }}>
                       {c.mine ? "●" : c.adj > 0 ? c.adj : ""}
                     </div>
                   ))}
@@ -170,8 +170,8 @@ export default function ProofSteps() {
 
       <section className="rounded-2xl border border-edge p-4" style={{ background: "rgba(131,110,249,0.08)" }}>
         <h2 className="text-base font-bold text-white">What this proves and what it does not</h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#cfc9ea]"><strong className="text-mint">It proves:</strong> the day's secret was locked on Portaldot before the day ended, and every board that day was built from that same secret. Nobody, including us, can quietly change a board afterwards.</p>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#cfc9ea]"><strong className="text-[#f5c96b]">It does not prove:</strong> that the secret stayed hidden during the day. Our server holds it while the day is live, so the fingerprint only stops after-the-fact changes. It does not stop us from peeking in the moment.</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#D4CCBF]"><strong className="text-mint">It proves:</strong> the day's secret was locked on Portaldot before the day ended, and every board that day was built from that same secret. Nobody, including us, can quietly change a board afterwards.</p>
+        <p className="mt-2 text-[14px] leading-relaxed text-[#D4CCBF]"><strong className="text-[#E8B04A]">It does not prove:</strong> that the secret stayed hidden during the day. Our server holds it while the day is live, so the fingerprint only stops after-the-fact changes. It does not stop us from peeking in the moment.</p>
       </section>
     </div>
   );
