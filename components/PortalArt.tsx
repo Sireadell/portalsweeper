@@ -19,7 +19,7 @@ export default function PortalArt({ src, tokenId, className = "" }: { src: strin
 
   if (failed) {
     return (
-      <div className={`grid place-items-center bg-[radial-gradient(circle_at_30%_20%,#a78bfa,#4c1d95_55%,#1e1038)] ${className}`} aria-hidden>
+      <div className={`grid place-items-center bg-[radial-gradient(circle_at_30%_20%,#C98A3C,#7A4A1E_55%,#241810)] ${className}`} aria-hidden>
         <span className="text-[22cqw] font-black text-white/25 tabular-nums">{tokenId}</span>
       </div>
     );

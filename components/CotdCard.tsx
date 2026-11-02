@@ -106,7 +106,7 @@ export default function CotdCard({ full = false, hideActions = false }: { full?:
               {top.map((r) => (
                 <li key={r.rank} className="flex justify-between gap-3 tabular-nums">
                   <span className="text-white">{r.rank}. {r.wallet}</span>
-                  <span className="text-[#cfc9ea]">{fmt(r.seconds)}</span>
+                  <span className="text-[#D4CCBF]">{fmt(r.seconds)}</span>
                 </li>
               ))}
             </ol>
@@ -114,7 +114,7 @@ export default function CotdCard({ full = false, hideActions = false }: { full?:
         </div>
         <div>
           <h3 className="text-[12px] font-semibold uppercase tracking-wider text-mute">Yesterday's winner</h3>
-          <p className="mt-1 text-[#cfc9ea]">
+          <p className="mt-1 text-[#D4CCBF]">
             {data.yesterday.winner ? (
               <><span className="text-white">{data.yesterday.winner.wallet}</span> cleared Portal #{data.yesterday.tokenId} in {fmt(data.yesterday.winner.seconds)}</>
             ) : (

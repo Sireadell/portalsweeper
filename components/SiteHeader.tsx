@@ -18,9 +18,9 @@ const NAV = [
 export function Logo({ size = 30 }: { size?: number }) {
   return (
     <span className="relative grid shrink-0 grid-cols-2 gap-[2px] rounded-[9px] bg-ink2 p-[3px] ring-1 ring-edge2" style={{ width: size, height: size }} aria-hidden>
-      <span className="rounded-[4px] bg-gradient-to-br from-[#6452c6] to-[#34286f]" />
-      <span className="rounded-[4px] bg-gradient-to-br from-[#6452c6] to-[#34286f]" />
-      <span className="rounded-[4px] bg-gradient-to-br from-[#6452c6] to-[#34286f]" />
+      <span className="rounded-[4px] bg-gradient-to-br from-[#3A322C] to-[#221D19]" />
+      <span className="rounded-[4px] bg-gradient-to-br from-[#3A322C] to-[#221D19]" />
+      <span className="rounded-[4px] bg-gradient-to-br from-[#3A322C] to-[#221D19]" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/portals/7.webp" alt="" className="h-full w-full rounded-[4px] object-cover" />
     </span>

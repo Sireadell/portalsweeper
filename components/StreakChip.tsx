@@ -68,7 +68,7 @@ export default function StreakChip({ address, ids, className = "" }: { address?:
     <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border bg-panel px-3 py-2 ${s.atRisk ? "border-boom" : "border-edge"} ${className}`} role="status">
       <span className="text-[15px] font-bold text-white tabular-nums">Streak {s.current} {s.current === 1 ? "day" : "days"}</span>
       <span className="text-[13px] text-mute tabular-nums">Best {s.best}</span>
-      {nudge && <span className={`text-[13px] ${s.atRisk ? "font-semibold text-boom" : "text-[#cfc9ea]"}`}>{nudge}</span>}
+      {nudge && <span className={`text-[13px] ${s.atRisk ? "font-semibold text-boom" : "text-[#D4CCBF]"}`}>{nudge}</span>}
     </div>
   );
 }

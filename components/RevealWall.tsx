@@ -122,10 +122,10 @@ export default function RevealWall() {
             <StreakChip className="mt-3" />
           </>
         ) : known ? (
-          <p className="text-[14px] text-[#cfc9ea]">This wallet holds no Portals yet. The Everyone tab still shows the whole wall.</p>
+          <p className="text-[14px] text-[#D4CCBF]">This wallet holds no Portals yet. The Everyone tab still shows the whole wall.</p>
         ) : (
           <div>
-            <p className="text-[14px] text-[#cfc9ea]">Connect your wallet to see your own Portals on the wall. No wallet? The Everyone tab works without one.</p>
+            <p className="text-[14px] text-[#D4CCBF]">Connect your wallet to see your own Portals on the wall. No wallet? The Everyone tab works without one.</p>
             <button className="btn-main mt-3 !py-2" onClick={connect} disabled={busy}>{busy ? "Waiting for your wallet…" : "Connect wallet"}</button>
             {error && <p className="mt-2 text-[13px] text-boom" role="alert">{error}</p>}
           </div>

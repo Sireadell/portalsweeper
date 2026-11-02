@@ -20,7 +20,7 @@ function Board({ title, note, empty, cols, rows }: { title: string; note?: strin
       {rows.length === 0 ? (
         <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-edge2 px-4 py-6 text-center">
           <span className="grid grid-cols-3 gap-1" aria-hidden>
-            {[0, 1, 2].map((k) => <span key={k} className="h-5 w-5 rounded-[5px] bg-gradient-to-br from-[#6452c6] to-[#34286f] shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]" />)}
+            {[0, 1, 2].map((k) => <span key={k} className="h-5 w-5 rounded-[5px] bg-gradient-to-br from-[#3A322C] to-[#221D19] shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]" />)}
           </span>
           <p className="max-w-[34ch] text-[14px] text-text2">{empty}</p>
         </div>
