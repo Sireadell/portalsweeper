@@ -73,23 +73,23 @@ export default function PracticePage() {
 
   return (
     <main className="page">
-      <header className="mx-auto mb-4 flex w-full max-w-[1060px] flex-col gap-4 rounded-[20px] border border-edge bg-panel/70 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
+      <header className="mx-auto mb-3 flex w-full max-w-[1060px] flex-col gap-2 rounded-[20px] border border-edge bg-panel/70 p-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-[22px] font-extrabold tracking-tight text-white">Practice</h1>
             <span className="chip !border-portal/50 !text-[#c4b8ff]">No wallet · not ranked</span>
           </div>
-          <p className="mt-1 max-w-[52ch] text-[14px] leading-snug text-text2">Endless boards. Clear one and the next Portal is lined up for you.</p>
+          
         </div>
         <form onSubmit={go} className="flex w-full flex-wrap items-end gap-2 lg:w-auto">
           <label className="min-w-[120px] flex-1 lg:w-[160px] lg:flex-none">
-            <span className="mb-1 block text-[12px] font-semibold text-mute">Any Portal, 1 to {PORTAL_SUPPLY}</span>
+            <span className="sr-only">Any Portal, 1 to {PORTAL_SUPPLY}</span>
             <input
               inputMode="numeric"
               value={input}
               onChange={(e) => setInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
               className="field font-display font-bold"
-              placeholder="e.g. 420"
+              placeholder={"Portal 1 to " + PORTAL_SUPPLY}
             />
           </label>
           <button type="submit" className="btn-main h-11 !py-0">Play</button>
@@ -99,7 +99,6 @@ export default function PracticePage() {
       </header>
       {err && <p className="mx-auto mb-3 max-w-[1060px] text-[14px] text-boom" role="alert">{err}</p>}
 
-      <PracticeBar stats={stats} upNext={upNext} />
 
       {round && board ? (
         <GameScreen
@@ -113,6 +112,7 @@ export default function PracticePage() {
       ) : (
         <BoardSkeleton />
       )}
+      <div className="mt-6"><PracticeBar stats={stats} upNext={upNext} /></div>
       <p className="mx-auto mt-8 max-w-[640px] text-center text-[13px] text-mute">
         No wallet needed. Every board uses a fresh random seed, so it is never a daily board. <Link href="/play" className="text-mint underline-offset-2 hover:underline">Play your ranked daily board</Link>
       </p>
