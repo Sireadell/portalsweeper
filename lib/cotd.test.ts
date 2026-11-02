@@ -159,7 +159,7 @@ describe("picking the Portal of the day", () => {
 
   it("spreads over many Portals across a year", () => {
     const seen = new Set(Array.from({ length: 365 }, (_, i) => pickPortalOfDay(`d${i}`, "0x1")));
-    expect(seen.size).toBeGreaterThan(220); // about 259 expected for 365 random picks from 500
+    expect(seen.size).toBeGreaterThan(190); // about 240 expected for 365 picks from the 400 open Portals (100 are reserved)
   });
 });
 
@@ -286,5 +286,23 @@ describe("cleared today and recent clears", () => {
     expect(sum.cleared).toBe(0);
     expect(sum.recent).toEqual([]);
     expect(sum.attempts).toBe(0);
+  });
+});
+
+describe("reserved Shard Portals", () => {
+  it("never picks Portals 401 to 500 from the reserve date on", () => {
+    for (let d = 5; d < 30; d++) {
+      for (const salt of ["0xa", "0xb", "0xc", "0xd"]) {
+        const id = pickPortalOfDay(`2026-11-${String(d).padStart(2, "0")}`, salt);
+        expect(id).toBeGreaterThanOrEqual(1);
+        expect(id).toBeLessThanOrEqual(400);
+      }
+    }
+  });
+  it("leaves earlier days exactly as they were", () => {
+    const h = (date: string, c: string) => pickPortalOfDay(date, c);
+    expect(h("2026-10-22", "0xabc")).toBe(pickPortalOfDay("2026-10-22", "0xabc", new Set()));
+    const before = Array.from({ length: 40 }, (_, i) => pickPortalOfDay(`2026-10-${String((i % 28) + 1).padStart(2, "0")}`, `0x${i}`));
+    expect(before.some((id) => id > 400)).toBe(true); // old days could land in 401 to 500, and still can
   });
 });

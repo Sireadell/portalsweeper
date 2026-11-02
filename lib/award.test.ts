@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore } from "./records";
 import { portalOfDay } from "./cotd";
-import { awardDay, type AwardDeps } from "./award";
+import { awardDay, awardStuck, type AwardDeps } from "./award";
 
 const D = "2026-10-20";
 const A = "0x" + "a".repeat(40);
@@ -77,5 +77,29 @@ describe("awarding the Portal of the day", () => {
     await t.store.claimSave({ ...(await t.store.claimGet(id))!, status: "minting" });
     expect(await awardDay(t.deps, D)).toMatchObject({ status: "minted" });
     expect(t.mints.length).toBe(1);
+  });
+
+  it("finishes an earlier day whose mint failed, but skips the day just run", async () => {
+    const t = setup();
+    const id = await portalOfDay(t.store, D);
+    await finish(t.store, A, id, 40);
+    t.setFail(true);
+    await awardDay(t.deps, D);
+    t.setFail(false);
+    expect(await awardStuck(t.deps, "2026-10-22", D)).toEqual([]);
+    const out = await awardStuck(t.deps, "2026-10-22");
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ status: "minted", claim: { wallet: A, txHash: "0xmint" } });
+    expect(await awardStuck(t.deps, "2026-10-22")).toEqual([]);
+    expect(t.mints).toEqual([[id, A]]);
+  });
+
+  it("does not retry a day that has not ended", async () => {
+    const t = setup();
+    const id = await portalOfDay(t.store, D);
+    await finish(t.store, A, id, 40);
+    t.setFail(true);
+    await awardDay(t.deps, D);
+    expect(await awardStuck(t.deps, D)).toEqual([]);
   });
 });

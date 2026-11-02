@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import type { Board as BoardT, PortalMeta } from "@/lib/types";
 import type { GameState } from "./gameLogic";
 import PortalArt from "./PortalArt";
+import { TWISTS, type Twist } from "@/lib/twists";
 
 const NUM_COLOR = ["", "#7dd3fc", "#86efac", "#fda4af", "#c4b5fd", "#fdba74", "#5eead4", "#f9a8d4", "#f1f5f9"];
 
@@ -29,10 +30,14 @@ type Props = {
   onChord: (i: number) => void;
   disabled?: boolean;
   hint?: number | null;
+  twist?: Twist;
 };
 
-export default function Board({ board, meta, state, flagMode, onReveal, onFlag, onChord, disabled, hint }: Props) {
+export default function Board({ board, meta, state, flagMode, onReveal, onFlag: onFlagRaw, onChord: onChordRaw, disabled, hint, twist = TWISTS[0] }: Props) {
   const { cols, rows } = board;
+  // Twists only limit what the player may do on screen. The game itself is never changed.
+  const onFlag = (i: number) => { if (!twist.noFlags) onFlagRaw(i); };
+  const onChord = (i: number) => { if (!twist.noChord) onChordRaw(i); };
   const [focus, setFocus] = useState(0);
   const press = useRef<{ t: ReturnType<typeof setTimeout> | null; long: boolean }>({ t: null, long: false });
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -113,7 +118,7 @@ export default function Board({ board, meta, state, flagMode, onReveal, onFlag, 
               onContextMenu={(e) => { e.preventDefault(); if (!disabled && !over) onFlag(i); }}
               onClick={() => click(i)}
             >
-              {rev && c.adj > 0 && <span className="num" style={{ color: NUM_COLOR[c.adj] }}>{c.adj}</span>}
+              {rev && c.adj > 0 && <span className={twist.fadeNumbers && !over ? "num num-fade" : "num"} style={{ color: NUM_COLOR[c.adj] }}>{c.adj}</span>}
               {state.shieldedAt.includes(i) && <span className="glyph">🛡</span>}
               {!rev && fl && !wrongFlag && <span className="glyph">⚑</span>}
               {wrongFlag && <span className="glyph">✕</span>}

@@ -6,6 +6,7 @@ const NAV = [
   { href: "/practice", label: "Practice" },
   { href: "/play", label: "My Portals" },
   { href: "/cotd", label: "Portal of the day" },
+  { href: "/challenge", label: "Challenge a friend" },
   { href: "/wall", label: "Reveal wall" },
   { href: "/hall", label: "Hall" },
   { href: "/verify", label: "Verify" },

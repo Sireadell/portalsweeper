@@ -40,7 +40,7 @@ Every Portal has eight traits (Tier, Gate, Rift, Core, Frame, Sigil, Pattern, Re
 
 Board sizes: 307 Portals play 8 by 8, 147 play 9 by 9, 25 play 10 by 10, 15 play 12 by 12 and 6 play 14 by 14.
 
-The Portals are drawn by `scripts/gen-portals.mjs`, a seeded generator, so anyone can rebuild the exact same 500 Portals from the code. The patterns include Adire and Kente.
+The seeded script rebuilds the same Portal traits and artisan assignments. Portraits are AI-made and layered from the source pictures in `public/artisans`, so those files are needed to reproduce the artwork. The current set has one source picture for each of ten trades. The patterns include Adire and Kente.
 
 ## Win the Portal of the day
 
@@ -49,7 +49,7 @@ The Portals are drawn by `scripts/gen-portals.mjs`, a seeded generator, so anyon
 3. Just after midnight UTC, the fastest clear wins. The Portal is minted to the winner with Portaldot's native NFT pallet (`pallet-nfts`).
 4. The NFT goes to the native account that Portaldot links to your 0x wallet, so it shows up for that wallet with no extra setup.
 
-Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping forward past Portals already won and the Portal featured the day before.
+Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping forward past Portals already won and the Portal featured the day before. From 5 Nov 2026 it also steps past Portals 401 to 500, which are kept as Shard rewards.
 
 ## Fairness you can check yourself
 
@@ -103,7 +103,9 @@ The mines never leave the server while a game is running. The server replays the
 | Collection issuer | `5GxegAnxmYtA8EQXCCuSy5KTJu7fLsR6THtXpx7bw3P6yeqc` |
 | First daily fingerprint | 2026-10-22, tx `0xbdab89b89b034f57296e912129cc45b093eb5403e4682dbfa3f23791bd01b872`, [block 148888](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888) |
 | Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
-| Portals minted so far | None. The first mint happens after the first day with a winner. |
+| Portals minted so far | None. The first mint happens after the first day with a winner. Every mint will show on [/api/claims](https://portalsweeper.vercel.app/api/claims) and be added here with its block. |
+
+To mint one Portal by hand (for a real winner, or a recipient the founder picks), run `npx tsx scripts/mint-portal.ts <portal 1-500> <0x wallet or Portaldot account>`. Without `--yes` it only checks the chain and says where the Portal would go. With `--yes` it mints, then prints the transaction, the block and an explorer link. It needs `ISSUER_MNEMONIC` in the environment and never prints it. If the timer's mint fails, the next daily run retries it.
 
 There is no contract address. The Portals use Portaldot's built-in NFT module instead of a contract, and the fingerprint is a plain 0-value transaction.
 
@@ -118,7 +120,7 @@ Done:
 
 Still to do before Nov 6:
 - **PvP:** challenge a friend by link, both play the same board, and the faster clear wins
-- **Stakes:** put up tPOT or a Portal NFT on a PvP match; the winner takes the pot
+- **Stakes:** built and tested behind a flag, waiting for the PvP flow to call it (see `docs/stakes.md`). tPOT only, no Portal NFT stakes
 - First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
 - More testing and polish on the live site
 
@@ -140,9 +142,10 @@ Still to do before Nov 6:
 - **One try per wallet, not per person.** Today's mines never reach the browser and the server keeps the time, so nobody can read the board or report a fake time. But someone with many wallets still gets many tries.
 - **The fairness check has a limit.** It proves boards were not changed afterwards, not that the site never saw the secret.
 - **No Portal has been won yet.** The award flow is tested (see `lib/award.test.ts`), but the first real mint happens after the first day with a winner.
-- **The Portals are my own design.** The art and the trait rules come from the generator in this repo.
+- **The Portal frames and trait rules are my own design.** The artisan portraits are AI-made source pictures layered into the generated frames.
 - **Records live on a free database.** That is fine for now, but it is not built for a large crowd.
-- **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value.
+- **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value. Stakes on a match use that testnet tPOT, so nothing real is ever at risk.
+- **Stakes are trusted escrow.** Players send tPOT to a wallet our server controls, and the server pays the winner. It is plain transfers, not a contract, so you have to trust the server to pay the right person. Details and limits in `docs/stakes.md`.
 
 ## Development log
 
@@ -151,6 +154,10 @@ Still to do before Nov 6:
 | 2026-10-19 to 22 | Built Chogsweeper on Monad, the game this one grew from ([repo](https://github.com/Sireadell/chogsweeper)) |
 | 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Created collection 5 on the native NFT pallet. Posted the first daily fingerprint (block 148888) |
 | 2026-10-23 | Demo video, pitch deck and architecture diagram |
+| 2026-11-01 | Friend challenges: send a link, you and a friend play the same hidden board, and the faster clear wins |
+| 2026-11-01 | Added stakes for matches: both players send tPOT to an escrow wallet, the server checks the transfer on Portaldot, and the winner is paid the pot. Behind a flag until the PvP flow is in |
+| 2026-11-01 | Connected stakes to friend challenges: a challenge can carry a tPOT stake, nobody plays until both have locked it, and the winner is paid (or a draw or expiry refunded) automatically. Fake chain only so far, behind a flag |
+| 2026-11-01 | Made the daily award retry a day whose mint failed, time out a stuck mint, log its result, and refuse bad recipient addresses. Added a script to mint one Portal by hand. No Portal minted yet |
 
 ## Where this came from
 
@@ -196,6 +203,7 @@ npx tsx scripts/post-commit.ts --dry-run
 | `POSTER_PRIVATE_KEY` | Key of the small EVM wallet that posts the daily fingerprint |
 | `ISSUER_MNEMONIC` | Key of the native account that owns the Portal collection and mints the winners' Portals |
 | `PORTAL_COLLECTION_ID`, `NEXT_PUBLIC_PORTAL_COLLECTION_ID` | The pallet-nfts collection id |
+| `ESCROW_PRIVATE_KEY`, `NEXT_PUBLIC_STAKES` | Key of the escrow wallet that holds stakes, and `1` to switch stakes on |
 | `CRON_SECRET` | Protects the two daily timers |
 | `REDIS_URL` (Vercel Redis), or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Records store. One of the two is required on a hosted site |
 

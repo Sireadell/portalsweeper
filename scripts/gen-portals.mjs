@@ -1,12 +1,13 @@
 // Generates the Portal collection: data/portals.json (traits) and public/portals/<id>.webp (art, 320px).
 // Fully deterministic: the same script always draws the same 500 Portals.
 // Run: node scripts/gen-portals.mjs [--svg] (--svg also keeps the source SVGs in public/portals/svg for checking)
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
 export const SUPPLY = 500;
 const keepSvg = process.argv.includes("--svg");
+const ARTISANS = ["potter", "weaver", "beads", "tailor", "smith", "dyer", "carver", "barber", "drummer", "okada"];
 
 // Small seeded random generator (mulberry32). Seeded per Portal, so changing one Portal never shifts another.
 function rng(seed) {
@@ -146,8 +147,8 @@ function patternSvg(kind, r, light, dark) {
 }
 
 // The swirling rift inside the opening.
-function riftSvg(r, rift) {
-  let s = `<rect width="512" height="512" fill="url(#rift)"/>`;
+function riftSvg(r, rift, overArt = false) {
+  let s = `<rect width="512" height="512" fill="url(#rift)"${overArt ? ` opacity="0.22"` : ""}/>`;
   const arms = 3 + Math.floor(r() * 3);
   const spin = r() * Math.PI * 2;
   for (let k = 0; k < arms; k++) {
@@ -296,7 +297,7 @@ function tierSvg(tier, r) {
   return "";
 }
 
-export function makePortal(id) {
+export function makePortal(id, artisanImages = null) {
   // Same seed and the same order of draws as the first version, so tiers and rule counts stay put.
   const r = rng(id * 7919 + 20261022);
   const tier = weighted(r, TIERS);
@@ -307,6 +308,9 @@ export function makePortal(id) {
   const sigil = weighted(r, SIGILS);
   const pattern = pick(r, PATTERNS);
   const realmName = pick(r, Object.keys(REALMS));
+  // Keep artwork selection separate from the trait random stream so existing traits stay unchanged.
+  const artisan = pick(rng(id * 104729 + 20261102), ARTISANS);
+  const artisanImage = artisanImages?.[artisan];
   const traits = [
     { trait_type: "Tier", value: tier },
     { trait_type: "Gate", value: gate },
@@ -329,7 +333,7 @@ export function makePortal(id) {
     ? Array.from({ length: 40 }, () => `<circle cx="${f(r() * 512)}" cy="${f(r() * 512)}" r="${f(0.6 + r() * 1.6)}" fill="#fff" opacity="${f(0.3 + r() * 0.6)}"/>`).join("")
     : "";
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" width="512" height="512">
 <defs>
 <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${realm[0]}"/><stop offset="1" stop-color="${realm[1]}"/></linearGradient>
 <radialGradient id="rift" cx="${CX}" cy="${CY}" r="190" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${rift[0]}"/><stop offset="0.35" stop-color="${rift[1]}"/><stop offset="1" stop-color="${rift[2]}"/></radialGradient>
@@ -345,7 +349,7 @@ ${tierSvg(tier, r)}
 <path d="${d}" fill="${bandFill}"/>
 <g clip-path="url(#outer)">${noFrame ? "" : patternSvg(pattern, r, mat[1], mat[2])}<rect width="512" height="512" fill="url(#bevel)"/>${frameExtras(frame, d, r)}</g>
 <path d="${d}" fill="none" stroke="${noFrame ? rift[1] : OUT}" stroke-width="${noFrame ? 4 : 7}" stroke-linejoin="round"/>
-<g clip-path="url(#inner)">${riftSvg(r, rift)}${coreSvg(core, r, rift)}</g>
+<g clip-path="url(#inner)">${artisanImage ? `<image xlink:href="${artisanImage}" x="0" y="80" width="512" height="512" preserveAspectRatio="xMidYMid slice"/>` : ""}${artisanImage ? `<g opacity="0.26">${riftSvg(r, rift, true)}</g>` : riftSvg(r, rift)}${coreSvg(core, r, rift)}</g>
 <path d="${d}" ${innerT} fill="none" stroke="${noFrame ? rift[0] : OUT}" stroke-width="${noFrame ? 8 : 9}" stroke-linejoin="round" opacity="${noFrame ? 0.8 : 1}"/>
 ${sigilSvg(sigil, top)}
 </svg>`;
@@ -355,10 +359,18 @@ ${sigilSvg(sigil, top)}
 async function main() {
   const outDir = path.join(process.cwd(), "public", "portals");
   mkdirSync(outDir, { recursive: true });
+  const artisanDir = path.join(process.cwd(), "public", "artisans");
+  const artisanImages = Object.fromEntries(await Promise.all(ARTISANS.map(async (trade) => {
+    const image = await sharp(readFileSync(path.join(artisanDir, `${trade}-1.png`)))
+      .resize(512, 512, { fit: "cover" })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+    return [trade, `data:image/png;base64,${image.toString("base64")}`];
+  })));
   if (keepSvg) mkdirSync(path.join(outDir, "svg"), { recursive: true });
   const metas = [];
   for (let id = 1; id <= SUPPLY; id++) {
-    const { meta, svg } = makePortal(id);
+    const { meta, svg } = makePortal(id, artisanImages);
     metas.push(meta);
     if (keepSvg) writeFileSync(path.join(outDir, "svg", `${id}.svg`), svg);
     await sharp(Buffer.from(svg)).resize(320, 320).webp({ quality: 82 }).toFile(path.join(outDir, `${id}.webp`));
