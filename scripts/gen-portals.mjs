@@ -7,7 +7,7 @@ import sharp from "sharp";
 
 export const SUPPLY = 500;
 const keepSvg = process.argv.includes("--svg");
-const ARTISANS = ["potter", "weaver", "beads", "tailor", "smith", "dyer"];
+const ARTISANS = ["potter", "weaver", "beads", "tailor", "smith", "dyer", "carver", "barber", "drummer", "okada"];
 
 // Small seeded random generator (mulberry32). Seeded per Portal, so changing one Portal never shifts another.
 function rng(seed) {

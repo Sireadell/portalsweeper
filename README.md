@@ -40,7 +40,7 @@ Every Portal has eight traits (Tier, Gate, Rift, Core, Frame, Sigil, Pattern, Re
 
 Board sizes: 307 Portals play 8 by 8, 147 play 9 by 9, 25 play 10 by 10, 15 play 12 by 12 and 6 play 14 by 14.
 
-The seeded script rebuilds the same Portal traits and artisan assignments. Portraits are AI-made and layered from the source pictures in `public/artisans`, so those files are needed to reproduce the artwork. The current set has one source picture for each of six trades, with more to be added. The patterns include Adire and Kente.
+The seeded script rebuilds the same Portal traits and artisan assignments. Portraits are AI-made and layered from the source pictures in `public/artisans`, so those files are needed to reproduce the artwork. The current set has one source picture for each of ten trades. The patterns include Adire and Kente.
 
 ## Win the Portal of the day
 
