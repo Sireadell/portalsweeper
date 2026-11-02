@@ -9,7 +9,13 @@ import type { Board } from "./types";
 // One unclaimed Portal is featured per UTC day, picked from the date and the public daily commit.
 // Anyone can recompute it once the commit is posted: id = keccak256("portal-of-the-day:DATE:COMMIT") mod 500 + 1,
 // then step forward past Portals already won on an earlier day and the Portal featured the day before.
-export function pickPortalOfDay(date: string, commit: string, taken: ReadonlySet<number> = new Set()): number {
+// Portals 401 to 500 are kept back as Shard rewards, so the daily pick skips them from RESERVED_FROM on.
+// Earlier days are left as they were, so picks already posted still recompute.
+export const RESERVED_FROM = "2026-11-05";
+export const RESERVED_IDS: readonly number[] = Array.from({ length: 100 }, (_, i) => 401 + i);
+
+export function pickPortalOfDay(date: string, commit: string, takenIn: ReadonlySet<number> = new Set()): number {
+  const taken = date >= RESERVED_FROM ? new Set([...takenIn, ...RESERVED_IDS]) : takenIn;
   const h = BigInt(keccak256(toBytes(`portal-of-the-day:${date}:${commit}`)));
   let id = Number(h % BigInt(PORTAL_SUPPLY)) + 1;
   for (let i = 0; i < PORTAL_SUPPLY && taken.has(id); i++) id = (id % PORTAL_SUPPLY) + 1;

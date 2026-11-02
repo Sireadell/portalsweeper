@@ -49,7 +49,7 @@ The seeded script rebuilds the same Portal traits and artisan assignments. Portr
 3. Just after midnight UTC, the fastest clear wins. The Portal is minted to the winner with Portaldot's native NFT pallet (`pallet-nfts`).
 4. The NFT goes to the native account that Portaldot links to your 0x wallet, so it shows up for that wallet with no extra setup.
 
-Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping forward past Portals already won and the Portal featured the day before.
+Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping forward past Portals already won and the Portal featured the day before. From 5 Nov 2026 it also steps past Portals 401 to 500, which are kept as Shard rewards.
 
 ## Fairness you can check yourself
 
