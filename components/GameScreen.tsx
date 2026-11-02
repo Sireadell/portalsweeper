@@ -6,6 +6,7 @@ import Board from "./Board";
 import PortalArt from "./PortalArt";
 import CommitChip from "./CommitChip";
 import RuleCards from "./RuleCards";
+import RuleBanner from "./RuleBanner";
 import ShareButton from "./ShareButton";
 import ProofBadge from "./ProofBadge";
 import SoundToggle from "./SoundToggle";
@@ -206,6 +207,8 @@ export default function GameScreen({
             <SavedDay meta={meta} saved={saved} />
           ) : (
             <>
+              <div className="relative">
+              <RuleBanner board={board} />
               <Board
                 board={board}
                 meta={meta}
@@ -215,6 +218,7 @@ export default function GameScreen({
                 onFlag={(i) => (remote ? send({ action: "flag", idx: i }) : setState((s) => flag(s, i)))}
                 onChord={(i) => (remote ? send({ action: "chord", idx: i }) : setState((s) => chord(board, s, i)))}
               />
+              </div>
               {!done && (
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <button
