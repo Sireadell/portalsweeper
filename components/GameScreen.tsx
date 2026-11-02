@@ -203,7 +203,7 @@ export default function GameScreen({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
         {/* Left: name, live stats and the board */}
         <div className="min-w-0">
-          <div className="mb-3 flex items-end justify-between gap-3">
+          <div className="mb-2 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
               <p className="text-[13px] text-mute">
@@ -216,7 +216,7 @@ export default function GameScreen({
             </div>
           </div>
 
-          <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="mb-2 flex items-start justify-between gap-2">
             {!saved && board.rules.length > 0 ? (
               <ul className="flex flex-wrap gap-1.5" aria-label="Active rules">
                 {board.rules.map((r) => (
