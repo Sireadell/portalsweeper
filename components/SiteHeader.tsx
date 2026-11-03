@@ -1,16 +1,19 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
-const NAV = [
-  { href: "/practice", label: "Practice" },
+const MAIN = [
+  { href: "/practice", label: "Play", icon: "M8 5v14l11-7z" },
+  { href: "/challenge", label: "Challenge", icon: "M13 2 4 14h7l-1 8 9-12h-7z" },
+  { href: "/friends", label: "Friends", icon: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zm-11 9c0-3.3 3.1-6 7-6s7 2.7 7 6z" },
+  { href: "/wall", label: "Wall", icon: "M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" },
+];
+const MORE = [
   { href: "/play", label: "My Portals" },
   { href: "/cotd", label: "Portal of the day" },
-  { href: "/challenge", label: "Challenge a friend" },
-  { href: "/friends", label: "Friends" },
-  { href: "/wall", label: "Reveal wall" },
   { href: "/hall", label: "Hall" },
-  { href: "/verify", label: "Verify" },
+  { href: "/verify", label: "Verify a board" },
   // The optional Daily Portal shows in the menu only when it is switched on.
   ...(process.env.NEXT_PUBLIC_PORTAL_ENABLED === "true" ? [{ href: "/portal", label: "Daily Portal" }] : []),
 ];
@@ -28,38 +31,75 @@ export function Logo({ size = 30 }: { size?: number }) {
   );
 }
 
+function Icon({ d }: { d: string }) {
+  return <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden><path d={d} /></svg>;
+}
+
+// "More" holds the pages most people open less often. It closes when you pick one, tap outside or press Escape.
+function MoreMenu({ path, up = false }: { path: string; up?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: Event) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", away);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const inMore = MORE.some((m) => path.startsWith(m.href));
+  return (
+    <div ref={box} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu"
+        className={up ? "tab-item" : "nav-link"} data-active={inMore ? "true" : undefined}>
+        {up ? <Icon d="M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" /> : null}
+        <span>More</span>
+        {!up && <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden><path d="m7 10 5 5 5-5z" /></svg>}
+      </button>
+      {open && (
+        <div role="menu" className={`menu-pop ${up ? "menu-pop-up" : ""}`}>
+          {MORE.map((m) => (
+            <Link key={m.href} href={m.href} role="menuitem" aria-current={path.startsWith(m.href) ? "page" : undefined}>{m.label}</Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SiteHeader() {
   const path = usePathname() ?? "/";
   const isJudge = path.startsWith("/judge");
   return (
-    <header className="sticky top-0 z-40 border-b border-edge/70 bg-ink/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-3 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Portalsweeper home">
-          <Logo />
-          <span className="font-display text-[18px] font-extrabold tracking-tight text-white">Portalsweeper</span>
-        </Link>
-        <nav aria-label="Main" className="site-nav ml-4 hidden items-center gap-1 lg:flex">
-          {NAV.map((n) => (
-            <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined}
-              className="rounded-lg px-2.5 py-1.5 text-[14px] font-medium text-mute transition hover:text-white">
-              {n.label}
-            </Link>
-          ))}
-        </nav>
-        <Link href="/judge?id=7" aria-current={isJudge ? "page" : undefined}
-          className={`ml-auto inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-bold transition ${isJudge ? "border-mint bg-mint/10 text-mint" : "border-mint/50 text-mint hover:bg-mint/10"}`}>
-          Judge mode <span className="hidden font-medium text-mint/80 sm:inline">· no wallet</span>
-        </Link>
-      </div>
-      {/* phones and tablets: the same links in a row you can swipe */}
-      <nav aria-label="Main" className="site-nav nav-scroll mx-auto flex w-full max-w-[1120px] gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
-        {NAV.map((n) => (
-          <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined}
-            className="shrink-0 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-mute transition hover:text-white">
-            {n.label}
+    <>
+      <header className="sticky top-0 z-40 border-b border-edge/70 bg-ink/85 backdrop-blur-md">
+        <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-3 px-4 sm:px-6">
+          <Link href="/" className="flex shrink-0 items-center gap-2.5" aria-label="Portalsweeper home">
+            <Logo />
+            <span className="font-display text-[18px] font-extrabold tracking-tight text-white">Portalsweeper</span>
+          </Link>
+          <nav aria-label="Main" className="site-nav ml-6 hidden items-center gap-1 lg:flex">
+            {MAIN.map((n) => (
+              <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined} className="nav-link">{n.label}</Link>
+            ))}
+            <MoreMenu path={path} />
+          </nav>
+          <Link href="/judge?id=7" aria-current={isJudge ? "page" : undefined}
+            className={`ml-auto inline-flex min-h-[36px] shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-[13px] font-bold transition ${isJudge ? "border-mint bg-mint/15 text-mint" : "border-mint/50 text-mint hover:bg-mint/10"}`}>
+            Judge mode
+          </Link>
+        </div>
+      </header>
+      {/* phones and tablets: a tab bar under your thumb */}
+      <nav aria-label="Main" className="tab-bar lg:hidden">
+        {MAIN.map((n) => (
+          <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined} className="tab-item">
+            <Icon d={n.icon} /><span>{n.label}</span>
           </Link>
         ))}
+        <MoreMenu path={path} up />
       </nav>
-    </header>
+    </>
   );
 }
