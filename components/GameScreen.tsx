@@ -8,6 +8,8 @@ import CommitChip from "./CommitChip";
 import RuleCards from "./RuleCards";
 import RuleBanner from "./RuleBanner";
 import TwistPicker from "./TwistPicker";
+import { CpuBars, CpuPicker } from "./CpuRace";
+import type { CpuLevel } from "@/lib/cpu";
 import ShardBar from "./ShardBar";
 import { twistById, isHardcore, type TwistId } from "@/lib/twists";
 import { emptyShards, loadShards, recordClear, saveShards, WEEKDAYS, type ShardState ,shardCount, SET_SIZE} from "@/lib/shards";
@@ -48,6 +50,7 @@ export default function GameScreen({
   const pending = useRef(0);
   const [flagMode, setFlagMode] = useState(false);
   const [twistId, setTwistId] = useState<TwistId>("classic");
+  const [cpu, setCpu] = useState<CpuLevel>("off");
   const twist = twistById(twistId);
   const [shards, setShards] = useState<ShardState>(emptyShards);
   const [shardNote, setShardNote] = useState<string | null>(null);
@@ -287,6 +290,20 @@ export default function GameScreen({
           )}
 
           {footer}
+
+          {mode === "practice" && (
+            <>
+              <CpuPicker value={cpu} onChange={setCpu} locked={state.startedAt !== null} />
+              <CpuBars
+                level={cpu}
+                safeTiles={board.cells.filter((c) => !c.mine).length}
+                openedSafe={state.g.revealed.reduce((n, r, i) => n + (r && !board.cells[i].mine ? 1 : 0), 0)}
+                elapsed={seconds(state)}
+                over={done}
+                won={state.status === "won"}
+              />
+            </>
+          )}
 
           <details className="group rounded-xl border border-edge bg-panel/60 px-3 py-2" open={!!shardNote}><summary className="cursor-pointer select-none text-[13px] font-semibold text-text2">Daily shards {shardCount(shards)}/{SET_SIZE}</summary><div className="mt-2"><ShardBar shards={shards} note={shardNote} /></div></details>
 
