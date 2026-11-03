@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
-import { createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
+import { challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
 import { getStakeStore, stakesEnabled } from "@/lib/stakes";
 import { portaldotStakeChain } from "@/lib/stakeChain";
 import { stakeView } from "@/lib/challengeStakes";
@@ -46,7 +46,8 @@ export async function GET(req: Request) {
     if (!challenge) return NextResponse.json({ error: "That challenge link does not exist." }, { status: 404 });
     const meta = await getPortalMeta(challenge.tokenId);
     const stake = await stakeFor(deps(), id);
-    return NextResponse.json({ challenge, meta: { id: meta.id, name: meta.name, image: meta.image }, ...(stake ? { stake } : {}) }, { headers: NO_STORE });
+    const progress = challenge.status === "playing" || challenge.settled ? await challengeProgress(deps(), id).catch(() => undefined) : undefined;
+    return NextResponse.json({ challenge, meta: { id: meta.id, name: meta.name, image: meta.image }, ...(progress ? { progress } : {}), ...(stake ? { stake } : {}) }, { headers: NO_STORE });
   } catch {
     return NextResponse.json({ error: "Could not load that challenge." }, { status: 500 });
   }

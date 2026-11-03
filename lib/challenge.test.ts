@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore, UpstashRecordStore, type Challenge, type ChallengeEntries, type RecordStore } from "./records";
 import {
-  CHALLENGE_LIFE_MS, RUN_LIMIT_MS, challengeOutcome, createChallenge, getChallengeWinner, moveChallenge, startChallenge,
+  CHALLENGE_LIFE_MS, RUN_LIMIT_MS, challengeOutcome, challengeProgress, createChallenge, getChallengeWinner, moveChallenge, startChallenge,
   type ChallengeDeps,
 } from "./challenge";
 import { generateBoard } from "./engine";
@@ -296,5 +296,25 @@ describe("reading the winner", () => {
     await play(env, id, A, { stepSeconds: 1 });
     await play(env, id, B, { lose: true });
     expect(await getChallengeWinner(env.deps.store, id, T0)).toEqual({ found: true, settled: true, winner: A, reason: "opponent-lost" });
+  });
+});
+
+describe("live progress", () => {
+  it("shows each player's percent of safe tiles opened, and 100 once cleared", async () => {
+    const { env, id } = await setup(file());
+    await startChallenge(env.deps, { id, ...env.as(A) });
+    await startChallenge(env.deps, { id, ...env.as(B) });
+    expect(await challengeProgress(env.deps, id)).toEqual({ creator: 0, opponent: 0 });
+    // one safe reveal each: a number between 0 and 100, never a hint about mines
+    const ch = (await env.deps.store.challengeGet(id))!;
+    const real = await env.deps.board(ch);
+    const safe = real.cells.findIndex((c) => !c.mine);
+    await moveChallenge(env.deps, { id, ...env.as(A), move: { action: "reveal", idx: safe } });
+    const p = await challengeProgress(env.deps, id);
+    expect(p.creator!).toBeGreaterThan(0);
+    expect(p.creator!).toBeLessThan(100);
+    expect(p.opponent).toBe(0);
+    await play(env, id, A);
+    expect((await challengeProgress(env.deps, id)).creator).toBe(100);
   });
 });

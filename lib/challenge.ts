@@ -163,6 +163,28 @@ export async function getChallengeView(store: RecordStore, id: string, now: numb
 // ---------------------------------------------------------------------------
 // Create, start, move
 // ---------------------------------------------------------------------------
+// How far each player is, as a percent of the safe tiles they have opened. This shows only a count, never
+// where anything is, so it cannot help the other player. A cleared board reads 100. A player who hit a
+// mine keeps the percent they reached, and the page labels them out.
+export type ChallengeProgress = Partial<Record<ChallengeSlot, number>>;
+export async function challengeProgress(deps: ChallengeDeps, id: string): Promise<ChallengeProgress> {
+  const ch = await deps.store.challengeGet(id);
+  if (!ch) return {};
+  const entries = await deps.store.challengeEntries(id);
+  const board = await deps.board(ch);
+  const safe = board.cells.filter((x) => !x.mine).length || 1;
+  const out: ChallengeProgress = {};
+  for (const slot of ["creator", "opponent"] as const) {
+    const e = entries[slot];
+    if (!e) continue;
+    if (e.finishedAt && e.won) { out[slot] = 100; continue; }
+    const g = replayLog(board, await deps.store.movesGet(gameKey(ch.id, e.wallet)));
+    const opened = g.revealed.reduce((n, r, i) => n + (r && !board.cells[i].mine ? 1 : 0), 0);
+    out[slot] = Math.min(99, Math.floor((100 * opened) / safe));
+  }
+  return out;
+}
+
 export async function createChallenge(
   deps: ChallengeDeps,
   input: { address: unknown; signature: unknown; tokenId?: unknown; stakeTpot?: unknown },

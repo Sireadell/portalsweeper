@@ -7,6 +7,7 @@ import { signText } from "@/components/signing";
 import { todayUTC } from "@/components/dailySalt";
 import { StakeSelector } from "@/components/StakePanel";
 import { challengeCreateMessage } from "@/lib/challenge-message";
+import { fromRoomCode } from "@/lib/roomCode";
 
 export default function NewChallengePage() {
   const { address, error, busy, connect, disconnect } = useWallet();
@@ -14,6 +15,14 @@ export default function NewChallengePage() {
   const [making, setMaking] = useState(false);
   const [msg, setMsg] = useState("");
   const [stake, setStake] = useState("0");
+  const [code, setCode] = useState("");
+  const [codeErr, setCodeErr] = useState("");
+  function join(e: React.FormEvent) {
+    e.preventDefault();
+    const id = fromRoomCode(code);
+    if (!id) { setCodeErr("That code should be 12 letters and numbers, like A1B2-C3D4-E5F6."); return; }
+    router.push(`/challenge/${id}`);
+  }
 
   async function make() {
     if (!address) return;
@@ -75,6 +84,15 @@ export default function NewChallengePage() {
             )}
           </div>
         </div>
+        <form onSubmit={join} className="card mt-4 p-5 sm:p-6">
+          <h2 className="text-[16px] font-bold text-white">Join with a code</h2>
+          <p className="mt-1 text-[13px] text-text2">Playing next to a friend? Type the code from their screen, or scan their QR code with your phone camera.</p>
+          <div className="mt-3 flex gap-2">
+            <input className="field font-display font-bold uppercase tracking-[0.1em]" value={code} onChange={(e) => { setCode(e.target.value); setCodeErr(""); }} placeholder="A1B2-C3D4-E5F6" aria-label="Room code" autoCapitalize="characters" autoComplete="off" />
+            <button type="submit" className="btn-main !px-6">Join</button>
+          </div>
+          {codeErr && <p className="mt-2 text-[13px] text-boom" role="alert">{codeErr}</p>}
+        </form>
         <p className="mt-4 text-center text-[13px] text-mute">
           Want to play alone? Try the <Link href="/cotd" className="text-mint underline-offset-2 hover:underline">Portal of the day</Link>.
         </p>
