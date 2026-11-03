@@ -26,6 +26,8 @@ type Game = { board: Board; live: LiveState; meta: PortalMeta; sig: string };
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const short = (w: string | null) => (w ? `${w.slice(0, 6)}…${w.slice(-4)}` : "Waiting");
 
+type Progress = { creator?: number; opponent?: number };
+
 const REASON: Record<ChallengeReason, string> = {
   faster: "Both cleared the board. The faster clear wins.",
   "opponent-lost": "One cleared the board and the other hit a mine.",
@@ -46,6 +48,7 @@ function usePoll(id: string) {
   const [info, setInfo] = useState<Info | null>(null);
   const [stake, setStake] = useState<Stake | null>(null);
   const [missing, setMissing] = useState(false);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const load = useCallback(async () => {
     try {
       const r = await fetch(`/api/challenge?id=${encodeURIComponent(id)}`, { cache: "no-store" });
@@ -55,16 +58,18 @@ function usePoll(id: string) {
       setView(j.challenge);
       setInfo(j.meta);
       setStake(j.stake ?? null);
+      setProgress(j.progress ?? null);
     } catch { /* the next poll tries again */ }
   }, [id]);
   useEffect(() => { void load(); }, [load]);
   const settled = view?.settled ?? false;
+  const playing = view?.status === "playing";
   useEffect(() => {
     if (settled) return;
-    const t = setInterval(load, 5000);
+    const t = setInterval(load, playing ? 2000 : 5000);
     return () => clearInterval(t);
-  }, [settled, load]);
-  return { view, setView, info, missing, stake, setStake };
+  }, [settled, playing, load]);
+  return { view, setView, info, missing, stake, setStake, progress };
 }
 
 export default function ChallengeRoom({ id }: { id: string }) {
@@ -73,7 +78,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const [signing, setSigning] = useState(false);
   const [msg, setMsg] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
-  const { view, setView, info, missing, stake, setStake } = usePoll(id);
+  const { view, setView, info, missing, stake, setStake, progress } = usePoll(id);
   const [locking, setLocking] = useState(false);
 
   async function start() {
@@ -162,7 +167,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const myLock = !!stake && !!me && stake.locks.some((l) => l.wallet === me);
   const bothLocked = stake?.status === "locked";
   const footer = (
-    <ChallengeStatus view={view} me={me} failed={failed} stake={showStake ? stake : null} />
+    <ChallengeStatus view={view} me={me} failed={failed} stake={showStake ? stake : null} progress={progress} />
   );
 
   return (
@@ -201,7 +206,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
             <ChallengeResult view={view} me={me} stake={showStake ? stake : null} />
           ) : (
             <>
-              <InviteLink />
+              <InviteLink id={id} />
               {showStake && stake && <PotDisplay stakeTpot={stake.stakeTpot} potTpot={stake.potTpot} locked={stake.locks.length} />}
               <div className="card mt-4 p-5 text-center sm:p-6">
                 {myDone ? (
@@ -252,7 +257,10 @@ export default function ChallengeRoom({ id }: { id: string }) {
   );
 }
 
-function InviteLink() {
+import QrCode from "./QrCode";
+import { toRoomCode } from "@/lib/roomCode";
+
+function InviteLink({ id }: { id: string }) {
   const [note, setNote] = useState("");
   const link = () => window.location.href;
   async function copy() {
@@ -283,6 +291,14 @@ function InviteLink() {
         <button type="button" className="btn-ghost" onClick={copy}>Copy link</button>
       </div>
       {note && <p className="mt-2 break-all text-[12px] text-mute" role="status">{note}</p>}
+      <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
+        <QrCode text={typeof window === "undefined" ? "" : window.location.href} size={132} />
+        <div className="min-w-0 text-[13px] leading-snug text-text2">
+          <p className="font-semibold text-white">Playing nearby? Scan this, or read out the code.</p>
+          <p className="mt-2 font-display text-[26px] font-extrabold tracking-[0.12em] text-white">{toRoomCode(id)}</p>
+          <p className="mt-1 text-mute">Your friend types it at Challenge a friend, under Join with a code.</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -306,9 +322,32 @@ function Seats({ view, me }: { view: View; me: string | null }) {
 }
 
 // Shown under the board while playing, and once the result is in.
-function ChallengeStatus({ view, me, failed, stake }: { view: View; me: string | null; failed: string | null; stake: Stake | null }) {
+function RaceBars({ view, me, progress }: { view: View; me: string | null; progress: Progress | null }) {
+  if (!progress || !view.players.every((p) => p.joined)) return null;
+  const rows = view.players.map((p) => {
+    const pct = progress[p.role] ?? 0;
+    const mineRow = !!p.wallet && p.wallet === me;
+    return { key: p.role, label: mineRow ? "You" : p.role === "creator" ? "Challenger" : "Friend", pct, mineRow };
+  });
+  return (
+    <div className="race" aria-label="Race progress">
+      {rows.map((r) => (
+        <div key={r.key} className="race-row">
+          <span className="race-name">{r.label}</span>
+          <div className="race-track" role="progressbar" aria-valuenow={r.pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.label} progress`}>
+            <i data-me={r.mineRow} style={{ width: `${r.pct}%` }} />
+          </div>
+          <span className="race-pct">{r.pct}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChallengeStatus({ view, me, failed, stake, progress }: { view: View; me: string | null; failed: string | null; stake: Stake | null; progress: Progress | null }) {
   return (
     <section className="cotd-card mt-4" role="status" aria-live="polite">
+      {!view.settled && <RaceBars view={view} me={me} progress={progress} />}
       {failed ? (
         <p className="text-boom">{failed}</p>
       ) : view.settled ? (
