@@ -220,9 +220,9 @@ export default function GameScreen({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
         {/* Left: name, live stats and the board */}
         <div className="min-w-0">
-          <div className="mb-2 flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+            <div>
+              <h2 className="whitespace-nowrap text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
               {mode !== "practice" && (
                 <p className="hidden text-[13px] text-mute sm:block">
                   {sub}{artName(meta) ? ` · Art: ${artName(meta)}` : ""}

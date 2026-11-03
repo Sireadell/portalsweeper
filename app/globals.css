@@ -407,7 +407,7 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
 .shard[data-hard="true"][data-got="false"] { border-color: rgba(255,209,102,0.6); }
 .hardcore-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #ffd166; color: #1a1306; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 
-@media (max-width: 640px) { .twist-row { flex-wrap: nowrap; overflow-x: auto; } .twist-btn { white-space: nowrap; } }
+@media (max-width: 640px) { .twist-row { flex-wrap: wrap; } .twist-btn { white-space: nowrap; } .rule-banner { top: auto; bottom: 8px; } }
 
 @media (min-width: 1024px) { .board-wrap { max-width: min(100%, calc(100svh - 290px)); min-width: 360px; margin-inline: auto; } }
 

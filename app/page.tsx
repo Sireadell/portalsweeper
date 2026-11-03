@@ -27,6 +27,20 @@ const MODES = [
   { href: "/verify", title: "Check a board", tag: "Fairness", text: "Rebuild any past board in your browser and match it against the post on Portaldot.", art: [55, 99, 170] },
 ];
 
+const HOW = [
+  ["Tap a tile open", "Tap any tile to open it. A number tells you how many mines touch that tile."],
+  ["Flag where mines hide", "Turn on Flag mode, then tap a tile you think hides a mine."],
+  ["Uncover the whole portrait", "Open every safe tile to reveal the Portal underneath, one of 500 portraits of Nigerian artisans."],
+];
+
+const ROADMAP = [
+  ["This week", "Watch a friend's race live, tile by tile, and put test tokens on who clears the board first."],
+  ["Month 1", "I'll move Shards, the weekday collection that only lives in your browser today, onto Portaldot so your set follows you across devices."],
+  ["Month 2", "Portals 401 to 500 open up as rewards for collecting Shards."],
+  ["Month 3", "I'll bring more phone players, retune the hard modes from real games and add a bot rival on the same board."],
+  ["Later", "Once Portals are minted as NFTs, you'll be able to stake Shards and Portals on a race."],
+];
+
 function ArtStack({ ids }: { ids: number[] }) {
   return (
     <div className="flex -space-x-3" aria-hidden>
@@ -100,6 +114,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* New to minesweeper */}
+      <section className="mt-16" aria-labelledby="how-h">
+        <p className="eyebrow">New to minesweeper?</p>
+        <h2 id="how-h" className="mt-2 text-[30px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">How to play</h2>
+        <ol className="mt-6 grid gap-3 sm:grid-cols-3">
+          {HOW.map(([t, d], i) => (
+            <li key={t} className="rule-card flex-col">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-portal font-display text-[15px] font-extrabold text-[#1A1206] shadow-[0_3px_0_#9C6F1F]">{i + 1}</span>
+              <p className="mt-2 font-display text-[17px] font-bold text-white">{t}</p>
+              <p className="text-[14px] leading-snug text-text2">{d}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       {/* Traits change the rules */}
       <section className="mt-16" aria-labelledby="rules-h">
         <p className="eyebrow">What makes it different</p>
@@ -158,6 +187,21 @@ export default function Home() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* What comes next */}
+      <section className="mt-16" aria-labelledby="road-h">
+        <p className="eyebrow">Roadmap</p>
+        <h2 id="road-h" className="mt-2 text-[30px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">What I&apos;m building next</h2>
+        <p className="lead mt-2 max-w-[60ch]">Portaldot is a test network today, so every token in the game is tPOT and has no money value.</p>
+        <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {ROADMAP.map(([when, what]) => (
+            <li key={when} className="rule-card flex-col">
+              <p className="text-[12px] font-bold uppercase tracking-wider text-portal">{when}</p>
+              <p className="text-[14px] leading-snug text-text2">{what}</p>
+            </li>
+          ))}
+        </ol>
       </section>
     </main>
   );
