@@ -10,6 +10,7 @@ import { challengeCreateMessage } from "@/lib/challenge-message";
 import { fromRoomCode } from "@/lib/roomCode";
 import { useFriends } from "@/components/useFriends";
 import MyChallenges from "@/components/MyChallenges";
+import ExampleDuel from "@/components/ExampleDuel";
 import { rememberChallenge } from "@/lib/myChallenges";
 
 export default function NewChallengePage() {
@@ -101,7 +102,7 @@ export default function NewChallengePage() {
             )}
           </div>
         </div>
-        {address && <MyChallenges address={address} />}
+        {address ? <MyChallenges address={address} /> : <ExampleDuel />}
         <form onSubmit={join} className="card mt-4 p-5 sm:p-6">
           <h2 className="text-[16px] font-bold text-white">Join with a code</h2>
           <p className="mt-1 text-[13px] text-text2">Playing next to a friend? Type the code from their screen, or scan their QR code with your phone camera.</p>

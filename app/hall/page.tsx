@@ -12,7 +12,7 @@ const time = (s: number | null) => (s === null ? "-" : `${Math.floor(s / 60)}:${
 
 type Col = { head: string; right?: boolean };
 
-function Board({ title, note, empty, cols, rows }: { title: string; note?: string; empty: string; cols: Col[]; rows: { key: string; cells: React.ReactNode[] }[] }) {
+function Board({ title, note, empty, cols, rows, example }: { title: string; note?: string; empty: string; cols: Col[]; rows: { key: string; cells: React.ReactNode[] }[]; example?: string }) {
   return (
     <section className="card flex flex-col p-4 sm:p-5">
       <h2 className="text-[19px] font-bold text-white">{title}</h2>
@@ -23,6 +23,11 @@ function Board({ title, note, empty, cols, rows }: { title: string; note?: strin
             {[0, 1, 2].map((k) => <span key={k} className="h-5 w-5 rounded-[5px] bg-gradient-to-br from-[#3A322C] to-[#221D19] shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]" />)}
           </span>
           <p className="max-w-[34ch] text-[14px] text-text2">{empty}</p>
+          {example && (
+            <p className="flex items-center gap-2 rounded-lg border border-edge bg-ink2 px-3 py-1.5 text-[13px] text-mute">
+              <span className="chip !border-portal/50 !text-[#F2C873]">Example</span>{example}
+            </p>
+          )}
         </div>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">
@@ -88,6 +93,7 @@ export default async function HallPage() {
         note={`Portal of the day, ${today} UTC. One ranked try per wallet, only clears count.`}
         empty="No clears yet today. The first wallet to clear the Portal of the day takes the top spot."
         cols={[{ head: "Wallet" }, { head: "Time", right: true }, { head: "Moves", right: true }]}
+        example="1. 0x12ab…90cd, 0:42, 31 moves"
         rows={top.map((e) => ({ key: e.wallet, cells: [<span key="w" className="font-mono text-white">{shortWallet(e.wallet)}</span>, time(e.seconds ?? null), String(e.moves ?? "-")] }))}
       />
 
@@ -96,6 +102,7 @@ export default async function HallPage() {
         note="Portals ranked by daily boards won, ties go to the faster best time."
         empty="Nothing cleared yet. The first Portal to win a board takes the top spot."
         cols={[{ head: "Portal" }, { head: "Cleared", right: true }, { head: "Fastest", right: true }]}
+        example="1. Portal #7, 3 cleared, fastest 0:51"
         rows={cleared.map((r) => ({ key: String(r.tokenId), cells: [portalCell(r.tokenId), String(r.wins), time(r.bestSeconds)] }))}
       />
 
@@ -103,6 +110,7 @@ export default async function HallPage() {
         title="Longest streaks"
         empty="No streaks yet. Clear a board on two days in a row to start one."
         cols={[{ head: "Portal" }, { head: "Best", right: true }, { head: "Now", right: true }]}
+        example="1. Portal #7, best 4 days, now 2 days"
         rows={streaks.map((r) => ({ key: String(r.tokenId), cells: [portalCell(r.tokenId), `${r.longestStreak} d`, `${r.currentStreak} d`] }))}
       />
       </div>
