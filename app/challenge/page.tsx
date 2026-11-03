@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWallet } from "@/components/useWallet";
 import { signText } from "@/components/signing";
 import { todayUTC } from "@/components/dailySalt";
 import { StakeSelector } from "@/components/StakePanel";
 import { challengeCreateMessage } from "@/lib/challenge-message";
 import { fromRoomCode } from "@/lib/roomCode";
+import { useFriends } from "@/components/useFriends";
 
 export default function NewChallengePage() {
   const { address, error, busy, connect, disconnect } = useWallet();
@@ -15,7 +16,10 @@ export default function NewChallengePage() {
   const [making, setMaking] = useState(false);
   const [msg, setMsg] = useState("");
   const [stake, setStake] = useState("0");
+  const { call: friendCall } = useFriends(address, false);
   const [code, setCode] = useState("");
+  const [friend, setFriend] = useState("");
+  useEffect(() => { setFriend((new URLSearchParams(window.location.search).get("with") ?? "").toLowerCase()); }, []);
   const [codeErr, setCodeErr] = useState("");
   function join(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +48,7 @@ export default function NewChallengePage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Could not make the challenge.");
+      if (friend) await friendCall("invite", { name: friend, challengeId: j.challenge.id }); // tells them in their inbox
       router.push(`/challenge/${j.challenge.id}`);
     } catch (e) {
       setMsg(e instanceof Error && e.message ? e.message : "Could not reach the server. Check your connection and try again.");
@@ -78,7 +83,7 @@ export default function NewChallengePage() {
               <>
                 <StakeSelector value={stake} onChange={setStake} />
                 {stake !== "0" && <p className="mb-3 text-[13px] text-mute">Each player puts up {stake} tPOT before playing. The winner takes both. Testnet tPOT, no value.</p>}
-                <button className="btn-main btn-lg" onClick={make} disabled={making}>{making ? "Check your wallet…" : "Make a challenge link"}</button>
+                <button className="btn-main btn-lg" onClick={make} disabled={making}>{making ? "Check your wallet…" : friend ? `Challenge @${friend}` : "Make a challenge link"}</button>
                 {msg && <p className="mt-3 text-[14px] text-boom" role="alert">{msg}</p>}
               </>
             )}
