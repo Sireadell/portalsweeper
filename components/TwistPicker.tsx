@@ -14,7 +14,7 @@ export default function TwistPicker({ value, onChange, locked }: { value: TwistI
           </button>
         ))}
       </div>
-      <p className="mt-1.5 text-[12px] leading-snug text-text2" role="status">{t.why}{locked && value !== "classic" ? " (locked for this board)" : ""}</p>
+      {value !== "classic" && <p className="mt-1.5 text-[12px] leading-snug text-text2" role="status">{t.why}{locked ? " (locked for this board)" : ""}</p>}
     </div>
   );
 }

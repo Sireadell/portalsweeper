@@ -407,3 +407,16 @@ h1, h2, h3, .font-display { font-family: var(--font-display), var(--font-body), 
 .race-track i { display: block; height: 100%; border-radius: 999px; background: #A39B8E; transition: width 0.6s var(--ease-out); }
 .race-track i[data-me="true"] { background: var(--portal); }
 .race-pct { text-align: right; color: var(--mute); font-variant-numeric: tabular-nums; }
+
+/* The Frame shield takes a mine: a badge, a ring across the board and a glow on the saved tile. */
+.shield-fx { position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; pointer-events: none; }
+.shield-ring { position: absolute; left: 50%; top: 50%; width: 30%; aspect-ratio: 1; border-radius: 999px; border: 4px solid var(--portal); box-shadow: 0 0 40px 6px rgba(232, 176, 74, 0.7), inset 0 0 30px rgba(232, 176, 74, 0.5); transform: translate(-50%, -50%) scale(0.3); animation: shieldring 1.3s ease-out both; }
+.shield-badge { position: relative; display: grid; justify-items: center; gap: 4px; max-width: 78%; padding: 18px 24px; border-radius: 22px; text-align: center; background: rgba(20, 17, 15, 0.92); border: 2px solid var(--portal); box-shadow: 0 0 0 6px rgba(232, 176, 74, 0.18), 0 20px 60px -10px rgba(0, 0, 0, 0.8); animation: shieldbadge 2.6s var(--ease-pop) both; }
+.shield-badge span { font-size: 54px; line-height: 1; filter: drop-shadow(0 4px 10px rgba(232, 176, 74, 0.6)); }
+.shield-badge b { font-size: 24px; font-weight: 800; color: var(--portal-hi); letter-spacing: -0.01em; }
+.shield-badge i { font-style: normal; font-size: 13px; line-height: 1.3; color: var(--text-2); }
+@keyframes shieldring { 0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(4.2); opacity: 0; } }
+@keyframes shieldbadge { 0% { opacity: 0; transform: scale(0.5); } 12% { opacity: 1; transform: scale(1.08); } 20% { transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+.tile-shield { animation: shieldtile 1.6s ease-out both; }
+.tile-shield .glyph { font-size: 1.1em; }
+@keyframes shieldtile { 0% { box-shadow: 0 0 0 0 rgba(232, 176, 74, 0.95); } 40% { box-shadow: 0 0 0 10px rgba(232, 176, 74, 0.35), 0 0 28px 6px rgba(232, 176, 74, 0.8); } 100% { box-shadow: 0 0 0 0 rgba(232, 176, 74, 0); } }
