@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useWallet } from "./useWallet";
+import { todayUTC } from "./dailySalt";
 
 const MAIN = [
   { href: "/practice", label: "Play", icon: "M8 5v14l11-7z" },
@@ -68,8 +70,37 @@ function MoreMenu({ path, up = false }: { path: string; up?: boolean }) {
   );
 }
 
+// How many friend requests and challenge invites are waiting. It only looks if you already signed in on the
+// Friends page today (that signature is kept for the tab), so it never opens a wallet prompt by itself.
+function useInboxCount(): number {
+  const { address } = useWallet();
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!address) { setN(0); return; }
+    let live = true;
+    const check = async () => {
+      let sig: string | null = null;
+      try { sig = sessionStorage.getItem(`portalsweeper:friends-sign:${address.toLowerCase()}:${todayUTC()}`); } catch { /* blocked */ }
+      if (!sig) return;
+      try {
+        const r = await fetch("/api/friends", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "me", address, signature: sig }) });
+        if (!r.ok) return;
+        const me = (await r.json()).me;
+        if (live) setN((me?.invites?.length ?? 0) + (me?.requests?.length ?? 0));
+      } catch { /* the next check tries again */ }
+    };
+    void check();
+    const t = setInterval(check, 30_000);
+    return () => { live = false; clearInterval(t); };
+  }, [address]);
+  return n;
+}
+
+const Badge = ({ n }: { n: number }) => (n > 0 ? <span className="nav-badge" aria-label={`${n} waiting`}>{n > 9 ? "9+" : n}</span> : null);
+
 export default function SiteHeader() {
   const path = usePathname() ?? "/";
+  const inbox = useInboxCount();
   const isJudge = path.startsWith("/judge");
   return (
     <>
@@ -81,7 +112,7 @@ export default function SiteHeader() {
           </Link>
           <nav aria-label="Main" className="site-nav ml-6 hidden items-center gap-1 lg:flex">
             {MAIN.map((n) => (
-              <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined} className="nav-link">{n.label}</Link>
+              <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined} className="nav-link">{n.label}{n.href === "/friends" && <Badge n={inbox} />}</Link>
             ))}
             <MoreMenu path={path} />
           </nav>
@@ -95,7 +126,7 @@ export default function SiteHeader() {
       <nav aria-label="Main" className="tab-bar lg:hidden">
         {MAIN.map((n) => (
           <Link key={n.href} href={n.href} aria-current={path.startsWith(n.href) ? "page" : undefined} className="tab-item">
-            <Icon d={n.icon} /><span>{n.label}</span>
+            <Icon d={n.icon} /><span>{n.label}</span>{n.href === "/friends" && <Badge n={inbox} />}
           </Link>
         ))}
         <MoreMenu path={path} up />

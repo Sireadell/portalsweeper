@@ -179,7 +179,7 @@ export default function CotdPage() {
       )}
 
       {phase === "playing" && game && (
-        <GameScreen meta={game.meta} board={game.board} live={game.live} remote={move} mode="cotd" address={address} footer={footer} />
+        <GameScreen meta={game.meta} board={game.board} live={game.live} remote={move} mode="cotd" preset={{ twist: "classic", cpu: "off" }} address={address} footer={footer} />
       )}
     </main>
   );
