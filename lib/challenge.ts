@@ -15,6 +15,7 @@ import { resolveStake } from "./challengeStakes";
 import type { Challenge, ChallengeEntries, ChallengeEntry, ChallengeSlot, RecordStore } from "./records";
 
 export const CHALLENGE_LIFE_MS = 24 * 3_600_000; // how long a link stays open for a second player
+export const DUEL_COUNTDOWN_MS = 4_000; // from the second player sitting down to the first move
 export const RUN_LIMIT_MS = 60 * 60_000; // a started try must finish within an hour or it counts as a loss
 
 export type ChallengeError = { ok: false; status: number; error: string };
@@ -132,6 +133,9 @@ export type ChallengeView = {
   createdAt: number;
   expiresAt: number;
   cancelled: boolean;
+  duel: boolean;
+  goAt: number | null; // duel start time, null until both players are in
+  serverNow: number; // the server clock, so a browser can count down to goAt without trusting its own
   players: ChallengePlayerView[];
 };
 
@@ -145,7 +149,7 @@ export function challengeView(ch: Challenge, entries: ChallengeEntries, now: num
   };
   return {
     id: ch.id, tokenId: ch.tokenId, status: out.status, settled: out.settled, winner: out.winner, reason: out.reason,
-    createdAt: ch.createdAt, expiresAt: ch.expiresAt, cancelled: !!ch.cancelledAt, players: [seat("creator"), seat("opponent")],
+    createdAt: ch.createdAt, expiresAt: ch.expiresAt, cancelled: !!ch.cancelledAt, duel: !!ch.duel, goAt: ch.goAt ?? null, serverNow: now, players: [seat("creator"), seat("opponent")],
   };
 }
 
@@ -188,7 +192,7 @@ export async function challengeProgress(deps: ChallengeDeps, id: string): Promis
 
 export async function createChallenge(
   deps: ChallengeDeps,
-  input: { address: unknown; signature: unknown; tokenId?: unknown; stakeTpot?: unknown },
+  input: { address: unknown; signature: unknown; tokenId?: unknown; stakeTpot?: unknown; duel?: unknown },
 ): Promise<{ ok: true; challenge: ChallengeView } | ChallengeError> {
   const now = (deps.now ?? Date.now)();
   const date = utcToday(new Date(now));
@@ -212,7 +216,7 @@ export async function createChallenge(
     tokenId = input.tokenId;
   }
   for (let tries = 0; tries < 5; tries++) {
-    const ch: Challenge = { id: (deps.newId ?? (() => randomBytes(6).toString("hex")))(), seed, tokenId, date, creator: who, createdAt: now, expiresAt: now + CHALLENGE_LIFE_MS };
+    const ch: Challenge = { id: (deps.newId ?? (() => randomBytes(6).toString("hex")))(), seed, tokenId, date, creator: who, createdAt: now, expiresAt: now + CHALLENGE_LIFE_MS, ...(input.duel === true ? { duel: true } : {}) };
     if (await deps.store.challengeCreate(ch)) {
       if (stakeTpot && deps.stakes) {
         try {
@@ -259,6 +263,11 @@ export async function startChallenge(
     if (!seat.ok && seat.entry.wallet !== who) return { ok: false, status: 409, error: "This challenge already has two players." };
     entry = seat.entry;
   }
+  // A live duel starts for both at once: when the second player sits down, a short countdown begins.
+  if (ch.duel && !ch.goAt) {
+    const seats = await deps.store.challengeEntries(ch.id);
+    if (seats.creator && seats.opponent) await deps.store.challengeUpdate(ch.id, { goAt: now + DUEL_COUNTDOWN_MS });
+  }
   const board = await deps.board(ch);
   const log = await deps.store.movesGet(gameKey(ch.id, who));
   const live = toLive(replayLog(board, log), log, now);
@@ -282,6 +291,7 @@ export async function moveChallenge(
   const slot: ChallengeSlot = who === ch.creator ? "creator" : "opponent";
   const cur = (await deps.store.challengeEntries(ch.id))[slot];
   if (!cur || cur.wallet !== who) return { ok: false, status: 400, error: "Press Start before playing." };
+  if (ch.duel && (!ch.goAt || now < ch.goAt)) return { ok: false, status: 425, error: "Wait for the countdown, both players start together." };
   const board = await deps.board(ch);
   const key = gameKey(ch.id, who);
   if (!cur.finishedAt && now > cur.startedAt + RUN_LIMIT_MS)
@@ -320,4 +330,26 @@ export async function cancelChallenge(
   }
   try { await resolveChallengeStake(deps, ch.id, now); } catch (e) { console.error("stake refund failed", ch.id, e instanceof Error ? e.message : e); }
   return { ok: true, challenge: (await getChallengeView(deps.store, ch.id, now))! };
+}
+
+// What each player has opened so far, for the side-by-side view and the watch link. Only tiles that are
+// already open or flagged, never a mine or a number, and a player's final mine is not shown until the
+// result is settled. Open tiles of the other player do show which tiles are safe, which is the point of
+// watching a race.
+export type SeatBoard = { cols: number; rows: number; revealed: boolean[]; flagged: boolean[]; state: "waiting" | "playing" | "won" | "lost" };
+export type ChallengeBoards = Partial<Record<ChallengeSlot, SeatBoard>>;
+export async function challengeBoards(deps: ChallengeDeps, id: string): Promise<ChallengeBoards> {
+  const ch = await deps.store.challengeGet(id);
+  if (!ch) return {};
+  const entries = await deps.store.challengeEntries(id);
+  const board = await deps.board(ch);
+  const out: ChallengeBoards = {};
+  for (const slot of ["creator", "opponent"] as const) {
+    const e = entries[slot];
+    if (!e) continue;
+    const g = replayLog(board, await deps.store.movesGet(gameKey(ch.id, e.wallet)));
+    const state = g.status === "won" ? "won" : g.status === "lost" ? "lost" : g.started ? "playing" : "waiting";
+    out[slot] = { cols: board.cols, rows: board.rows, revealed: g.revealed.map((r, i) => r && !board.cells[i].mine), flagged: g.flagged, state };
+  }
+  return out;
 }

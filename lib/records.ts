@@ -59,6 +59,8 @@ export type Challenge = {
   createdAt: number; // ms since epoch, server clock
   expiresAt: number; // nobody can start a try after this
   cancelledAt?: number; // set when the creator closed the link before anyone joined
+  duel?: boolean; // a live duel: both play at once and start together after a countdown
+  goAt?: number; // ms since epoch: when a duel starts, set once both players are in
 };
 export type ChallengeEntry = {
   wallet: string; // lowercase 0x address
@@ -104,7 +106,7 @@ export interface RecordStore {
   challengeEntries(id: string): Promise<ChallengeEntries>;
   challengeFinish(id: string, slot: ChallengeSlot, r: CotdResult): Promise<ChallengeFinish>;
   // Closes or reopens a link: changes only the expiry and cancel marker. Returns the challenge as it was before.
-  challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt">>): Promise<Challenge | null>;
+  challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt" | "goAt">>): Promise<Challenge | null>;
 }
 
 // The first player to clear a Portal's board can claim that Portal as an NFT on Portaldot.
@@ -329,7 +331,7 @@ export class FileRecordStore implements RecordStore {
     });
   }
 
-  challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt">>): Promise<Challenge | null> {
+  challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt" | "goAt">>): Promise<Challenge | null> {
     return this.serial(async () => {
       const db = await this.load();
       const row = db.challenges?.[id];
@@ -507,7 +509,7 @@ export class UpstashRecordStore implements RecordStore {
     return { ok: false, entry: cur ?? entry };
   }
 
-  async challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt">>): Promise<Challenge | null> {
+  async challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt" | "goAt">>): Promise<Challenge | null> {
     const before = this.parse<Challenge>(await this.cmd("GET", `challenge:${id}`));
     if (!before) return null;
     const next: Challenge = { ...before, ...patch };

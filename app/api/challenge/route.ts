@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
-import { cancelChallenge, challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
+import { cancelChallenge, challengeBoards, challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
 import { getStakeStore, stakesEnabled } from "@/lib/stakes";
 import { portaldotStakeChain } from "@/lib/stakeChain";
 import { stakeView } from "@/lib/challengeStakes";
@@ -47,7 +47,10 @@ export async function GET(req: Request) {
     const meta = await getPortalMeta(challenge.tokenId);
     const stake = await stakeFor(deps(), id);
     const progress = challenge.status === "playing" || challenge.settled ? await challengeProgress(deps(), id).catch(() => undefined) : undefined;
-    return NextResponse.json({ challenge, meta: { id: meta.id, name: meta.name, image: meta.image }, ...(progress ? { progress } : {}), ...(stake ? { stake } : {}) }, { headers: NO_STORE });
+    const wantBoards = new URL(req.url).searchParams.get("boards") === "1";
+    // Open tiles show which tiles are safe, so they are shared only in a live duel (watching is the point) or after the result is in.
+    const boards = wantBoards && (challenge.settled || (challenge.duel && challenge.status === "playing")) ? await challengeBoards(deps(), id).catch(() => undefined) : undefined;
+    return NextResponse.json({ challenge, meta: { id: meta.id, name: meta.name, image: meta.image }, ...(progress ? { progress } : {}), ...(boards ? { boards } : {}), ...(stake ? { stake } : {}) }, { headers: NO_STORE });
   } catch {
     return NextResponse.json({ error: "Could not load that challenge." }, { status: 500 });
   }
@@ -65,7 +68,7 @@ export async function POST(req: Request) {
   }
   try {
     if (b.action === "create") {
-      const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId, stakeTpot: b.stakeTpot });
+      const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId, stakeTpot: b.stakeTpot, duel: b.duel });
       if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
       const stake = await stakeFor(deps(), out.challenge.id);
       return NextResponse.json({ challenge: out.challenge, ...(stake ? { stake } : {}) }, { headers: NO_STORE });

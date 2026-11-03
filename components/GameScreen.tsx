@@ -35,7 +35,7 @@ function untilTomorrow(): string {
 }
 
 export default function GameScreen({
-  meta, board, mode, onAgain, address, onFinish, footer, live, remote, preset,
+  meta, board, mode, onAgain, address, onFinish, footer, live, remote, preset, lock,
 }: {
   meta: PortalMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null;
   onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode;
@@ -43,6 +43,8 @@ export default function GameScreen({
   live?: LiveState | null; remote?: (m: Move) => Promise<LiveState>;
   // Chosen on the setup screen before the game: when given, the pickers stay off the game page.
   preset?: { twist: TwistId; cpu: CpuLevel };
+  // A live duel holds the board shut until both players are in and the countdown ends.
+  lock?: { text: string; sub?: string } | null;
 }) {
   const date = board.date;
   const fresh = () => (live ? fromLive(null, live) : initGame(board));
@@ -242,6 +244,11 @@ export default function GameScreen({
             <>
               {!preset && <TwistPicker value={twistId} onChange={setTwistId} locked={state.startedAt !== null} />}
               <div className="relative">
+              {lock && (
+                <div className="duel-lock" role="status" aria-live="assertive">
+                  <div><b className={lock.text.length > 2 ? "small" : ""}>{lock.text}</b>{lock.sub && <span>{lock.sub}</span>}</div>
+                </div>
+              )}
               {!preset && <RuleBanner board={board} />}
               {shieldFx > 0 && (
                 <div key={shieldFx} className="shield-fx" role="status" aria-live="assertive">

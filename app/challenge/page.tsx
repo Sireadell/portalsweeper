@@ -18,6 +18,7 @@ export default function NewChallengePage() {
   const [making, setMaking] = useState(false);
   const [msg, setMsg] = useState("");
   const [stake, setStake] = useState("0");
+  const [duel, setDuel] = useState(true);
   const { call: friendCall } = useFriends(address, false);
   const [code, setCode] = useState("");
   const [friend, setFriend] = useState("");
@@ -46,7 +47,7 @@ export default function NewChallengePage() {
       const r = await fetch("/api/challenge", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "create", address, signature: sig, ...(stake !== "0" ? { stakeTpot: stake } : {}) }),
+        body: JSON.stringify({ action: "create", address, signature: sig, duel, ...(stake !== "0" ? { stakeTpot: stake } : {}) }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Could not make the challenge.");
@@ -84,6 +85,14 @@ export default function NewChallengePage() {
               </>
             ) : (
               <>
+                <div className="pick-grid pick-grid-2 mb-4 text-left">
+                  <button type="button" className="pick" aria-pressed={duel} onClick={() => setDuel(true)}>
+                    <b>Live duel</b><span>Both play at once. 3, 2, 1, go. You see each other&apos;s boards.</span>
+                  </button>
+                  <button type="button" className="pick" aria-pressed={!duel} onClick={() => setDuel(false)}>
+                    <b>Play any time</b><span>Each of you takes one try when you like. Fastest clear wins.</span>
+                  </button>
+                </div>
                 <StakeSelector value={stake} onChange={setStake} />
                 {stake !== "0" && <p className="mb-3 text-[13px] text-mute">Each player puts up {stake} tPOT before playing. The winner takes both. Testnet tPOT, no value.</p>}
                 <button className="btn-main btn-lg" onClick={make} disabled={making}>{making ? "Check your wallet…" : friend ? `Challenge @${friend}` : "Make a challenge link"}</button>

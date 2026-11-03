@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Board, PortalMeta } from "@/lib/types";
 import type { Move } from "@/lib/game";
 import type { LiveState } from "@/lib/live";
-import type { ChallengeView, ChallengePlayerView, ChallengeReason } from "@/lib/challenge";
+import type { ChallengeView, ChallengePlayerView, ChallengeReason, ChallengeBoards } from "@/lib/challenge";
+import DuelBoards from "./DuelBoards";
 import { challengeCancelMessage, challengePlayMessage } from "@/lib/challenge-message";
 import { getMyResult, rememberChallenge, saveMyResult } from "@/lib/myChallenges";
 import { useWallet } from "./useWallet";
@@ -51,9 +52,11 @@ function usePoll(id: string) {
   const [stake, setStake] = useState<Stake | null>(null);
   const [missing, setMissing] = useState(false);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [boards, setBoards] = useState<ChallengeBoards | null>(null);
+  const skew = useRef(0); // server clock minus this browser's clock, so countdowns match on both screens
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`/api/challenge?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+      const r = await fetch(`/api/challenge?id=${encodeURIComponent(id)}&boards=1`, { cache: "no-store" });
       if (r.status === 404) return setMissing(true);
       if (!r.ok) return;
       const j = await r.json();
@@ -61,6 +64,8 @@ function usePoll(id: string) {
       setInfo(j.meta);
       setStake(j.stake ?? null);
       setProgress(j.progress ?? null);
+      setBoards(j.boards ?? null);
+      if (typeof j.challenge?.serverNow === "number") skew.current = j.challenge.serverNow - Date.now();
     } catch { /* the next poll tries again */ }
   }, [id]);
   useEffect(() => { void load(); }, [load]);
@@ -68,10 +73,10 @@ function usePoll(id: string) {
   const playing = view?.status === "playing";
   useEffect(() => {
     if (settled) return;
-    const t = setInterval(load, playing ? 2000 : 5000);
+    const t = setInterval(load, view?.duel ? 1000 : playing ? 2000 : 5000);
     return () => clearInterval(t);
-  }, [settled, playing, load]);
-  return { view, setView, info, missing, stake, setStake, progress };
+  }, [settled, playing, load, view?.duel]);
+  return { view, setView, info, missing, stake, setStake, progress, boards, skew };
 }
 
 export default function ChallengeRoom({ id }: { id: string }) {
@@ -80,7 +85,15 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const [signing, setSigning] = useState(false);
   const [msg, setMsg] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
-  const { view, setView, info, missing, stake, setStake, progress } = usePoll(id);
+  const { view, setView, info, missing, stake, setStake, progress, boards, skew } = usePoll(id);
+  const [, setTick] = useState(0);
+  const goAtMs = view?.duel && game ? view.goAt : null;
+  const counting = !!view?.duel && !!game && (view.goAt === null || Date.now() + skew.current < view.goAt + 900);
+  useEffect(() => {
+    if (!counting) return;
+    const t = setInterval(() => setTick((n) => n + 1), 200);
+    return () => clearInterval(t);
+  }, [counting, goAtMs]);
   const [locking, setLocking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [saved, setSaved] = useState<{ won: boolean; seconds: number } | null>(null);
@@ -201,11 +214,17 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const iAmCreator = me !== null && view.players[0].wallet === me;
   const myDone = !!mine?.finished;
 
+  const serverNow = Date.now() + skew.current;
+  const duelLock =
+    !counting ? null
+      : view.goAt === null ? { text: "Waiting for your friend to join…", sub: "You both start together after a 3, 2, 1 countdown." }
+        : serverNow < view.goAt ? { text: String(Math.max(1, Math.ceil((view.goAt - serverNow) / 1000))), sub: "Get ready" }
+          : { text: "Go!" };
   const showStake = stakesEnabled() && !!stake;
   const myLock = !!stake && !!me && stake.locks.some((l) => l.wallet === me);
   const bothLocked = stake?.status === "locked";
   const footer = (
-    <ChallengeStatus view={view} me={me} failed={failed} stake={showStake ? stake : null} progress={progress} />
+    <ChallengeStatus view={view} me={me} failed={failed} stake={showStake ? stake : null} progress={progress} boards={boards} />
   );
 
   return (
@@ -217,7 +236,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
       )}
 
       {game ? (
-        <GameScreen meta={game.meta} board={game.board} live={game.live} remote={move} mode="challenge" address={address} footer={footer} />
+        <GameScreen meta={game.meta} board={game.board} live={game.live} remote={move} mode="challenge" preset={{ twist: "classic", cpu: "off" }} address={address} footer={footer} lock={duelLock} />
       ) : (
         <section className="mx-auto max-w-[720px] pt-2">
           <p className="eyebrow">Friend challenge</p>
@@ -244,7 +263,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
             <ChallengeResult view={view} me={me} stake={showStake ? stake : null} />
           ) : (
             <>
-              <InviteLink id={id} />
+              <InviteLink id={id} duel={view.duel} />
               {iAmCreator && view.status === "open" && (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-mute">
                   <span>Link open until {new Date(view.expiresAt).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}, then it closes by itself.</span>
@@ -293,12 +312,13 @@ export default function ChallengeRoom({ id }: { id: string }) {
                       You get one try. Your wallet signs a short message (free, no transaction). The clock starts at your first tap and the server keeps it. If you leave, press Start again to pick the try back up, but the clock keeps running.
                     </p>
                     <button className="btn-main btn-lg mt-4" onClick={start} disabled={signing}>
-                      {signing ? "Check your wallet…" : mine ? "Pick my try back up" : iAmCreator ? "Start my try" : "Accept the challenge"}
+                      {signing ? "Check your wallet…" : mine ? "Pick my try back up" : iAmCreator ? (view.duel ? "I am ready" : "Start my try") : view.duel ? "Accept and race" : "Accept the challenge"}
                     </button>
                   </>
                 )}
                 {msg && <p className="mt-3 text-[14px] text-boom" role="alert">{msg}</p>}
               </div>
+              {view.duel && <DuelBoards view={view} boards={boards} me={me} progress={progress} />}
               <Seats view={view} me={me} />
             </>
           )}
@@ -315,7 +335,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
 import QrCode from "./QrCode";
 import { toRoomCode } from "@/lib/roomCode";
 
-function InviteLink({ id }: { id: string }) {
+function InviteLink({ id, duel }: { id: string; duel: boolean }) {
   const [note, setNote] = useState("");
   const link = () => window.location.href;
   async function copy() {
@@ -324,6 +344,15 @@ function InviteLink({ id }: { id: string }) {
       setNote("Link copied. Send it to your friend.");
     } catch {
       setNote(link());
+    }
+  }
+  async function copyWatch() {
+    const w = `${window.location.origin}/watch/${id}`;
+    try {
+      await navigator.clipboard.writeText(w);
+      setNote("Watch link copied. Anyone can follow the race with it, no wallet needed.");
+    } catch {
+      setNote(w);
     }
   }
   async function share() {
@@ -344,6 +373,7 @@ function InviteLink({ id }: { id: string }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" className="btn-main !px-5 !py-2.5 text-[15px]" onClick={share}>Share challenge</button>
         <button type="button" className="btn-ghost" onClick={copy}>Copy link</button>
+        {duel && <button type="button" className="btn-ghost" onClick={copyWatch}>Copy watch link</button>}
       </div>
       {note && <p className="mt-2 break-all text-[12px] text-mute" role="status">{note}</p>}
       <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
@@ -399,10 +429,10 @@ function RaceBars({ view, me, progress }: { view: View; me: string | null; progr
   );
 }
 
-function ChallengeStatus({ view, me, failed, stake, progress }: { view: View; me: string | null; failed: string | null; stake: Stake | null; progress: Progress | null }) {
+function ChallengeStatus({ view, me, failed, stake, progress, boards }: { view: View; me: string | null; failed: string | null; stake: Stake | null; progress: Progress | null; boards: ChallengeBoards | null }) {
   return (
     <section className="cotd-card mt-4" role="status" aria-live="polite">
-      {!view.settled && <RaceBars view={view} me={me} progress={progress} />}
+      {view.duel && boards ? <DuelBoards view={view} boards={boards} me={me} progress={progress} /> : !view.settled && <RaceBars view={view} me={me} progress={progress} />}
       {failed ? (
         <p className="text-boom">{failed}</p>
       ) : view.settled ? (
