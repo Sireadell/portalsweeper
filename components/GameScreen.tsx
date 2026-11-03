@@ -35,12 +35,14 @@ function untilTomorrow(): string {
 }
 
 export default function GameScreen({
-  meta, board, mode, onAgain, address, onFinish, footer, live, remote,
+  meta, board, mode, onAgain, address, onFinish, footer, live, remote, preset,
 }: {
   meta: PortalMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null;
   onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode;
   // Server-checked play: the board has its mines hidden and every move goes to `remote`.
   live?: LiveState | null; remote?: (m: Move) => Promise<LiveState>;
+  // Chosen on the setup screen before the game: when given, the pickers stay off the game page.
+  preset?: { twist: TwistId; cpu: CpuLevel };
 }) {
   const date = board.date;
   const fresh = () => (live ? fromLive(null, live) : initGame(board));
@@ -49,15 +51,15 @@ export default function GameScreen({
   const queue = useRef<Promise<void>>(Promise.resolve());
   const pending = useRef(0);
   const [flagMode, setFlagMode] = useState(false);
-  const [twistId, setTwistId] = useState<TwistId>("classic");
-  const [cpu, setCpu] = useState<CpuLevel>("off");
+  const [twistId, setTwistId] = useState<TwistId>(preset?.twist ?? "classic");
+  const [cpu, setCpu] = useState<CpuLevel>(preset?.cpu ?? "off");
   const [shieldFx, setShieldFx] = useState(0);
   const shieldSeen = useRef(0);
   const twist = twistById(twistId);
   const [shards, setShards] = useState<ShardState>(emptyShards);
   const [shardNote, setShardNote] = useState<string | null>(null);
   useEffect(() => { setShards(loadShards()); }, []);
-  useEffect(() => { setTwistId("classic"); setShardNote(null); }, [board]);
+  useEffect(() => { setTwistId(preset?.twist ?? "classic"); setShardNote(null); }, [board]); // eslint-disable-line react-hooks/exhaustive-deps
   const [saved, setSaved] = useState<Saved | null>(null);
   const [, tick] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -214,7 +216,7 @@ export default function GameScreen({
             : "Practice board, not ranked";
 
   return (
-    <div className="mx-auto w-full max-w-[1060px]">
+    <div className="mx-auto w-full max-w-[1360px]">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
         {/* Left: name, live stats and the board */}
         <div className="min-w-0">
@@ -228,22 +230,19 @@ export default function GameScreen({
               )}
             </div>
             <div className="flex shrink-0 items-stretch gap-2 text-right">
+              <div className="self-center"><SoundToggle muted={muted} onToggle={toggleSound} /></div>
               <Stat label="Mines left" value={view ? String(minesLeft(board, view)) : String(board.mines)} />
               <Stat label="Time" value={fmt(view ? seconds(view) : saved!.seconds)} />
             </div>
-          </div>
-
-          <div className="mb-2 flex justify-end">
-            <SoundToggle muted={muted} onToggle={toggleSound} />
           </div>
 
           {saved ? (
             <SavedDay meta={meta} saved={saved} />
           ) : (
             <>
-              <TwistPicker value={twistId} onChange={setTwistId} locked={state.startedAt !== null} />
+              {!preset && <TwistPicker value={twistId} onChange={setTwistId} locked={state.startedAt !== null} />}
               <div className="relative">
-              <RuleBanner board={board} />
+              {!preset && <RuleBanner board={board} />}
               {shieldFx > 0 && (
                 <div key={shieldFx} className="shield-fx" role="status" aria-live="assertive">
                   <div className="shield-ring" aria-hidden />
@@ -303,7 +302,7 @@ export default function GameScreen({
 
           {mode === "practice" && (
             <>
-              <CpuPicker value={cpu} onChange={setCpu} locked={state.startedAt !== null} />
+              {!preset && <CpuPicker value={cpu} onChange={setCpu} locked={state.startedAt !== null} />}
               <CpuBars
                 level={cpu}
                 safeTiles={board.cells.filter((c) => !c.mine).length}

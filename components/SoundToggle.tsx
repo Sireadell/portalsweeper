@@ -10,7 +10,7 @@ export default function SoundToggle({ muted, onToggle }: { muted: boolean; onTog
       onClick={onToggle}
       className="btn-ghost shrink-0 !min-h-[32px] !rounded-full !px-3 !py-1 text-[12px]"
     >
-      {muted ? "🔇 Sound off" : "🔊 Sound on"}
+      {muted ? "🔇" : "🔊"}<span className="ml-1 hidden sm:inline">{muted ? "Sound off" : "Sound on"}</span>
     </button>
   );
 }

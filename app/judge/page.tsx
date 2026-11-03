@@ -51,7 +51,7 @@ export default function JudgePage() {
 
   return (
     <main className="page">
-      <header className="mx-auto mb-5 flex w-full max-w-[1060px] flex-col gap-4 rounded-[20px] border border-edge bg-panel/70 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
+      <header className="mx-auto mb-5 flex w-full max-w-[1360px] flex-col gap-4 rounded-[20px] border border-edge bg-panel/70 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-[22px] font-extrabold tracking-tight text-white">Judge mode</h1>
@@ -76,7 +76,7 @@ export default function JudgePage() {
           <button type="button" className="btn-ghost h-11" onClick={() => load(rand())} aria-label="Random">🎲<span className="hidden sm:inline">Random</span></button>
         </form>
       </header>
-      {err && <p className="mx-auto mb-3 max-w-[1060px] text-[14px] text-boom" role="alert">{err}</p>}
+      {err && <p className="mx-auto mb-3 max-w-[1360px] text-[14px] text-boom" role="alert">{err}</p>}
 
       {meta && salt ? (
         <GameScreen key={salt} meta={meta} board={generateBoard(meta, date, salt)} mode="practice" onAgain={() => load(rand())} />

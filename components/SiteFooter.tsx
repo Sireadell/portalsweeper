@@ -4,7 +4,7 @@ import { Logo } from "./SiteHeader";
 export default function SiteFooter() {
   return (
     <footer className="border-t border-edge/70">
-      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-4 py-8 text-[13px] text-mute sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 py-8 text-[13px] text-mute sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-2.5">
           <Logo size={24} />
           <span>Portalsweeper. A daily minesweeper for the 500 Portals on Portaldot.</span>

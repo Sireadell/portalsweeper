@@ -6,8 +6,10 @@ import { PORTAL_SUPPLY } from "@/lib/types";
 import { generateBoard, getPortalMeta } from "@/components/deps";
 import { todayUTC } from "@/components/dailySalt";
 import GameScreen from "@/components/GameScreen";
-import PracticeBar from "@/components/PracticeBar";
+import PracticeSetup, { DEFAULT_SETUP, type Setup } from "@/components/PracticeSetup";
 import BoardSkeleton from "@/components/BoardSkeleton";
+import { twistById } from "@/lib/twists";
+import { CPU_LEVELS } from "@/lib/cpu";
 import {
   applyResult, EMPTY_STATS, newPracticeSalt, nextPortalId, parsePortalId, randomPortalId, readStats, tilesForBoard, writeStats,
   type PracticeStats,
@@ -17,9 +19,10 @@ type Round = { meta: PortalMeta; salt: string };
 
 export default function PracticePage() {
   const [round, setRound] = useState<Round | null>(null);
+  const [started, setStarted] = useState(false);
+  const [setup, setSetup] = useState<Setup>(DEFAULT_SETUP);
   const [stats, setStats] = useState<PracticeStats>(EMPTY_STATS);
   const [upNext, setUpNext] = useState(1);
-  const [input, setInput] = useState("");
   const [err, setErr] = useState("");
   const won = useRef(false);
   const statsRef = useRef<PracticeStats>(EMPTY_STATS);
@@ -31,21 +34,35 @@ export default function PracticePage() {
       const meta = await getPortalMeta(id);
       won.current = false;
       setRound({ meta, salt: newPracticeSalt() });
-      setInput(String(id));
       setUpNext(nextPortalId(id));
+      return true;
     } catch {
       setErr("Could not load that Portal. Try another number.");
+      return false;
     }
   }, []);
 
-  // Start at once: ?id=420 picks a Portal, otherwise a random one. Saved scores come back from this browser.
+  // A link like /practice?id=420 starts that Portal at once. Otherwise you land on the setup screen.
   useEffect(() => {
     const s = readStats();
     statsRef.current = s;
     setStats(s);
     const id = parsePortalId(new URLSearchParams(window.location.search).get("id") ?? "");
-    load(id ?? randomPortalId());
+    if (id !== null) { setStarted(true); load(id); }
   }, [load]);
+
+  async function play() {
+    let id: number;
+    if (setup.pick === "number") {
+      const n = parsePortalId(setup.number);
+      if (n === null) { setErr(`Type a number from 1 to ${PORTAL_SUPPLY}.`); return; }
+      id = n;
+    } else id = randomPortalId();
+    setStarted(true);
+    if (!(await load(id))) setStarted(false);
+  }
+
+  function backToSetup() { setStarted(false); setRound(null); setErr(""); }
 
   function finish(board: Board, r: { won: boolean }) {
     won.current = r.won;
@@ -61,61 +78,43 @@ export default function PracticePage() {
     load(won.current ? upNext : round.meta.id);
   }
 
-  function go(e: React.FormEvent) {
-    e.preventDefault();
-    const n = parsePortalId(input);
-    if (n === null) { setErr(`Type a number from 1 to ${PORTAL_SUPPLY}.`); return; }
-    load(n);
-  }
-
   // Memoised: a new board object would reset the game in progress.
   const board = useMemo(() => (round ? generateBoard(round.meta, date, round.salt) : null), [round, date]);
 
+  if (!started)
+    return (
+      <main className="page">
+        <PracticeSetup value={setup} onChange={setSetup} onPlay={play} stats={stats} error={err} />
+        <p className="mx-auto mt-10 max-w-[1360px] text-[13px] text-mute">
+          Every practice board uses a fresh random seed, so it is never a daily board. <Link href="/play" className="text-mint underline-offset-2 hover:underline">Play your ranked daily board</Link>
+        </p>
+      </main>
+    );
+
+  const rival = CPU_LEVELS.find((l) => l.id === setup.cpu)?.name ?? "Solo";
   return (
     <main className="page">
-      <header className="mx-auto mb-3 flex w-full max-w-[1060px] flex-col gap-2 rounded-[20px] border border-edge bg-panel/70 p-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-[22px] font-extrabold tracking-tight text-white">Practice</h1>
-            <span className="chip !border-portal/50 !text-[#F2C873]">No wallet · not ranked</span>
-          </div>
-          
-        </div>
-        <form onSubmit={go} className="flex w-full flex-wrap items-end gap-2 lg:w-auto">
-          <label className="min-w-[120px] flex-1 lg:w-[160px] lg:flex-none">
-            <span className="sr-only">Any Portal, 1 to {PORTAL_SUPPLY}</span>
-            <input
-              inputMode="numeric"
-              value={input}
-              onChange={(e) => setInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              className="field font-display font-bold"
-              placeholder={"Portal 1 to " + PORTAL_SUPPLY}
-            />
-          </label>
-          <button type="submit" className="btn-main h-11 !py-0">Play</button>
-          <button type="button" className="btn-ghost h-11" onClick={() => load(randomPortalId())} aria-label="Random">🎲<span className="hidden sm:inline">Random</span></button>
-          <button type="button" className="btn-ghost h-11" onClick={() => load(upNext)}>Next<span className="hidden sm:inline">&nbsp;Portal</span> →</button>
-        </form>
-      </header>
-      {err && <p className="mx-auto mb-3 max-w-[1060px] text-[14px] text-boom" role="alert">{err}</p>}
-
-
+      <div className="mx-auto mb-3 flex w-full max-w-[1360px] flex-wrap items-center gap-2">
+        <button type="button" className="btn-ghost h-10" onClick={backToSetup}>← Setup</button>
+        <span className="chip">{twistById(setup.twist).name}</span>
+        <span className="chip">{rival}</span>
+        <span className="chip !border-portal/50 !text-[#F2C873]">Not ranked</span>
+        <button type="button" className="btn-ghost ml-auto h-10" onClick={() => load(upNext)}>Next Portal →</button>
+      </div>
+      {err && <p className="mx-auto mb-3 max-w-[1360px] text-[14px] text-boom" role="alert">{err}</p>}
       {round && board ? (
         <GameScreen
           key={round.salt}
           meta={round.meta}
           board={board}
           mode="practice"
+          preset={{ twist: setup.twist, cpu: setup.cpu }}
           onAgain={again}
           onFinish={(r) => finish(board, r)}
         />
       ) : (
         <BoardSkeleton />
       )}
-      <div className="mt-6"><PracticeBar stats={stats} upNext={upNext} /></div>
-      <p className="mx-auto mt-8 max-w-[640px] text-center text-[13px] text-mute">
-        No wallet needed. Every board uses a fresh random seed, so it is never a daily board. <Link href="/play" className="text-mint underline-offset-2 hover:underline">Play your ranked daily board</Link>
-      </p>
     </main>
   );
 }
