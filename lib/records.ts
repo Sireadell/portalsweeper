@@ -58,6 +58,7 @@ export type Challenge = {
   creator: string; // lowercase 0x address
   createdAt: number; // ms since epoch, server clock
   expiresAt: number; // nobody can start a try after this
+  cancelledAt?: number; // set when the creator closed the link before anyone joined
 };
 export type ChallengeEntry = {
   wallet: string; // lowercase 0x address
@@ -102,6 +103,8 @@ export interface RecordStore {
   challengeSeat(id: string, slot: ChallengeSlot, entry: ChallengeEntry): Promise<ChallengeSeat>;
   challengeEntries(id: string): Promise<ChallengeEntries>;
   challengeFinish(id: string, slot: ChallengeSlot, r: CotdResult): Promise<ChallengeFinish>;
+  // Closes or reopens a link: changes only the expiry and cancel marker. Returns the challenge as it was before.
+  challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt">>): Promise<Challenge | null>;
 }
 
 // The first player to clear a Portal's board can claim that Portal as an NFT on Portaldot.
@@ -326,6 +329,19 @@ export class FileRecordStore implements RecordStore {
     });
   }
 
+  challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt">>): Promise<Challenge | null> {
+    return this.serial(async () => {
+      const db = await this.load();
+      const row = db.challenges?.[id];
+      if (!row) return null;
+      const before = { ...row.c };
+      Object.assign(row.c, patch);
+      if (patch.cancelledAt === undefined && "cancelledAt" in patch) delete row.c.cancelledAt;
+      await this.save(db);
+      return before;
+    });
+  }
+
   async challengeEntries(id: string) {
     return (await this.load()).challenges?.[id]?.p ?? {};
   }
@@ -489,6 +505,15 @@ export class UpstashRecordStore implements RecordStore {
     if (made === 1) return { ok: true, entry };
     const cur = this.parse<ChallengeEntry>(await this.cmd("HGET", `challenge:${id}:seats`, slot));
     return { ok: false, entry: cur ?? entry };
+  }
+
+  async challengeUpdate(id: string, patch: Partial<Pick<Challenge, "expiresAt" | "cancelledAt">>): Promise<Challenge | null> {
+    const before = this.parse<Challenge>(await this.cmd("GET", `challenge:${id}`));
+    if (!before) return null;
+    const next: Challenge = { ...before, ...patch };
+    if ("cancelledAt" in patch && patch.cancelledAt === undefined) delete next.cancelledAt;
+    await this.cmd("SET", `challenge:${id}`, JSON.stringify(next));
+    return before;
   }
 
   async challengeEntries(id: string) {

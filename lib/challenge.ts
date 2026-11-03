@@ -7,7 +7,7 @@
 import { randomBytes } from "node:crypto";
 import { keccak256, recoverMessageAddress, toBytes, type Hex } from "viem";
 import { PORTAL_SUPPLY, type Board } from "./types";
-import { challengeCreateMessage, challengePlayMessage } from "./challenge-message";
+import { challengeCancelMessage, challengeCreateMessage, challengePlayMessage } from "./challenge-message";
 import { utcToday } from "./salt";
 import { countMoves, parseMove, playMove, replayLog, toLive, type LiveState } from "./live";
 import { createStake, parseTpot, type StakeDeps, type StakeRecord } from "./stakes";
@@ -52,7 +52,7 @@ export function portalForSeed(seed: string): number {
 // The result, as one pure function
 // ---------------------------------------------------------------------------
 export type ChallengeStatus = "open" | "playing" | "done" | "expired";
-export type ChallengeReason = "faster" | "opponent-lost" | "forfeit" | "draw" | "expired";
+export type ChallengeReason = "faster" | "opponent-lost" | "forfeit" | "draw" | "expired" | "cancelled";
 export type ChallengeOutcome = {
   status: ChallengeStatus; // open: waiting for a second player. playing: both in, not both finished.
   settled: boolean; // true once the result can no longer change
@@ -78,7 +78,7 @@ export function challengeOutcome(ch: Challenge, entries: ChallengeEntries, now: 
   if (!o) {
     return now <= ch.expiresAt
       ? { status: "open", settled: false, winner: null, reason: null }
-      : { status: "expired", settled: true, winner: null, reason: "expired" };
+      : { status: "expired", settled: true, winner: null, reason: ch.cancelledAt ? "cancelled" : "expired" };
   }
   if (cs === "running" || cs === "waiting" || os === "running" || os === "waiting")
     return { status: "playing", settled: false, winner: null, reason: null };
@@ -131,6 +131,7 @@ export type ChallengeView = {
   reason: ChallengeReason | null;
   createdAt: number;
   expiresAt: number;
+  cancelled: boolean;
   players: ChallengePlayerView[];
 };
 
@@ -144,7 +145,7 @@ export function challengeView(ch: Challenge, entries: ChallengeEntries, now: num
   };
   return {
     id: ch.id, tokenId: ch.tokenId, status: out.status, settled: out.settled, winner: out.winner, reason: out.reason,
-    createdAt: ch.createdAt, expiresAt: ch.expiresAt, players: [seat("creator"), seat("opponent")],
+    createdAt: ch.createdAt, expiresAt: ch.expiresAt, cancelled: !!ch.cancelledAt, players: [seat("creator"), seat("opponent")],
   };
 }
 
@@ -293,4 +294,30 @@ export async function moveChallenge(
   // The pot is paid by whoever sees the result first; if that fails the page or the timer tries again.
   try { await resolveChallengeStake(deps, ch.id, now); } catch (e) { console.error("stake payout failed", ch.id, e instanceof Error ? e.message : e); }
   return { ok: true, live, challenge: (await getChallengeView(deps.store, ch.id, now)) ?? undefined };
+}
+
+// The creator closes a link nobody has joined. The link stops taking new players at once, and any stake is
+// refunded through the same path as an expired link. Once a second player has a seat it cannot be cancelled.
+export async function cancelChallenge(
+  deps: ChallengeDeps,
+  input: { id: unknown; address: unknown; signature: unknown },
+): Promise<{ ok: true; challenge: ChallengeView } | ChallengeError> {
+  if (!isChallengeId(input.id)) return NOT_FOUND;
+  const now = (deps.now ?? Date.now)();
+  const ch = await deps.store.challengeGet(input.id);
+  if (!ch) return NOT_FOUND;
+  const who = await whoSigned(deps, input.address, input.signature, challengeCancelMessage(ch.id));
+  if (typeof who !== "string") return who;
+  if (who !== ch.creator) return { ok: false, status: 403, error: "Only the person who made this challenge can cancel it." };
+  if (ch.cancelledAt) return { ok: true, challenge: (await getChallengeView(deps.store, ch.id, now))! };
+  const before = await deps.store.challengeEntries(ch.id);
+  if (before.opponent) return { ok: false, status: 409, error: "Your friend has already joined, so this challenge can no longer be cancelled." };
+  // Close the door first, then look again: if someone slipped in meanwhile, open it back up.
+  const prev = await deps.store.challengeUpdate(ch.id, { expiresAt: Math.min(ch.expiresAt, now - 1), cancelledAt: now });
+  if ((await deps.store.challengeEntries(ch.id)).opponent) {
+    if (prev) await deps.store.challengeUpdate(ch.id, { expiresAt: prev.expiresAt, cancelledAt: undefined });
+    return { ok: false, status: 409, error: "Your friend has already joined, so this challenge can no longer be cancelled." };
+  }
+  try { await resolveChallengeStake(deps, ch.id, now); } catch (e) { console.error("stake refund failed", ch.id, e instanceof Error ? e.message : e); }
+  return { ok: true, challenge: (await getChallengeView(deps.store, ch.id, now))! };
 }

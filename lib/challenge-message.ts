@@ -7,3 +7,8 @@ export function challengeCreateMessage(date: string): string {
 export function challengePlayMessage(id: string): string {
   return `Portalsweeper friend challenge ${id}\nI am taking my one try on this challenge.`;
 }
+
+export function challengeCancelMessage(id: string): string {
+  return `Portalsweeper friend challenge ${id}
+I am closing this challenge before anyone joins.`;
+}

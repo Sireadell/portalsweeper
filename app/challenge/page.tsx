@@ -9,6 +9,8 @@ import { StakeSelector } from "@/components/StakePanel";
 import { challengeCreateMessage } from "@/lib/challenge-message";
 import { fromRoomCode } from "@/lib/roomCode";
 import { useFriends } from "@/components/useFriends";
+import MyChallenges from "@/components/MyChallenges";
+import { rememberChallenge } from "@/lib/myChallenges";
 
 export default function NewChallengePage() {
   const { address, error, busy, connect, disconnect } = useWallet();
@@ -48,6 +50,7 @@ export default function NewChallengePage() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Could not make the challenge.");
+      rememberChallenge(j.challenge.id, address, "creator");
       if (friend) await friendCall("invite", { name: friend, challengeId: j.challenge.id }); // tells them in their inbox
       router.push(`/challenge/${j.challenge.id}`);
     } catch (e) {
@@ -89,6 +92,7 @@ export default function NewChallengePage() {
             )}
           </div>
         </div>
+        {address && <MyChallenges address={address} />}
         <form onSubmit={join} className="card mt-4 p-5 sm:p-6">
           <h2 className="text-[16px] font-bold text-white">Join with a code</h2>
           <p className="mt-1 text-[13px] text-text2">Playing next to a friend? Type the code from their screen, or scan their QR code with your phone camera.</p>

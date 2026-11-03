@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
-import { challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
+import { cancelChallenge, challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
 import { getStakeStore, stakesEnabled } from "@/lib/stakes";
 import { portaldotStakeChain } from "@/lib/stakeChain";
 import { stakeView } from "@/lib/challengeStakes";
@@ -66,6 +66,12 @@ export async function POST(req: Request) {
   try {
     if (b.action === "create") {
       const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId, stakeTpot: b.stakeTpot });
+      if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
+      const stake = await stakeFor(deps(), out.challenge.id);
+      return NextResponse.json({ challenge: out.challenge, ...(stake ? { stake } : {}) }, { headers: NO_STORE });
+    }
+    if (b.action === "cancel") {
+      const out = await cancelChallenge(deps(), { id: b.id, address: b.address, signature: b.signature });
       if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
       const stake = await stakeFor(deps(), out.challenge.id);
       return NextResponse.json({ challenge: out.challenge, ...(stake ? { stake } : {}) }, { headers: NO_STORE });

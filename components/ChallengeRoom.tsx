@@ -5,7 +5,8 @@ import type { Board, PortalMeta } from "@/lib/types";
 import type { Move } from "@/lib/game";
 import type { LiveState } from "@/lib/live";
 import type { ChallengeView, ChallengePlayerView, ChallengeReason } from "@/lib/challenge";
-import { challengePlayMessage } from "@/lib/challenge-message";
+import { challengeCancelMessage, challengePlayMessage } from "@/lib/challenge-message";
+import { getMyResult, rememberChallenge, saveMyResult } from "@/lib/myChallenges";
 import { useWallet } from "./useWallet";
 import { signText } from "./signing";
 import GameScreen from "./GameScreen";
@@ -34,6 +35,7 @@ const REASON: Record<ChallengeReason, string> = {
   forfeit: "One cleared the board and the other did not finish in time.",
   draw: "Nobody cleared the board, so nobody wins.",
   expired: "Nobody took the second seat before the link ran out.",
+  cancelled: "The challenge was cancelled before anyone joined.",
 };
 
 function outcomeText(p: ChallengePlayerView): string {
@@ -80,6 +82,13 @@ export default function ChallengeRoom({ id }: { id: string }) {
   const [failed, setFailed] = useState<string | null>(null);
   const { view, setView, info, missing, stake, setStake, progress } = usePoll(id);
   const [locking, setLocking] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [saved, setSaved] = useState<{ won: boolean; seconds: number } | null>(null);
+  useEffect(() => { if (address) setSaved(getMyResult(id, address)); }, [id, address]);
+  useEffect(() => {
+    const w = address?.toLowerCase();
+    if (w && view && view.players.some((p) => p.wallet === w)) rememberChallenge(id, w, view.players[0].wallet === w ? "creator" : "opponent");
+  }, [id, address, view]);
 
   async function start() {
     if (!address) return;
@@ -107,6 +116,29 @@ export default function ChallengeRoom({ id }: { id: string }) {
       setMsg(e instanceof Error && e.message ? e.message : "Could not reach the server. Check your connection and try again.");
     } finally {
       setSigning(false);
+    }
+  }
+
+  async function cancel() {
+    if (!address) return;
+    if (!window.confirm("Cancel this challenge? The link will stop working for your friend.")) return;
+    setMsg("");
+    setCancelling(true);
+    try {
+      const sig = await signText(challengeCancelMessage(id), address);
+      const r = await fetch("/api/challenge", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "cancel", id, address, signature: sig }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? "Could not cancel.");
+      setView(j.challenge);
+      if (j.stake) setStake(j.stake);
+    } catch (e) {
+      setMsg(e instanceof Error && e.message ? e.message : "No signature was given, so nothing was cancelled.");
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -140,7 +172,13 @@ export default function ChallengeRoom({ id }: { id: string }) {
     }
     if (j.challenge) setView(j.challenge);
     if (j.stake) setStake(j.stake);
-    return j.live as LiveState;
+    const lv = j.live as LiveState;
+    if (lv.status === "won" || lv.status === "lost") {
+      const r = { won: lv.status === "won", seconds: lv.elapsed };
+      saveMyResult(id, address, r);
+      setSaved(r);
+    }
+    return lv;
   }
 
   if (missing)
@@ -207,10 +245,27 @@ export default function ChallengeRoom({ id }: { id: string }) {
           ) : (
             <>
               <InviteLink id={id} />
+              {iAmCreator && view.status === "open" && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[13px] text-mute">
+                  <span>Link open until {new Date(view.expiresAt).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" })}, then it closes by itself.</span>
+                  {address && <button type="button" className="btn-ghost" onClick={cancel} disabled={cancelling}>{cancelling ? "Check your wallet…" : "Cancel this challenge"}</button>}
+                </div>
+              )}
               {showStake && stake && <PotDisplay stakeTpot={stake.stakeTpot} potTpot={stake.potTpot} locked={stake.locks.length} />}
               <div className="card mt-4 p-5 text-center sm:p-6">
                 {myDone ? (
-                  <p className="text-[15px] text-text2">Your try is done. <b className="text-white">Waiting for the other player to finish.</b> This page updates by itself.</p>
+                  <>
+                    {saved && (
+                      <p className="font-display text-[22px] font-extrabold text-white">
+                        {saved.won ? `You cleared it in ${fmt(saved.seconds)}` : "You hit a mine"}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[15px] text-text2">
+                      {view.status === "open"
+                        ? <>Your try is done. <b className="text-white">Waiting for your friend to join.</b> The link stays open until {new Date(view.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.</>
+                        : <>Your try is done. <b className="text-white">Waiting for the other player to finish.</b> This page updates by itself.</>}
+                    </p>
+                  </>
                 ) : !address ? (
                   <>
                     <p className="text-[15px] text-text2">
@@ -399,7 +454,7 @@ export function ChallengeResult({ view, me, stake = null, compact = false }: { v
   const [note, setNote] = useState("");
   const iPlayed = view.players.some((p) => p.wallet === me);
   const headline = !view.winner
-    ? view.reason === "expired" ? "Challenge expired" : "Draw"
+    ? view.reason === "cancelled" ? "Challenge cancelled" : view.reason === "expired" ? "Challenge expired" : "Draw"
     : view.winner === me ? "You won" : iPlayed ? "You lost" : `${short(view.winner)} won`;
   const win = view.winner && view.winner === me;
   const text = `${headline}: Portalsweeper friend challenge on ${portalLabel(view.tokenId)}.`;

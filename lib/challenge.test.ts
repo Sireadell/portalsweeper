@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore, UpstashRecordStore, type Challenge, type ChallengeEntries, type RecordStore } from "./records";
 import {
-  CHALLENGE_LIFE_MS, RUN_LIMIT_MS, challengeOutcome, challengeProgress, createChallenge, getChallengeWinner, moveChallenge, startChallenge,
+  CHALLENGE_LIFE_MS, RUN_LIMIT_MS, cancelChallenge, challengeOutcome, challengeProgress, createChallenge, getChallengeView, getChallengeWinner, moveChallenge, startChallenge,
   type ChallengeDeps,
 } from "./challenge";
 import { generateBoard } from "./engine";
@@ -316,5 +316,23 @@ describe("live progress", () => {
     expect(p.opponent).toBe(0);
     await play(env, id, A);
     expect((await challengeProgress(env.deps, id)).creator).toBe(100);
+  });
+});
+
+describe.each(stores)("%s store: cancelling a challenge", (_n, mk) => {
+  it("lets only the maker close a link nobody has joined, and stops new players", async () => {
+    const { env, id } = await setup(mk());
+    expect(await cancelChallenge(env.deps, { id, ...env.as(B) })).toMatchObject({ ok: false, status: 403 });
+    const out = await cancelChallenge(env.deps, { id, ...env.as(A) });
+    expect(out).toMatchObject({ ok: true, challenge: { status: "expired", settled: true, winner: null, reason: "cancelled", cancelled: true } });
+    expect(await startChallenge(env.deps, { id, ...env.as(B) })).toMatchObject({ ok: false, status: 410 });
+    expect(await cancelChallenge(env.deps, { id, ...env.as(A) })).toMatchObject({ ok: true });
+  });
+
+  it("refuses once a friend has taken the second seat", async () => {
+    const { env, id } = await setup(mk());
+    expect((await startChallenge(env.deps, { id, ...env.as(B) })).ok).toBe(true);
+    expect(await cancelChallenge(env.deps, { id, ...env.as(A) })).toMatchObject({ ok: false, status: 409 });
+    expect((await getChallengeView(env.deps.store, id))?.cancelled).toBe(false);
   });
 });
