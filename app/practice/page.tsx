@@ -58,11 +58,12 @@ export default function PracticePage() {
       if (n === null) { setErr(`Type a number from 1 to ${PORTAL_SUPPLY}.`); return; }
       id = n;
     } else id = randomPortalId();
+    window.scrollTo(0, 0);
     setStarted(true);
     if (!(await load(id))) setStarted(false);
   }
 
-  function backToSetup() { setStarted(false); setRound(null); setErr(""); }
+  function backToSetup() { window.scrollTo(0, 0); setStarted(false); setRound(null); setErr(""); }
 
   function finish(board: Board, r: { won: boolean }) {
     won.current = r.won;

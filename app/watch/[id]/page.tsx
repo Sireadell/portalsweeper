@@ -1,0 +1,73 @@
+"use client";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import type { ChallengeBoards, ChallengeView } from "@/lib/challenge";
+import DuelBoards from "@/components/DuelBoards";
+import { ChallengeResult } from "@/components/ChallengeRoom";
+import { portalLabel } from "@/lib/names";
+
+type Progress = { creator?: number; opponent?: number };
+
+// A read-only view of a challenge for supporters. No wallet, no signing, never a mine.
+export default function WatchPage() {
+  const { id } = useParams<{ id: string }>();
+  const [view, setView] = useState<ChallengeView | null>(null);
+  const [boards, setBoards] = useState<ChallengeBoards | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [missing, setMissing] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/challenge?id=${encodeURIComponent(id)}&boards=1`, { cache: "no-store" });
+      if (r.status === 404) return setMissing(true);
+      if (!r.ok) return;
+      const j = await r.json();
+      setView(j.challenge);
+      setBoards(j.boards ?? null);
+      setProgress(j.progress ?? null);
+    } catch { /* the next poll tries again */ }
+  }, [id]);
+  useEffect(() => { void load(); }, [load]);
+  const settled = view?.settled ?? false;
+  useEffect(() => {
+    if (settled) return;
+    const t = setInterval(load, 1000);
+    return () => clearInterval(t);
+  }, [settled, load]);
+
+  if (missing)
+    return (
+      <main className="page-narrow">
+        <h1 className="text-2xl font-bold text-white">That challenge link does not exist.</h1>
+        <Link className="btn-main mt-5" href="/challenge">Challenge a friend</Link>
+      </main>
+    );
+  if (!view) return <main className="page-narrow" aria-busy><p className="text-[14px] text-mute" role="status">Loading the race…</p></main>;
+
+  const headline =
+    view.settled ? "Race over"
+      : view.status === "playing" ? "Live now"
+        : view.status === "open" ? "Waiting for the second player"
+          : "Closed";
+  return (
+    <main className="page">
+      <section className="mx-auto max-w-[900px] pt-2">
+        <p className="eyebrow">Watching a friend challenge</p>
+        <h1 className="mb-1 mt-2 text-[32px] font-extrabold tracking-tight text-white sm:text-[40px]">{headline}</h1>
+        <p className="mb-4 text-[14px] text-text2">{portalLabel(view.tokenId)}. This page updates by itself and never shows where the mines are.</p>
+        {boards ? (
+          <DuelBoards view={view} boards={boards} me={null} progress={progress} />
+        ) : (
+          <div className="card p-5 text-[15px] text-text2">
+            {view.settled ? "The boards are not kept after a race that was never played." : view.duel ? "The boards appear here as soon as both players are in." : "This is an any-time challenge, so the boards stay private until the result is in."}
+          </div>
+        )}
+        {view.settled && <ChallengeResult view={view} me={null} />}
+        <p className="mt-6 text-center text-[14px]">
+          <Link href="/challenge" className="text-mint underline-offset-2 hover:underline">Make your own challenge</Link>
+        </p>
+      </section>
+    </main>
+  );
+}

@@ -35,7 +35,7 @@ function untilTomorrow(): string {
 }
 
 export default function GameScreen({
-  meta, board, mode, onAgain, address, onFinish, footer, live, remote, preset,
+  meta, board, mode, onAgain, address, onFinish, footer, live, remote, preset, lock,
 }: {
   meta: PortalMeta; board: BoardT; mode: Mode; onAgain?: () => void; address?: string | null;
   onFinish?: (r: { won: boolean; seconds: number; moves: number; moveList?: Move[] }) => void; footer?: React.ReactNode;
@@ -43,6 +43,8 @@ export default function GameScreen({
   live?: LiveState | null; remote?: (m: Move) => Promise<LiveState>;
   // Chosen on the setup screen before the game: when given, the pickers stay off the game page.
   preset?: { twist: TwistId; cpu: CpuLevel };
+  // A live duel holds the board shut until both players are in and the countdown ends.
+  lock?: { text: string; sub?: string } | null;
 }) {
   const date = board.date;
   const fresh = () => (live ? fromLive(null, live) : initGame(board));
@@ -220,9 +222,9 @@ export default function GameScreen({
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
         {/* Left: name, live stats and the board */}
         <div className="min-w-0">
-          <div className="mb-2 flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+            <div>
+              <h2 className="whitespace-nowrap text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
               {mode !== "practice" && (
                 <p className="hidden text-[13px] text-mute sm:block">
                   {sub}{artName(meta) ? ` · Art: ${artName(meta)}` : ""}
@@ -242,6 +244,11 @@ export default function GameScreen({
             <>
               {!preset && <TwistPicker value={twistId} onChange={setTwistId} locked={state.startedAt !== null} />}
               <div className="relative">
+              {lock && (
+                <div className="duel-lock" role="status" aria-live="assertive">
+                  <div><b className={lock.text.length > 2 ? "small" : ""}>{lock.text}</b>{lock.sub && <span>{lock.sub}</span>}</div>
+                </div>
+              )}
               {!preset && <RuleBanner board={board} />}
               {shieldFx > 0 && (
                 <div key={shieldFx} className="shield-fx" role="status" aria-live="assertive">

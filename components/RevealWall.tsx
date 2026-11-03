@@ -114,6 +114,17 @@ export default function RevealWall() {
             <p className="mt-2 text-[13px] text-mute">
               {wall.cleared.length === 0 ? "None yet. The first daily clear lights up the wall." : "A Portal counts once any daily board of it has been cleared."}
             </p>
+            {wall.cleared.length === 0 && (
+              <div className="mt-4 flex items-center gap-4 rounded-xl border border-edge bg-ink2 p-3">
+                <span className="chip !border-portal/50 !text-[#F2C873]">Example</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/portals/7.webp" alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover grayscale opacity-60" />
+                <span className="text-mute" aria-hidden>→</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/portals/7.webp" alt="" width={48} height={48} className="h-12 w-12 rounded-lg object-cover" />
+                <p className="text-[13px] text-text2">A Portal stays grey until someone clears its board, then it lights up in full colour.</p>
+              </div>
+            )}
           </>
         ) : known && known.ids.length > 0 ? (
           <>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWallet } from "./useWallet";
 import { useFriends } from "./useFriends";
 import { toRoomCode } from "@/lib/roomCode";
+import ExampleDuel from "./ExampleDuel";
 
 // Username, friends, requests and challenge invites. Needs a wallet only to prove who you are (free, no transaction).
 export default function FriendsPanel() {
@@ -15,11 +16,14 @@ export default function FriendsPanel() {
 
   if (!address)
     return (
+      <>
       <div className="card p-5 text-center sm:p-6">
         <p className="text-[15px] text-text2">Connect your wallet to pick a username and add friends. Signing is free and sends no transaction.</p>
         <button className="btn-main btn-lg mt-4" onClick={connect} disabled={walletBusy}>{walletBusy ? "Waiting for your wallet…" : "Connect wallet"}</button>
         {walletError && <p className="mt-3 text-[14px] text-boom" role="alert">{walletError}</p>}
       </div>
+      <ExampleDuel />
+      </>
     );
 
   if (!me) return <p className="text-[14px] text-mute" role="status">{error || "Signing you in…"}</p>;

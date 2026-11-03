@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore, UpstashRecordStore, type Challenge, type ChallengeEntries, type RecordStore } from "./records";
 import {
-  CHALLENGE_LIFE_MS, RUN_LIMIT_MS, challengeOutcome, challengeProgress, createChallenge, getChallengeWinner, moveChallenge, startChallenge,
+  CHALLENGE_LIFE_MS, RUN_LIMIT_MS, DUEL_COUNTDOWN_MS, cancelChallenge, challengeBoards, challengeOutcome, challengeProgress, createChallenge, getChallengeView, getChallengeWinner, moveChallenge, startChallenge,
   type ChallengeDeps,
 } from "./challenge";
 import { generateBoard } from "./engine";
@@ -316,5 +316,54 @@ describe("live progress", () => {
     expect(p.opponent).toBe(0);
     await play(env, id, A);
     expect((await challengeProgress(env.deps, id)).creator).toBe(100);
+  });
+});
+
+describe.each(stores)("%s store: cancelling a challenge", (_n, mk) => {
+  it("lets only the maker close a link nobody has joined, and stops new players", async () => {
+    const { env, id } = await setup(mk());
+    expect(await cancelChallenge(env.deps, { id, ...env.as(B) })).toMatchObject({ ok: false, status: 403 });
+    const out = await cancelChallenge(env.deps, { id, ...env.as(A) });
+    expect(out).toMatchObject({ ok: true, challenge: { status: "expired", settled: true, winner: null, reason: "cancelled", cancelled: true } });
+    expect(await startChallenge(env.deps, { id, ...env.as(B) })).toMatchObject({ ok: false, status: 410 });
+    expect(await cancelChallenge(env.deps, { id, ...env.as(A) })).toMatchObject({ ok: true });
+  });
+
+  it("refuses once a friend has taken the second seat", async () => {
+    const { env, id } = await setup(mk());
+    expect((await startChallenge(env.deps, { id, ...env.as(B) })).ok).toBe(true);
+    expect(await cancelChallenge(env.deps, { id, ...env.as(A) })).toMatchObject({ ok: false, status: 409 });
+    expect((await getChallengeView(env.deps.store, id))?.cancelled).toBe(false);
+  });
+});
+
+describe("live duel", () => {
+  it("starts both players together after a countdown and shows boards without mines", async () => {
+    const env = make(file());
+    const made = await createChallenge(env.deps, { ...env.as(A), duel: true });
+    if (!made.ok) throw new Error("create");
+    const id = made.challenge.id;
+    expect(made.challenge).toMatchObject({ duel: true, goAt: null });
+    expect((await startChallenge(env.deps, { id, ...env.as(A) })).ok).toBe(true);
+    const mv = (w: string) => moveChallenge(env.deps, { id, ...env.as(w), move: { action: "reveal", idx: 0 } });
+    expect(await mv(A)).toMatchObject({ ok: false, status: 425 });
+    const joined = await startChallenge(env.deps, { id, ...env.as(B) });
+    if (!joined.ok) throw new Error("join");
+    expect(joined.challenge.goAt).toBe(T0 + DUEL_COUNTDOWN_MS);
+    expect(await mv(B)).toMatchObject({ ok: false, status: 425 });
+    env.advance(DUEL_COUNTDOWN_MS / 1000 + 1);
+    expect((await mv(B)).ok).toBe(true);
+    const boards = await challengeBoards(env.deps, id);
+    expect(boards.opponent?.state).toMatch(/playing|won|lost/);
+    expect(boards.creator?.state).toBe("waiting");
+    expect(boards.opponent?.revealed.some(Boolean)).toBe(true);
+    const real = await env.deps.board((await env.deps.store.challengeGet(id))!);
+    boards.opponent!.revealed.forEach((r, i) => { if (r) expect(real.cells[i].mine).toBe(false); });
+  });
+
+  it("does not need a countdown when it is not a duel", async () => {
+    const { env, id } = await setup(file());
+    expect((await startChallenge(env.deps, { id, ...env.as(A) })).ok).toBe(true);
+    expect((await moveChallenge(env.deps, { id, ...env.as(A), move: { action: "reveal", idx: 0 } })).ok).toBe(true);
   });
 });
