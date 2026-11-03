@@ -51,6 +51,8 @@ export default function GameScreen({
   const [flagMode, setFlagMode] = useState(false);
   const [twistId, setTwistId] = useState<TwistId>("classic");
   const [cpu, setCpu] = useState<CpuLevel>("off");
+  const [shieldFx, setShieldFx] = useState(0);
+  const shieldSeen = useRef(0);
   const twist = twistById(twistId);
   const [shards, setShards] = useState<ShardState>(emptyShards);
   const [shardNote, setShardNote] = useState<string | null>(null);
@@ -123,6 +125,16 @@ export default function GameScreen({
     const kind = soundForMove(prev, now);
     if (kind) play(kind, muted);
   }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the Frame shield takes a mine, make it unmistakable: a badge, a ring across the board and a buzz.
+  useEffect(() => {
+    const n = state.g.shielded.length;
+    if (n > shieldSeen.current && state.g.moves.length > 0) {
+      setShieldFx((k) => k + 1);
+      try { navigator.vibrate?.([60, 40, 90]); } catch { /* not supported */ }
+    }
+    shieldSeen.current = n;
+  }, [state.g.shielded.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A ranked clear earns that weekday's Shard. Practice boards never do.
   useEffect(() => {
@@ -209,9 +221,11 @@ export default function GameScreen({
           <div className="mb-2 flex items-end justify-between gap-3">
             <div className="min-w-0">
               <h2 className="truncate text-[26px] font-extrabold leading-tight tracking-tight text-white sm:text-[30px]">{portalLabel(meta.id)}</h2>
-              <p className="hidden text-[13px] text-mute sm:block">
-                {sub}{artName(meta) ? ` · Art: ${artName(meta)}` : ""}
-              </p>
+              {mode !== "practice" && (
+                <p className="hidden text-[13px] text-mute sm:block">
+                  {sub}{artName(meta) ? ` · Art: ${artName(meta)}` : ""}
+                </p>
+              )}
             </div>
             <div className="flex shrink-0 items-stretch gap-2 text-right">
               <Stat label="Mines left" value={view ? String(minesLeft(board, view)) : String(board.mines)} />
@@ -219,14 +233,7 @@ export default function GameScreen({
             </div>
           </div>
 
-          <div className="mb-2 flex items-start justify-between gap-2">
-            {!saved && board.rules.length > 0 ? (
-              <ul className="flex flex-wrap gap-1.5" aria-label="Active rules">
-                {board.rules.map((r) => (
-                  <li key={r.id} className="chip"><span aria-hidden>{RULE_ICON[r.id] ?? "✦"}</span> {r.trait}: {r.value}</li>
-                ))}
-              </ul>
-            ) : <span />}
+          <div className="mb-2 flex justify-end">
             <SoundToggle muted={muted} onToggle={toggleSound} />
           </div>
 
@@ -237,6 +244,12 @@ export default function GameScreen({
               <TwistPicker value={twistId} onChange={setTwistId} locked={state.startedAt !== null} />
               <div className="relative">
               <RuleBanner board={board} />
+              {shieldFx > 0 && (
+                <div key={shieldFx} className="shield-fx" role="status" aria-live="assertive">
+                  <div className="shield-ring" aria-hidden />
+                  <div className="shield-badge"><span aria-hidden>🛡</span><b>Shield saved you!</b><i>That was a mine. Your Frame took the hit and is used up now.</i></div>
+                </div>
+              )}
               <Board
                 board={board}
                 meta={meta}
@@ -261,15 +274,12 @@ export default function GameScreen({
                     </button>
                   )}
                   <p className="text-right text-[12px] leading-snug text-mute">
-                    {twist.noFlags ? "Tap to dig." : "Tap to dig. Hold a tile to flag."}<br />{twist.noChord ? "No number tapping in Street Rules." : "Tap a number to clear around it."}
+                    {state.startedAt !== null ? "" : twist.noFlags ? "Tap to dig." : "Tap to dig. Hold a tile to flag."}<br />{state.startedAt !== null ? "" : twist.noChord ? "No number tapping in Street Rules." : "Tap a number to clear around it."}
                   </p>
                 </div>
               )}
               {netErr && (
                 <p className="toast" role="alert">Lost touch with the server, so that move may not have counted. Refresh to pick the game back up.</p>
-              )}
-              {state.shieldedAt.length > 0 && !done && (
-                <p className="toast" role="status">🛡 Your Frame took that hit. It is used up now.</p>
               )}
             </>
           )}
@@ -305,12 +315,12 @@ export default function GameScreen({
             </>
           )}
 
-          <details className="group rounded-xl border border-edge bg-panel/60 px-3 py-2" open={!!shardNote}><summary className="cursor-pointer select-none text-[13px] font-semibold text-text2">Daily shards {shardCount(shards)}/{SET_SIZE}</summary><div className="mt-2"><ShardBar shards={shards} note={shardNote} /></div></details>
+          {(mode === "daily" || mode === "cotd") && <details className="group rounded-xl border border-edge bg-panel/60 px-3 py-2" open={!!shardNote}><summary className="cursor-pointer select-none text-[13px] font-semibold text-text2">Daily shards {shardCount(shards)}/{SET_SIZE}</summary><div className="mt-2"><ShardBar shards={shards} note={shardNote} /></div></details>}
 
           <div className="space-y-3">
             <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mute">Rules from this Portal</h3>
             <RuleCards board={board} state={state} />
-            <CommitChip commit={board.commit} />
+            {mode !== "practice" && <CommitChip commit={board.commit} />}
           </div>
         </aside>
       </div>
