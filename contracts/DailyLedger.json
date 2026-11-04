@@ -1,0 +1,298 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_writer",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "AlreadySet",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotCommitted",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotRevealed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotWriter",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "WrongSalt",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "commit",
+          "type": "bytes32"
+        }
+      ],
+      "name": "Committed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "chainRandom",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "randomBlock",
+          "type": "uint64"
+        }
+      ],
+      "name": "RandomnessSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "salt",
+          "type": "bytes32"
+        }
+      ],
+      "name": "Revealed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint16",
+          "name": "portal",
+          "type": "uint16"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "winner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "moveLogHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "Winner",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "fingerprint",
+          "type": "bytes32"
+        }
+      ],
+      "name": "commit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        }
+      ],
+      "name": "getDay",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "commit_",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "committedAt",
+          "type": "uint64"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "chainRandom",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "randomBlock",
+          "type": "uint64"
+        },
+        {
+          "internalType": "bool",
+          "name": "revealed",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "salt",
+          "type": "bytes32"
+        }
+      ],
+      "name": "matches",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint16",
+          "name": "portal",
+          "type": "uint16"
+        },
+        {
+          "internalType": "address",
+          "name": "winner",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "moveLogHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "recordWinner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "salt",
+          "type": "bytes32"
+        }
+      ],
+      "name": "reveal",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint32",
+          "name": "day",
+          "type": "uint32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "chainRandom",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "randomBlock",
+          "type": "uint64"
+        }
+      ],
+      "name": "setRandomness",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "writer",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60a060405234801561001057600080fd5b506040516107fa3803806107fa83398101604081905261002f91610040565b6001600160a01b0316608052610070565b60006020828403121561005257600080fd5b81516001600160a01b038116811461006957600080fd5b9392505050565b60805161075b61009f6000396000818160c4015281816102200152818161030901526103ee015261075b6000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c8063635a79431161005b578063635a7943146100fe578063833e2cb614610111578063c069b53314610124578063c7fcb2111461013757600080fd5b8063239be83e1461008257806340f84925146100aa578063453a2abc146100bf575b600080fd5b61009561009036600461062a565b6101c1565b60405190151581526020015b60405180910390f35b6100bd6100b836600461062a565b610215565b005b6100e67f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020016100a1565b6100bd61010c366004610654565b6102fe565b6100bd61011f3660046106b6565b6103e3565b6100bd61013236600461062a565b61050d565b61018c610145366004610703565b63ffffffff166000908152602081905260409020805460018201546002830154600390930154919367ffffffffffffffff918216939291821691600160401b900460ff1690565b6040805195865267ffffffffffffffff948516602087015285019290925290911660608301521515608082015260a0016100a1565b63ffffffff8216600090815260208190526040812054801580159061020d575080836040516020016101f591815260200190565b60405160208183030381529060405280519060200120145b949350505050565b336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461025e57604051630751a1cd60e41b815260040160405180910390fd5b63ffffffff8216600090815260208190526040902054156102925760405163a741a04560e01b815260040160405180910390fd5b63ffffffff821660008181526020818152604091829020848155600101805467ffffffffffffffff19164267ffffffffffffffff1617905590518381527ffd124cc54950c47cc6134e0010e89ea92709ff19b5750f61ac5e5002a5e91373910160405180910390a25050565b336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461034757604051630751a1cd60e41b815260040160405180910390fd5b63ffffffff8416600090815260208190526040902060030154600160401b900460ff1661038757604051631659379160e31b815260040160405180910390fd5b6040805161ffff851681526001600160a01b038416602082015290810182905263ffffffff8516907f8e78ea8424d894b0901cf6fc25d104d6704421ec2969c0b75e6909caf4958aba906060015b60405180910390a250505050565b336001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000161461042c57604051630751a1cd60e41b815260040160405180910390fd5b63ffffffff8316600090815260208190526040902080546104605760405163205e472d60e21b815260040160405180910390fd5b6003810154600160401b900460ff16806104875750600381015467ffffffffffffffff1615155b156104a55760405163a741a04560e01b815260040160405180910390fd5b6002810183905560038101805467ffffffffffffffff191667ffffffffffffffff841690811790915560408051858152602081019290925263ffffffff8616917f54ec76da942d489360252f9883d28f941dae8c91f7936abe3bd7334a5e99d53491016103d5565b63ffffffff8216600090815260208190526040902080546105415760405163205e472d60e21b815260040160405180910390fd5b6003810154600160401b900460ff161561056e5760405163a741a04560e01b815260040160405180910390fd5b805460408051602081018590520160405160208183030381529060405280519060200120146105b0576040516330e974ad60e01b815260040160405180910390fd5b60038101805468ff00000000000000001916600160401b17905560405163ffffffff8416907f410115a159b32db7488ff39e18077e159e7c30f963b6b7d21a356118edef3a25906106049085815260200190565b60405180910390a2505050565b803563ffffffff8116811461062557600080fd5b919050565b6000806040838503121561063d57600080fd5b61064683610611565b946020939093013593505050565b6000806000806080858703121561066a57600080fd5b61067385610611565b9350602085013561ffff8116811461068a57600080fd5b925060408501356001600160a01b03811681146106a657600080fd5b9396929550929360600135925050565b6000806000606084860312156106cb57600080fd5b6106d484610611565b925060208401359150604084013567ffffffffffffffff811681146106f857600080fd5b809150509250925092565b60006020828403121561071557600080fd5b61071e82610611565b939250505056fea264697066735822122020ff0d3e9eab4193796d8c9036af0685d9a4e22bacbb09e3d043039511ffd20464736f6c63430008180033"
+}
