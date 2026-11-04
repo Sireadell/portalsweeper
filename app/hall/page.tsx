@@ -3,6 +3,7 @@ import { getStore, rankCotd, type PortalRecord } from "@/lib/records";
 import { utcToday } from "@/lib/salt";
 import { shortWallet } from "@/lib/cotd";
 import { PORTAL_SUPPLY } from "@/lib/types";
+import { hallNames } from "@/lib/hallNames";
 import CotdCard from "@/components/CotdCard";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +72,7 @@ export default async function HallPage() {
   const [records, entries] = await Promise.all([store.listRecords(), store.cotdEntries(today)]);
   const won = records.filter((r: PortalRecord) => r.wins > 0);
   const top = rankCotd(entries).slice(0, 10);
+  const names = await hallNames(top.map((e) => e.wallet));
   const cleared = [...won].sort((a, b) => b.wins - a.wins || (a.bestSeconds ?? 1e9) - (b.bestSeconds ?? 1e9)).slice(0, 10);
   const streaks = [...won].sort((a, b) => b.longestStreak - a.longestStreak || b.wins - a.wins).slice(0, 10);
 
@@ -94,7 +96,7 @@ export default async function HallPage() {
         empty="No clears yet today. The first wallet to clear the Portal of the day takes the top spot."
         cols={[{ head: "Wallet" }, { head: "Time", right: true }, { head: "Moves", right: true }]}
         example="1. 0x12ab…90cd, 0:42, 31 moves"
-        rows={top.map((e) => ({ key: e.wallet, cells: [<span key="w" className="font-mono text-white">{shortWallet(e.wallet)}</span>, time(e.seconds ?? null), String(e.moves ?? "-")] }))}
+        rows={top.map((e) => ({ key: e.wallet, cells: [<span key="w" className="font-mono text-white">{names.get(e.wallet.toLowerCase()) ? <><span className="font-sans font-semibold">{names.get(e.wallet.toLowerCase())}</span> <span className="text-mute">{shortWallet(e.wallet)}</span></> : shortWallet(e.wallet)}</span>, time(e.seconds ?? null), String(e.moves ?? "-")] }))}
       />
 
       <Board
