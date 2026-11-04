@@ -5,7 +5,10 @@ import { shortFingerprint } from "@/lib/share";
 import type { Board, PortalMeta } from "@/lib/types";
 import { PORTALDOT_RPC, blockLink } from "@/lib/types";
 
-type Api = ProofInput & { tokenId: number; revealed: boolean };
+type LedgerInfo = { address: string; revealed: boolean; chainRandom: string | null; randomBlock: number | null } | null;
+type RandomInfo = { value: string; block: number; epoch: number; commitBlock: number } | null;
+type WinnerInfo = { tokenId: number; wallet: string; ledgerTx: string } | null;
+type Api = ProofInput & { tokenId: number; revealed: boolean; ledger?: LedgerInfo; randomInfo?: RandomInfo; winner?: WinnerInfo };
 type Result = { verdict: ProofVerdict; headline: string; checks: ProofCheck[]; board?: Board; api: Api };
 
 const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -152,6 +155,35 @@ export default function ProofSteps() {
                 <div><dt className="inline">Portaldot post: </dt><dd className="inline" style={mono}>{out.api.chain.block ? <a className="underline" href={blockLink(out.api.chain.block)} target="_blank" rel="noreferrer">{shortFingerprint(out.api.chain.txHash)} (block {out.api.chain.block})</a> : shortFingerprint(out.api.chain.txHash)}</dd></div>
               )}
             </dl>
+            {(out.api.ledger || out.api.randomInfo || out.api.winner) && (
+              <div className="mt-4 rounded-xl border border-edge p-3 text-[13px]">
+                <p className="font-semibold text-white">On the Portaldot ledger contract</p>
+                <dl className="mt-2 grid gap-1 text-mute">
+                  {out.api.ledger && (
+                    <>
+                      <div><dt className="inline">Ledger contract: </dt><dd className="inline" style={mono}>{out.api.ledger.address}</dd></div>
+                      <div>
+                        <dt className="inline">Secret checked by the contract: </dt>
+                        <dd className="inline" style={{ color: out.api.ledger.revealed ? "var(--mint)" : "#E8B04A" }}>{out.api.ledger.revealed ? "✓ yes, the contract accepted the secret" : "not yet, the day is still open"}</dd>
+                      </div>
+                    </>
+                  )}
+                  {out.api.randomInfo && (
+                    <div>
+                      <dt className="inline">Chain random number: </dt>
+                      <dd className="inline" style={mono}>{shortFingerprint(out.api.randomInfo.value)}</dd>
+                      <dd className="inline"> read from <a className="underline" href={blockLink(out.api.randomInfo.block)} target="_blank" rel="noreferrer">block {out.api.randomInfo.block}</a>, after the fingerprint was posted in block {out.api.randomInfo.commitBlock}</dd>
+                    </div>
+                  )}
+                  {out.api.winner && (
+                    <div>
+                      <dt className="inline">Winner record: </dt>
+                      <dd className="inline">Portal #{out.api.winner.tokenId} to <span style={mono}>{shortFingerprint(out.api.winner.wallet)}</span>, with the fingerprint of their move log, in transaction <span style={mono}>{shortFingerprint(out.api.winner.ledgerTx)}</span></dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
             {out.board && (
               <div className="mt-4">
                 <p className="mb-2 text-[12px] text-mute">Mine layout for Portal #{out.api.tokenId} on {out.api.date} (● is a mine, numbers count mines next to a square):</p>

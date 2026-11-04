@@ -4,6 +4,7 @@ import { dailyCommit, getDailySalt, isRevealable, isValidDate, utcToday } from "
 import { findCommit } from "@/lib/commits";
 import { fingerprintOfTx, readLedgerDay } from "@/lib/ledger";
 import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
+import { getStore } from "@/lib/records";
 import { getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
@@ -51,8 +52,14 @@ export async function GET(req: Request) {
   } catch {}
   const ledger = await readLedgerDay(date);
   const random = usesChainRandom(date) ? await readStoredRandom(date) : undefined;
+  // The day's winner, with the ledger call that recorded them, once the award job has run for that day.
+  let winner: { tokenId: number; wallet: string; ledgerTx: string } | null = null;
+  try {
+    const claim = (await getStore().claimList()).find((c) => c.date === date && c.ledgerTx);
+    if (claim?.ledgerTx) winner = { tokenId: claim.tokenId, wallet: claim.wallet, ledgerTx: claim.ledgerTx };
+  } catch {}
   return NextResponse.json(
-    { tokenId, date, revealed, commit: dailyCommit(date), salt: revealed ? getDailySalt(date) : null, meta, chain, ledger, chainRandom: random?.value ?? null, randomInfo: random ?? null },
+    { tokenId, date, revealed, commit: dailyCommit(date), salt: revealed ? getDailySalt(date) : null, meta, chain, ledger, chainRandom: random?.value ?? null, randomInfo: random ?? null, winner },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
