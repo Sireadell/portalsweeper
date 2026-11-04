@@ -89,7 +89,7 @@ async function main() {
   for (let i = 1; i <= MATCHES; i++) await match(i);
 
   mkdirSync(path.join(process.cwd(), "proof"), { recursive: true });
-  writeFileSync(path.join(process.cwd(), "proof", "stake-run.json"), JSON.stringify({ at: new Date().toISOString(), stakeTpot: STAKE, txs }, null, 2));
+  writeFileSync(path.join(process.cwd(), "proof", "stake-matches.json"), JSON.stringify({ at: new Date().toISOString(), stakeTpot: STAKE, txs }, null, 2));
   const { blockLink } = await import("../lib/types");
   const rows = txs.map((t, n) => `| ${n + 1} | ${t.kind} | \`${t.hash}\` | [${t.block}](${blockLink(t.block)}) |`).join("\n");
   mkdirSync(path.join(process.cwd(), "docs"), { recursive: true });
@@ -101,7 +101,7 @@ Every row is a real transfer on the Portaldot V3 testnet (tPOT has no value). Pl
 |---|---|---|---|
 ${rows}
 `);
-  console.log(`Done. ${txs.length} transactions. Saved proof/stake-run.json and docs/stake-proof.md`);
+  console.log(`Done. ${txs.length} transactions. Saved proof/stake-matches.json and docs/stake-proof.md`);
   console.log("Balances after (tPOT):");
   for (const [n, x] of [["escrow", escrow], ["player A", a], ["player B", b]] as const) console.log(`  ${n}  ${await bal(x.address)}`);
 }
