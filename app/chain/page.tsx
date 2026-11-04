@@ -2,14 +2,15 @@ import { chainFacts } from "@/lib/chainFacts";
 import { PORTALDOT_CONSOLE } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "On the chain", description: "What Portalsweeper does on Portaldot, read live from the chain, and what is and is not trustless." };
+export const metadata = { title: "On the chain", description: "What Portalsweeper does on Portaldot, read live from the chain, and which parts you have to trust." };
 
 const TRUST: { part: string; trust: string; why: string }[] = [
-  { part: "Fingerprint posted before play", trust: "Trustless", why: "It sits on the chain with a block time. Nobody can change it afterwards." },
-  { part: "Secret revealed and checked", trust: "Trustless", why: "The ledger contract hashes the secret itself and refuses a wrong one. Your browser can do the same maths." },
-  { part: "Chain random number", trust: "Not fully", why: "The testnet has only 2 validators, so one of them could nudge it. It still comes after the fingerprint." },
-  { part: "Who gets recorded as winner", trust: "Trusted", why: "The game's server wallet writes the winner. The move log fingerprint lets anyone check the claim." },
-  { part: "Stakes", trust: "Trusted", why: "A server wallet holds the stakes and pays out. Test coins only, with a low cap. A contract version comes later." },
+  { part: "Fingerprint posted before play", trust: "Nobody", why: "It sits on the chain with a block time, so it cannot be changed after people start playing." },
+  { part: "Secret checked against the fingerprint", trust: "Nobody", why: "Your browser does this on /verify today. Once the ledger contract is on the chain, it does the same check itself and refuses a wrong secret." },
+  { part: "Chain random number", trust: "The 2 validators", why: "The testnet has only 2 block producers, so one could nudge the number. It still arrives after the fingerprint, so we cannot pick it." },
+  { part: "The secret during the day", trust: "Our server", why: "The daily job and the server hold the secret while the day runs. The check proves the board was not changed, not that nobody saw it." },
+  { part: "Who is recorded as winner", trust: "Our server wallet", why: "It writes the winner. The fingerprint of the winner's move log lets anyone check that claim." },
+  { part: "Stakes on a challenge", trust: "Our escrow wallet", why: "A wallet our server controls holds the stakes and pays the winner. Simulated until one real stake run passes. Capped at 1 tPOT each." },
 ];
 
 export default async function ChainPage() {
@@ -19,7 +20,7 @@ export default async function ChainPage() {
       <p className="eyebrow mt-2">Portaldot V3 testnet</p>
       <h1 className="mt-2 text-[32px] font-extrabold tracking-tight text-white sm:text-[40px]">What Portalsweeper does on the chain</h1>
       <p className="mt-3 text-[15px] leading-relaxed text-text2">
-        Everything below is read from Portaldot when you open this page{head ? ` (latest block ${head})` : ""}. Where something is not switched on yet, it says so.
+        Each card below is read from Portaldot the moment you open this page{head ? `, at block ${head}` : ""}. A card marked Not yet is built but not running on the chain.
       </p>
 
       <div className="mt-6 grid gap-3">
@@ -35,13 +36,13 @@ export default async function ChainPage() {
         ))}
       </div>
 
-      <h2 className="mt-10 text-[22px] font-bold text-white">What you have to trust, and what you do not</h2>
+      <h2 className="mt-10 text-[22px] font-bold text-white">Who you have to trust</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">
         <table className="w-full border-collapse text-[14px]">
           <thead>
             <tr className="text-left text-[12px] uppercase tracking-wide text-mute">
               <th className="px-3 py-2 font-semibold">Part</th>
-              <th className="px-3 py-2 font-semibold">Trust</th>
+              <th className="px-3 py-2 font-semibold">You trust</th>
               <th className="px-3 py-2 font-semibold">Why</th>
             </tr>
           </thead>
@@ -57,7 +58,7 @@ export default async function ChainPage() {
         </table>
       </div>
       <p className="mt-4 text-[13px] text-mute">
-        All of this runs on a test network, and the coins have no value. <a className="underline" href={PORTALDOT_CONSOLE} target="_blank" rel="noreferrer">Open the chain explorer</a>.
+        This is the Portaldot V3 testnet. tPOT is a test coin with no value, so nothing real is at risk. <a className="underline" href={PORTALDOT_CONSOLE} target="_blank" rel="noreferrer">Open the chain explorer</a>.
       </p>
     </main>
   );

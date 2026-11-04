@@ -109,6 +109,36 @@ To mint one Portal by hand (for a real winner, or a recipient the founder picks)
 
 There is no contract address. The Portals use Portaldot's built-in NFT module instead of a contract, and the fingerprint is a plain 0-value transaction.
 
+## What runs on the Portaldot chain
+
+The live page **/chain** reads each of these from Portaldot when you open it and says which ones are switched on.
+
+| Part | What it does | Status today |
+|---|---|---|
+| Ledger contract | `contracts/DailyLedger.sol`, Solidity running on Portaldot's EVM side (pallet-revive). It holds each day's fingerprint before anyone plays. When the day's secret is revealed, the contract hashes it itself and refuses one that does not match. After that it records the day's winner | Written and tested (10 tests on a local EVM, 2042 bytes of code). Not deployed yet. It goes on the chain once the deploying wallet has test coins |
+| Chain random number | The day's board mixes in a number Portaldot's block producers make (Babe randomness). We read it 3 chain hours after the block holding the fingerprint, so nobody could know it when the secret was fixed. The block it came from is shown on /verify | Built and checked against the live chain. Not switched on yet. Days before it is switched on keep their old board, so every past day still checks out |
+| Winner fingerprint | When the Portal of the day is awarded, the hash of the winner's own move log goes into the ledger next to the Portal and the winning wallet. Anyone with the moves can recompute it | Wired into the daily award. Waits for the ledger, and a failed write never undoes a mint |
+| Names | Reads the name a wallet has set in Portaldot's Identity module, for showing on the Hall | The reader works against the live chain (6 names are set there today). Not on the Hall yet |
+| SHARD token | A reward token made with Portaldot's built-in Assets module, with no contract. The chain also shows every such token as a normal ERC-20 at a fixed address, so wallets and Solidity can read it | Planned. The create script has a free dry run. Not created yet |
+
+### What you have to trust
+
+| Part | Who you have to trust | Plain status |
+|---|---|---|
+| Fingerprint posted before play | Nobody | Live. It sits on the chain with a block time and cannot be changed afterwards |
+| Secret checked against the fingerprint | Nobody | Live today in your browser on /verify. The contract will do the same check on the chain once deployed |
+| Chain random number | The testnet's 2 validators | Not trustless. With only 2 block producers, one could nudge the number. It still arrives after the fingerprint, so we cannot pick it. Not switched on yet |
+| The secret during the day | Our daily job and server | They hold the secret while the day is running. The fingerprint proves the board was not changed, not that nobody saw it |
+| Who is recorded as winner | Our server wallet | It writes the winner. The move log fingerprint lets anyone check that claim |
+| Stakes on a challenge | The escrow wallet, which our server controls | Trusted. Tested against a fake chain only. Simulated until one real stake run passes on Portaldot |
+| Portal NFTs | The collection issuer | Collection 5 exists. Nothing has been minted on it yet |
+| Ledger contract and SHARD token | Nobody once live | Prepared, not on the chain yet. Both wait for the wallet to be funded |
+| The coins | Nobody, there is nothing to lose | Testnet only. tPOT has no value |
+
+### Use the ledger in your own game
+
+The ledger works for any daily game that fixes a secret before play: a word game, a card deal, a raffle. How to deploy it from a normal wallet, call it, and read Portaldot's native tokens as ERC-20 is in [`docs/portaldot.md`](docs/portaldot.md). MIT licensed.
+
 ## Status at check-in (Oct 24)
 
 Done:
