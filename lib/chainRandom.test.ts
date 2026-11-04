@@ -41,4 +41,15 @@ describe("board seed with the chain number", () => {
     expect(a).toBe(JSON.stringify(generateBoard(meta, "2026-11-07", "s", rnd).cells));
     expect(JSON.stringify(generateBoard(meta, "2026-11-07", "s", "0x" + "33".repeat(32)).cells)).not.toBe(a);
   });
+  it("mixes a wallet into the seed, stable per wallet, and leaves the no-wallet board alone", () => {
+    const w1 = "0x" + "a1".repeat(20);
+    const w2 = "0x" + "b2".repeat(20);
+    const plain = JSON.stringify(generateBoard(meta, "2026-11-07", "s", rnd).cells);
+    const one = JSON.stringify(generateBoard(meta, "2026-11-07", "s", rnd, w1).cells);
+    expect(one).not.toBe(plain);
+    expect(one).toBe(JSON.stringify(generateBoard(meta, "2026-11-07", "s", rnd, w1).cells));
+    expect(JSON.stringify(generateBoard(meta, "2026-11-07", "s", rnd, w2).cells)).not.toBe(one);
+    expect(JSON.stringify(generateBoard(meta, "2026-11-07", "s", undefined, w1).cells)).not.toBe(JSON.stringify(generateBoard(meta, "2026-11-07", "s", undefined, w2).cells));
+    expect(() => generateBoard(meta, "2026-11-07", "s", rnd, "nope")).toThrow();
+  });
 });

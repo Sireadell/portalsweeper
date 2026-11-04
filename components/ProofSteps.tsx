@@ -53,6 +53,7 @@ export default function ProofSteps() {
   const [nowErr, setNowErr] = useState("");
   const [token, setToken] = useState("1");
   const [date, setDate] = useState(yesterday());
+  const [wallet, setWallet] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [out, setOut] = useState<Result | null>(null);
@@ -70,7 +71,9 @@ export default function ProofSteps() {
     try {
       const api = await getApi(token.trim(), date);
       const chain = api.chain.txHash ? await readChain(api.chain.txHash, api.chain) : api.chain;
-      const full = { ...api, chain };
+      const w = wallet.trim();
+      if (w && !/^0x[0-9a-fA-F]{40}$/.test(w)) throw new Error("A wallet looks like 0x followed by 40 letters and numbers.");
+      const full = { ...api, chain, wallet: w || null };
       setOut({ ...checkProof(full), api: full });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Something went wrong.");
@@ -121,6 +124,10 @@ export default function ProofSteps() {
           <label className="grid gap-1 text-[13px]">
             Day (UTC)
             <input style={field} type="date" max={today()} value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <label className="grid gap-1 text-[13px]">
+            Wallet (only for a ranked try)
+            <input style={{ ...field, width: 200 }} placeholder="0x... or leave empty" value={wallet} onChange={(e) => setWallet(e.target.value)} />
           </label>
           <button type="button" onClick={go} disabled={busy} className="btn-main !py-2.5">
             {busy ? "Checking..." : "Check this board"}

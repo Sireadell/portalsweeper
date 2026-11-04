@@ -167,7 +167,7 @@ describe("ranked tries", () => {
   const T0 = Date.parse("2026-10-20T12:00:00Z");
   const wallet = "0x" + "a".repeat(40);
   const meta = (id: number): PortalMeta => ({ id, name: `Portal #${id}`, image: "", traits: [{ trait_type: "Tier", value: "Common" }] });
-  const board: BoardFor = async (id, date) => generateBoard(meta(id), date, getDailySalt(date));
+  const board: BoardFor = async (id, date, w) => generateBoard(meta(id), date, getDailySalt(date), undefined, w);
   const mk = (over: Partial<CotdDeps> = {}, store: RecordStore = new FileRecordStore(path.join(mkdtempSync(path.join(tmpdir(), "portal-")), "r.json"))) => {
     let t = T0;
     const deps = { store, now: () => t, recover: async () => wallet, board, ...over };
@@ -179,7 +179,7 @@ describe("ranked tries", () => {
   // Plays a whole ranked try on the server: opens safe cells (or a mine, to lose) one move at a time.
   async function play(deps: CotdDeps & { board: BoardFor }, w: string, opts: { lose?: boolean; step?: () => void } = {}) {
     const entry = (await deps.store.cotdEntry(date, w))!;
-    const real = await deps.board(entry.tokenId, date);
+    const real = await deps.board(entry.tokenId, date, w);
     for (let n = 0; n < 500; n++) {
       const g = replayLog(real, await deps.store.movesGet(`cotd:${date}:${w}`));
       const pick = g.started && opts.lose
@@ -194,6 +194,18 @@ describe("ranked tries", () => {
   }
 
   beforeAll(() => { process.env.PORTAL_SALT_SECRET = "test-secret"; });
+
+  it("gives every wallet its own layout of the same Portal, so a board cannot be scouted on another wallet", async () => {
+    const other = "0x" + "b".repeat(40);
+    const a = await board(7, date, wallet);
+    const b = await board(7, date, other);
+    expect(a.tokenId).toBe(b.tokenId);
+    expect(JSON.stringify(a.cells.map((c) => c.mine))).not.toBe(JSON.stringify(b.cells.map((c) => c.mine)));
+    // the same wallet always gets the same board back (a refresh or a check later)
+    expect(JSON.stringify((await board(7, date, wallet)).cells)).toBe(JSON.stringify(a.cells));
+    // upper or lower case of the same wallet is the same board
+    expect(JSON.stringify((await board(7, date, wallet.toUpperCase().replace("0X", "0x"))).cells)).toBe(JSON.stringify(a.cells));
+  });
 
   it("rejects a bad signature and a mismatched signer", async () => {
     expect(await startRanked(mk({ recover: async () => { throw new Error("x"); } }).deps, who)).toMatchObject({ ok: false, status: 401 });

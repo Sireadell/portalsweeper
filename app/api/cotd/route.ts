@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
 import { getDailySalt } from "@/lib/salt";
+import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
 import { moveRanked, startRanked, summarize, type BoardFor, type CotdDeps } from "@/lib/cotd";
 import { generateBoard, getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "no-store" };
 
-const boardFor: BoardFor = async (tokenId, date) => generateBoard(await getPortalMeta(tokenId), date, getDailySalt(date));
+// Days from RANDOM_FROM also mix in the chain number saved for that day, the same as the shared daily board.
+const boardFor: BoardFor = async (tokenId, date, wallet) => {
+  const random = usesChainRandom(date) ? (await readStoredRandom(date))?.value : undefined;
+  return generateBoard(await getPortalMeta(tokenId), date, getDailySalt(date), random, wallet);
+};
 const deps = (): CotdDeps & { board: BoardFor } => ({ store: getStore(), board: boardFor });
 
 // Today's featured Portal, the leaderboard, yesterday's winner. ?address=0x.. adds that wallet's own status.

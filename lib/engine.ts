@@ -101,11 +101,16 @@ function traitValue(meta: PortalMeta, name: string): string | undefined {
 // ---------------------------------------------------------------------------
 // chainRandom is optional: a 32 byte number the chain made after the day's fingerprint was posted. Without it the
 // seed is exactly what it always was, so every earlier day still rebuilds the same board.
-export function generateBoard(meta: PortalMeta, date: string, salt: string, chainRandom?: string): Board {
+// wallet is optional too: a ranked try mixes the player's own wallet into the seed, so every wallet gets its own
+// layout of the same Portal and scouting the board on one wallet tells you nothing about another. Without it the
+// seed is unchanged (shared daily games, practice, past days).
+export function generateBoard(meta: PortalMeta, date: string, salt: string, chainRandom?: string, wallet?: string): Board {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("date must be YYYY-MM-DD");
-  const seed = chainRandom
+  const base = chainRandom
     ? keccak256(encodePacked(["uint256", "string", "string", "bytes32"], [BigInt(meta.id), date, salt, chainRandom as `0x${string}`]))
     : keccak256(encodePacked(["uint256", "string", "string"], [BigInt(meta.id), date, salt]));
+  if (wallet !== undefined && !/^0x[0-9a-fA-F]{40}$/.test(wallet)) throw new Error("wallet must be a 0x address");
+  const seed = wallet ? keccak256(encodePacked(["bytes32", "address"], [base, wallet.toLowerCase() as `0x${string}`])) : base;
   const rand = rngStream(seed);
 
   // Tier sets size and mine count.

@@ -12,6 +12,7 @@ export type ProofInput = {
   salt: string | null; // revealed secret, null while the day is live
   meta: PortalMeta | null;
   chainRandom?: string | null; // the chain number mixed into the board, for days that used one
+  wallet?: string | null; // a ranked try's wallet: its board is mixed with the wallet
   chain: { found: boolean; data?: string; timestamp?: number; txHash?: string; block?: number; error?: string };
 };
 
@@ -54,7 +55,7 @@ export function checkProof(i: ProofInput): { verdict: ProofVerdict; headline: st
 
   let board: Board | undefined;
   if (i.meta) {
-    board = generateBoard(i.meta, i.date, i.salt, i.chainRandom ?? undefined);
+    board = generateBoard(i.meta, i.date, i.salt, i.chainRandom ?? undefined, i.wallet || undefined);
     checks.push({
       label: "Board rebuilt from the secret",
       state: same(board.commit, recomputed) ? "pass" : "fail",

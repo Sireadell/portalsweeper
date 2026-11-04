@@ -62,7 +62,8 @@ async function whoSigned(deps: CotdDeps, address: unknown, signature: unknown, d
 }
 
 // Builds the real board for a Portal on a day (server only: it needs the daily salt).
-export type BoardFor = (tokenId: number, date: string) => Promise<Board>;
+// The wallet is the player's own: each wallet's ranked try is a different layout, so a board cannot be scouted.
+export type BoardFor = (tokenId: number, date: string, wallet?: string) => Promise<Board>;
 
 const gameKey = (date: string, wallet: string) => `cotd:${date}:${wallet}`;
 // The key a ranked try's move log is stored under, so the award job can fingerprint the winner's own moves.
@@ -81,7 +82,7 @@ export async function startRanked(
   const out = await deps.store.cotdStart({ date, wallet: who, tokenId: await portalOfDay(deps.store, date), startedAt: now });
   if (!out.ok && out.entry.finishedAt) return { ok: false, status: 409, error: "You already took today's ranked try.", entry: out.entry };
   const log = await deps.store.movesGet(gameKey(date, who));
-  const board = await deps.board(out.entry.tokenId, date);
+  const board = await deps.board(out.entry.tokenId, date, who);
   return { ok: true, entry: out.entry, live: toLive(replayLog(board, log), log, now) };
 }
 
@@ -103,7 +104,7 @@ export async function moveRanked(
   if (typeof who !== "string") return who;
   const cur = await deps.store.cotdEntry(date, who);
   if (!cur) return { ok: false, status: 400, error: "Press Start before playing a ranked try." };
-  const board = await deps.board(cur.tokenId, date);
+  const board = await deps.board(cur.tokenId, date, who);
   const key = gameKey(date, who);
   const played = playMove(board, await deps.store.movesGet(key), move, now);
   if (played.stored && !cur.finishedAt) await deps.store.movesAdd(key, played.stored);
