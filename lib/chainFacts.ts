@@ -1,5 +1,6 @@
 import { getApi } from "./native";
 import { ledgerAddress, publicClient } from "./ledger";
+import { readCommits } from "./commits";
 import { PORTAL_COLLECTION_ID, PORTAL_SUPPLY } from "./types";
 
 export type Fact = { key: string; label: string; state: "live" | "waiting"; value: string; how: string };
@@ -23,6 +24,7 @@ export async function chainFacts(): Promise<{ at: number; head: number | null; f
   const epoch = api ? await safe(async () => (await api.query.babe.epochIndex()).toString()) : null;
   const ledger = ledgerAddress();
   const ledgerCode = ledger ? await safe(async () => ((await pub.getCode({ address: ledger }))?.length ?? 2) / 2 - 1) : null;
+  const ledgerEntries = ledger && ledgerCode ? await safe(async () => (await readCommits()).filter((c) => c.kind === "ledger").length) : null;
   const shardId = process.env.SHARD_ASSET_ID;
 
   const facts: Fact[] = [
@@ -37,7 +39,9 @@ export async function chainFacts(): Promise<{ at: number; head: number | null; f
       key: "fingerprint",
       label: "Each day's fingerprint is posted before play",
       state: "live",
-      value: ledger && ledgerCode ? `Posted to the DailyLedger contract at ${ledger} (${ledgerCode} bytes of code on chain).` : "Posted as a plain note from the game wallet. The ledger contract is not switched on yet.",
+      value: ledger && ledgerCode
+        ? `The DailyLedger contract at ${ledger} is deployed and live (${ledgerCode} bytes of code on chain). Each day's fingerprint is written to it when that day's Portal is awarded. ${ledgerEntries ? `${ledgerEntries} entries so far.` : "No entries yet."}`
+        : "Posted as a plain note from the game wallet. The ledger contract is not switched on yet.",
       how: "Open /verify, pick a Portal and a finished day, and your browser rebuilds the board and compares.",
     },
     {
