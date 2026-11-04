@@ -1,5 +1,7 @@
 {
   "crons": [
+    { "path": "/api/cron/post-commit?ahead=1", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/set-random", "schedule": "0 20 * * *" },
     { "path": "/api/cron/post-commit", "schedule": "5 0 * * *" },
     { "path": "/api/cron/award", "schedule": "15 0 * * *" },
     { "path": "/api/cron/stakes", "schedule": "30 0 * * *" }

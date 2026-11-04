@@ -39,6 +39,22 @@ async function redis(args: string[], doFetch: Fetcher): Promise<unknown> {
   return body.result ?? null;
 }
 
+// Small saved values (such as a day's chain random number) live next to the posts.
+export async function readStoredJson<T>(key: string, doFetch: Fetcher = fetch): Promise<T | undefined> {
+  try {
+    const raw = await redis(["GET", key], doFetch);
+    return typeof raw === "string" ? (JSON.parse(raw) as T) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function saveStoredJson(key: string, value: unknown, doFetch: Fetcher = fetch): Promise<boolean> {
+  if (!process.env.REDIS_URL && !redisConfig()) return false;
+  await redis(["SET", key, JSON.stringify(value)], doFetch);
+  return true;
+}
+
 export async function readStoredPost(date: string, doFetch: Fetcher = fetch): Promise<CommitPost | undefined> {
   try {
     const raw = await redis(["GET", `commit:${date}`], doFetch);

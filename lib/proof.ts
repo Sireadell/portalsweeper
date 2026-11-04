@@ -11,6 +11,7 @@ export type ProofInput = {
   commit: string; // fingerprint our server shows for that day
   salt: string | null; // revealed secret, null while the day is live
   meta: PortalMeta | null;
+  chainRandom?: string | null; // the chain number mixed into the board, for days that used one
   chain: { found: boolean; data?: string; timestamp?: number; txHash?: string; block?: number; error?: string };
 };
 
@@ -53,7 +54,7 @@ export function checkProof(i: ProofInput): { verdict: ProofVerdict; headline: st
 
   let board: Board | undefined;
   if (i.meta) {
-    board = generateBoard(i.meta, i.date, i.salt);
+    board = generateBoard(i.meta, i.date, i.salt, i.chainRandom ?? undefined);
     checks.push({
       label: "Board rebuilt from the secret",
       state: same(board.commit, recomputed) ? "pass" : "fail",

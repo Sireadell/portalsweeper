@@ -3,6 +3,7 @@ import { PORTAL_SUPPLY, PORTALDOT_RPC } from "@/lib/types";
 import { dailyCommit, getDailySalt, isRevealable, isValidDate, utcToday } from "@/lib/salt";
 import { findCommit } from "@/lib/commits";
 import { fingerprintOfTx, readLedgerDay } from "@/lib/ledger";
+import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
 import { getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
@@ -49,8 +50,9 @@ export async function GET(req: Request) {
     meta = await getPortalMeta(tokenId);
   } catch {}
   const ledger = await readLedgerDay(date);
+  const random = usesChainRandom(date) ? await readStoredRandom(date) : undefined;
   return NextResponse.json(
-    { tokenId, date, revealed, commit: dailyCommit(date), salt: revealed ? getDailySalt(date) : null, meta, chain, ledger },
+    { tokenId, date, revealed, commit: dailyCommit(date), salt: revealed ? getDailySalt(date) : null, meta, chain, ledger, chainRandom: random?.value ?? null, randomInfo: random ?? null },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

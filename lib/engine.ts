@@ -99,9 +99,13 @@ function traitValue(meta: PortalMeta, name: string): string | undefined {
 // ---------------------------------------------------------------------------
 // generateBoard
 // ---------------------------------------------------------------------------
-export function generateBoard(meta: PortalMeta, date: string, salt: string): Board {
+// chainRandom is optional: a 32 byte number the chain made after the day's fingerprint was posted. Without it the
+// seed is exactly what it always was, so every earlier day still rebuilds the same board.
+export function generateBoard(meta: PortalMeta, date: string, salt: string, chainRandom?: string): Board {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("date must be YYYY-MM-DD");
-  const seed = keccak256(encodePacked(["uint256", "string", "string"], [BigInt(meta.id), date, salt]));
+  const seed = chainRandom
+    ? keccak256(encodePacked(["uint256", "string", "string", "bytes32"], [BigInt(meta.id), date, salt, chainRandom as `0x${string}`]))
+    : keccak256(encodePacked(["uint256", "string", "string"], [BigInt(meta.id), date, salt]));
   const rand = rngStream(seed);
 
   // Tier sets size and mine count.

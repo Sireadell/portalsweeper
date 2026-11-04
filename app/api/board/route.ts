@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PORTAL_SUPPLY } from "@/lib/types";
 import { getDailySalt, isRevealable, isValidDate, utcToday } from "@/lib/salt";
 import { getStore } from "@/lib/records";
+import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
 import { dailyMove, dailyState, parseMove } from "@/lib/live";
 import { generateBoard, getPortalMeta } from "../_deps";
 
@@ -12,8 +13,10 @@ function badToken(tokenId: number) {
   return !Number.isInteger(tokenId) || tokenId < 1 || tokenId > PORTAL_SUPPLY;
 }
 
+// Days from RANDOM_FROM on mix in the chain number saved for that day, when there is one.
 async function realBoard(tokenId: number, date: string) {
-  return generateBoard(await getPortalMeta(tokenId), date, getDailySalt(date));
+  const random = usesChainRandom(date) ? (await readStoredRandom(date))?.value : undefined;
+  return generateBoard(await getPortalMeta(tokenId), date, getDailySalt(date), random);
 }
 
 // GET ?token=N: today's board for one Portal, with the mines hidden, plus the game so far.

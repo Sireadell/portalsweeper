@@ -19,7 +19,8 @@ export async function GET(req: Request) {
   const key = process.env.POSTER_PRIVATE_KEY;
   if (!key) return NextResponse.json({ error: "No poster wallet is set up on the server." }, { status: 500 });
 
-  const date = utcToday();
+  // ?ahead=1 posts tomorrow's fingerprint, so the chain can make its random number for that day before play starts.
+  const date = new URL(req.url).searchParams.get("ahead") === "1" ? addDays(utcToday(), 1) : utcToday();
   const existing = await findCommit(date);
   if (existing?.txHash) return NextResponse.json({ ok: true, already: true, date, txHash: existing.txHash });
 
