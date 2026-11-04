@@ -1,0 +1,95 @@
+{
+  "at": "2026-11-04T21:13:08.778Z",
+  "stakeTpot": "0.01",
+  "topUps": [
+    {
+      "hash": "0xbe15005f2189d363c5a7465e1ae670a0389e4790f86721230a57db4fc5afebbc",
+      "block": 325506
+    },
+    {
+      "hash": "0xf0984a68387cdedca819b2b3c03b41181cc686763253a73f8eb8b3aea3cbc115",
+      "block": 325507
+    },
+    {
+      "hash": "0xd3ff20c909edbe1e6a6732715250662724ec706ac9b6676e70c1046909370a2e",
+      "block": 325508
+    }
+  ],
+  "win": {
+    "id": "run-win",
+    "outcome": "win",
+    "lockA": {
+      "hash": "0xf26c6eab83b57f98799efe574efd3db8a49e9ded1f04004aebef542daca42ff7",
+      "block": 325510
+    },
+    "lockB": {
+      "hash": "0x593833405ffd560f7ff30aba0e7ecb73bb3042bd48e8cb352b140ab7ff99a8ee",
+      "block": 325512
+    },
+    "record": {
+      "challengeId": "run-win",
+      "amountWei": "10000000000000000",
+      "creator": "0x3e5e603dcec9f5aa559cb7be470ea0997edcf62e",
+      "locks": [
+        {
+          "wallet": "0x3e5e603dcec9f5aa559cb7be470ea0997edcf62e",
+          "txHash": "0xf26c6eab83b57f98799efe574efd3db8a49e9ded1f04004aebef542daca42ff7",
+          "at": 1793826823276
+        },
+        {
+          "wallet": "0x9833afd5f9d1007d88cfa3be9e6c700e0949f9f3",
+          "txHash": "0x593833405ffd560f7ff30aba0e7ecb73bb3042bd48e8cb352b140ab7ff99a8ee",
+          "at": 1793826835859
+        }
+      ],
+      "status": "settled",
+      "createdAt": 1793826811766,
+      "opponent": "0x9833afd5f9d1007d88cfa3be9e6c700e0949f9f3",
+      "winner": "0x3e5e603dcec9f5aa559cb7be470ea0997edcf62e",
+      "payoutTx": "0x97d1d8e9c2fe0ce3218938a9725bdbdd2cff66a35b57886618952e8ff7de190f",
+      "payoutBlock": 325514,
+      "settledAt": 1793826846662
+    }
+  },
+  "draw": {
+    "id": "run-draw",
+    "outcome": "draw",
+    "lockA": {
+      "hash": "0x4ce9c889bcec14669cdaf6eb9f14a335c41797ea62b90d78d4b0731027bf6a90",
+      "block": 325516
+    },
+    "lockB": {
+      "hash": "0x293cc626e910a34969e660d3711927fb5ca08ff3ac5de8fd915a2ece560670a3",
+      "block": 325517
+    },
+    "record": {
+      "challengeId": "run-draw",
+      "amountWei": "10000000000000000",
+      "creator": "0x3e5e603dcec9f5aa559cb7be470ea0997edcf62e",
+      "locks": [
+        {
+          "wallet": "0x3e5e603dcec9f5aa559cb7be470ea0997edcf62e",
+          "txHash": "0x4ce9c889bcec14669cdaf6eb9f14a335c41797ea62b90d78d4b0731027bf6a90",
+          "at": 1793826858403
+        },
+        {
+          "wallet": "0x9833afd5f9d1007d88cfa3be9e6c700e0949f9f3",
+          "txHash": "0x293cc626e910a34969e660d3711927fb5ca08ff3ac5de8fd915a2ece560670a3",
+          "at": 1793826868407
+        }
+      ],
+      "status": "refunded",
+      "createdAt": 1793826846664,
+      "opponent": "0x9833afd5f9d1007d88cfa3be9e6c700e0949f9f3",
+      "refundTxs": [
+        "0x1fe2f56424b379681b8f62486aa00c8d99b24d2160d88e4c556b89c9e613a819",
+        "0x4da48a70c3b1bef869a39650fc4be1022e5a40ba0935e599a292bf1500bd017b"
+      ],
+      "refundBlocks": [
+        325520,
+        325521
+      ],
+      "settledAt": 1793826887183
+    }
+  }
+}

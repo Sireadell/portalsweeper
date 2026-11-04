@@ -10,6 +10,8 @@ Live: **https://portalsweeper.vercel.app**
 
 Demo video (2 min): **https://youtu.be/VoFko5kYYdk**
 
+Tests run on every push (see the Actions tab).
+
 Built for [Portaldot Hacker House 2026](https://dorahacks.io/hackathon/portaldot-hacker-house-2026), Ecosystem DApps track.
 
 ## Try it in one minute, no wallet
@@ -104,10 +106,12 @@ The mines never leave the server while a game is running. The server replays the
 | First daily fingerprint | 2026-10-22, tx `0xbdab89b89b034f57296e912129cc45b093eb5403e4682dbfa3f23791bd01b872`, [block 148888](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888) |
 | Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
 | Portals minted so far | None. The first mint happens after the first day with a winner. Every mint will show on [/api/claims](https://portalsweeper.vercel.app/api/claims) and be added here with its block. |
+| Ledger contract | `0xf815869398505e795566f329f0867c0e5304145c` on the EVM side, 1883 bytes of code on the chain. Source in `contracts/DailyLedger.sol` |
+| First real stake run | 4 Nov 2026, 10 transactions in blocks 325506 to 325521, all successful. Raw record in `proof/stake-run.json`, made by `scripts/stake-run.ts` |
 
 To mint one Portal by hand (for a real winner, or any recipient you choose), run `npx tsx scripts/mint-portal.ts <portal 1-500> <0x wallet or Portaldot account>`. Without `--yes` it only checks the chain and says where the Portal would go. With `--yes` it mints, then prints the transaction, the block and an explorer link. It needs `ISSUER_MNEMONIC` in the environment and never prints it. If the timer's mint fails, the next daily run retries it.
 
-There is no contract address. The Portals use Portaldot's built-in NFT module instead of a contract, and the fingerprint is a plain 0-value transaction.
+The only contract is the ledger. The Portals use Portaldot's built-in NFT module instead of a contract, and the daily fingerprint is also posted as a plain 0-value transaction.
 
 ## What runs on the Portaldot chain
 
@@ -115,7 +119,7 @@ The live page **/chain** reads each of these from Portaldot when you open it and
 
 | Part | What it does | Status today |
 |---|---|---|
-| Ledger contract | `contracts/DailyLedger.sol`, Solidity running on Portaldot's EVM side (pallet-revive). It holds each day's fingerprint before anyone plays. When the day's secret is revealed, the contract hashes it itself and refuses one that does not match. After that it records the day's winner | Written and tested (10 tests on a local EVM, 2042 bytes of code). Not deployed yet. It goes on the chain once the deploying wallet has test coins |
+| Ledger contract | `contracts/DailyLedger.sol`, Solidity running on Portaldot's EVM side (pallet-revive). It holds each day's fingerprint before anyone plays. When the day's secret is revealed, the contract hashes it itself and refuses one that does not match. After that it records the day's winner | Deployed at `0xf815869398505e795566f329f0867c0e5304145c` (1883 bytes of code on the chain). 10 tests pass on a local EVM |
 | Chain random number | The day's board mixes in a number Portaldot's block producers make (Babe randomness). We read it 3 chain hours after the block holding the fingerprint, so nobody could know it when the secret was fixed. The block it came from is shown on /verify | Built and checked against the live chain. Not switched on yet. Days before it is switched on keep their old board, so every past day still checks out |
 | Winner fingerprint | When the Portal of the day is awarded, the hash of the winner's own move log goes into the ledger next to the Portal and the winning wallet. Anyone with the moves can recompute it | Wired into the daily award. Waits for the ledger, and a failed write never undoes a mint |
 | Names | Reads the name a wallet has set in Portaldot's Identity module, for showing on the Hall | The reader works against the live chain (6 names are set there today). Not on the Hall yet |
@@ -126,13 +130,13 @@ The live page **/chain** reads each of these from Portaldot when you open it and
 | Part | Who you have to trust | Plain status |
 |---|---|---|
 | Fingerprint posted before play | Nobody | Live. It sits on the chain with a block time and cannot be changed afterwards |
-| Secret checked against the fingerprint | Nobody | Live today in your browser on /verify. The contract will do the same check on the chain once deployed |
+| Secret checked against the fingerprint | Nobody | Live today in your browser on /verify. The ledger contract is now on the chain and makes the same check when a secret is revealed to it |
 | Chain random number | The testnet's 2 validators | Not trustless. With only 2 block producers, one could nudge the number. It still arrives after the fingerprint, so we cannot pick it. Not switched on yet |
 | The secret during the day | Our daily job and server | They hold the secret while the day is running. The fingerprint proves the board was not changed, not that nobody saw it |
 | Who is recorded as winner | Our server wallet | It writes the winner. The move log fingerprint lets anyone check that claim |
-| Stakes on a challenge | The escrow wallet, which our server controls | Trusted. Tested against a fake chain only. Simulated until one real stake run passes on Portaldot |
+| Stakes on a challenge | The escrow wallet, which our server controls | Trusted. One real run passed on Portaldot: a win paid out and a draw refunded both players, 10 transactions in all (see /chain). The escrow is still our wallet, so you trust us to pay the right person |
 | Portal NFTs | The collection issuer | Collection 5 exists. Nothing has been minted on it yet |
-| Ledger contract and SHARD token | Nobody once live | Prepared, not on the chain yet. Both wait for the wallet to be funded |
+| Ledger contract and SHARD token | Nobody once live | The ledger contract is on the chain. The SHARD token is not created yet |
 | The coins | Nobody, there is nothing to lose | Testnet only. tPOT has no value |
 
 ### Use the ledger in your own game
@@ -150,7 +154,7 @@ Done:
 
 Still to do before Nov 6:
 - **PvP:** challenge a friend by link, both play the same board, and the faster clear wins
-- **Stakes:** built and tested behind a flag, waiting for the PvP flow to call it (see `docs/stakes.md`). tPOT only, no Portal NFT stakes
+- **Stakes:** built behind a flag (see `docs/stakes.md`). One real run passed on Portaldot on 4 Nov: a win paid out and a draw refunded. tPOT only, no Portal NFT stakes
 - First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
 - More testing and polish on the live site
 
@@ -175,7 +179,7 @@ Still to do before Nov 6:
 - **The Portal frames and trait rules are my own design.** The artisan portraits are AI-made source pictures layered into the generated frames.
 - **Records live on a free database.** That is fine for now, but it is not built for a large crowd.
 - **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value. Stakes on a match use that testnet tPOT, so nothing real is ever at risk.
-- **Stakes are trusted escrow.** Players send tPOT to a wallet our server controls, and the server pays the winner. It is plain transfers, not a contract, so you have to trust the server to pay the right person. Details and limits in `docs/stakes.md`.
+- **Stakes are trusted escrow.** Players send tPOT to a wallet our server controls, and the server pays the winner. It is plain transfers, not a contract, so you have to trust the server to pay the right person. One real run on Portaldot shows the flow works, not that it is trustless. Stakes are capped at 1 tPOT. Details and limits in `docs/stakes.md`.
 
 ## Development log
 
@@ -188,6 +192,8 @@ Still to do before Nov 6:
 | 2026-11-01 | Added stakes for matches: both players send tPOT to an escrow wallet, the server checks the transfer on Portaldot, and the winner is paid the pot. Behind a flag until the PvP flow is in |
 | 2026-11-01 | Connected stakes to friend challenges: a challenge can carry a tPOT stake, nobody plays until both have locked it, and the winner is paid (or a draw or expiry refunded) automatically. Fake chain only so far, behind a flag |
 | 2026-11-01 | Made the daily award retry a day whose mint failed, time out a stuck mint, log its result, and refuse bad recipient addresses. Added a script to mint one Portal by hand. No Portal minted yet |
+| 2026-11-04 | Deployed the ledger contract (`0xf815…145c`). First real stake run on Portaldot with two throwaway test wallets and 0.01 tPOT each: a win paid out and a draw refunded, 10 transactions, blocks 325506 to 325521 (`proof/stake-run.json`) |
+| 2026-11-04 | Tests, type checks and a build now run on every push (`.github/workflows/ci.yml`) |
 
 ## Where this came from
 

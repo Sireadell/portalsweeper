@@ -1,5 +1,7 @@
 import { chainFacts } from "@/lib/chainFacts";
-import { PORTALDOT_CONSOLE } from "@/lib/types";
+import { PORTALDOT_CONSOLE, blockLink } from "@/lib/types";
+import { confirmSteps, stakeSteps } from "@/lib/stakeProof";
+import { STAKE_COPY } from "@/lib/stakeCopy";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "On the chain", description: "What Portalsweeper does on Portaldot, read live from the chain, and which parts you have to trust." };
@@ -15,6 +17,8 @@ const TRUST: { part: string; trust: string; why: string }[] = [
 
 export default async function ChainPage() {
   const { facts, head } = await chainFacts();
+  const steps = stakeSteps();
+  const confirmed = await confirmSteps(steps);
   return (
     <main className="page-narrow">
       <p className="eyebrow mt-2">Portaldot V3 testnet</p>
@@ -35,6 +39,32 @@ export default async function ChainPage() {
           </section>
         ))}
       </div>
+
+      <h2 className="mt-10 text-[22px] font-bold text-white">{STAKE_COPY.heading}</h2>
+      <p className="mt-2 text-[14px] text-text2">{STAKE_COPY.intro}</p>
+      <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">
+        <table className="w-full border-collapse text-[14px]">
+          <thead>
+            <tr className="text-left text-[12px] uppercase tracking-wide text-mute">
+              <th className="px-3 py-2 font-semibold">Step</th>
+              <th className="px-3 py-2 font-semibold">Match</th>
+              <th className="px-3 py-2 font-semibold">Block</th>
+              <th className="px-3 py-2 font-semibold">Receipt now</th>
+            </tr>
+          </thead>
+          <tbody>
+            {steps.map((s, i) => (
+              <tr key={s.hash} className="border-t border-edge align-top">
+                <td className="px-3 py-2.5 text-white">{STAKE_COPY.steps[s.kind]}</td>
+                <td className="px-3 py-2.5 text-text2">{s.match === "setup" ? "Setup" : s.match === "win" ? "Win" : "Draw"}</td>
+                <td className="px-3 py-2.5"><a className="underline" href={blockLink(s.block)} target="_blank" rel="noreferrer">{s.block}</a></td>
+                <td className="px-3 py-2.5">{confirmed[i] ? "Success" : "Not read just now"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-[13px] text-mute">{STAKE_COPY.trustNote} {STAKE_COPY.checkNote}</p>
 
       <h2 className="mt-10 text-[22px] font-bold text-white">Who you have to trust</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">
