@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStakeStore, refundStake, settleStake, stakesEnabled } from "@/lib/stakes";
-import { portaldotStakeChain } from "@/lib/stakeChain";
+import { stakeChainFromEnv } from "@/lib/stakeChain";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   try {
     const b = (await req.json()) as { challengeId?: string; winner?: string; refund?: boolean };
-    const deps = { store: getStakeStore(), chain: portaldotStakeChain() };
+    const deps = { store: getStakeStore(), chain: stakeChainFromEnv() };
     const id = String(b.challengeId ?? "");
     const rec = b.refund ? await refundStake(deps, id) : await settleStake(deps, id, String(b.winner ?? ""));
     return NextResponse.json({ status: rec.status, winner: rec.winner ?? null, payoutTx: rec.payoutTx ?? null, refundTxs: rec.refundTxs ?? [] });

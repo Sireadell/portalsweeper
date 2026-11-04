@@ -3,7 +3,7 @@ import { createStake, getStake, getStakeStore, lockStake, stakesEnabled } from "
 import { stakeView } from "@/lib/challengeStakes";
 import { getStore } from "@/lib/records";
 import { getChallengeWinner } from "@/lib/challenge";
-import { portaldotStakeChain } from "@/lib/stakeChain";
+import { stakeChainFromEnv } from "@/lib/stakeChain";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -12,7 +12,7 @@ const off = () => NextResponse.json({ error: "Stakes are not switched on." }, { 
 
 function escrowOrNull(): string | undefined {
   try {
-    return portaldotStakeChain().escrowAddress();
+    return stakeChainFromEnv().escrowAddress();
   } catch {
     return undefined;
   }
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   if (!stakesEnabled()) return off();
   const id = new URL(req.url).searchParams.get("challenge");
   if (!id) return NextResponse.json({ error: "Missing challenge." }, { status: 400 });
-  const rec = await getStake({ store: getStakeStore(), chain: portaldotStakeChain() }, id);
+  const rec = await getStake({ store: getStakeStore(), chain: stakeChainFromEnv() }, id);
   return rec ? NextResponse.json(stakeView(rec, escrowOrNull()), { headers: { "Cache-Control": "no-store" } }) : NextResponse.json({ error: "No stake on this challenge." }, { status: 404 });
 }
 
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Bad request." }, { status: 400 });
   }
-  const deps = { store: getStakeStore(), chain: portaldotStakeChain() };
+  const deps = { store: getStakeStore(), chain: stakeChainFromEnv() };
   try {
     if (b.action === "create") {
       // A challenge sets its own stake when it is made; adding one to an existing challenge is refused.

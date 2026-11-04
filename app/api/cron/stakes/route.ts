@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
 import { resolveChallengeStake } from "@/lib/challenge";
 import { getStakeStore, stakesEnabled } from "@/lib/stakes";
-import { portaldotStakeChain } from "@/lib/stakeChain";
+import { stakeChainFromEnv } from "@/lib/stakeChain";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return NextResponse.json({ error: "Not allowed." }, { status: 401 });
   if (!stakesEnabled()) return NextResponse.json({ skipped: "Stakes are not switched on." });
-  const stakes = { store: getStakeStore(), chain: portaldotStakeChain() };
+  const stakes = { store: getStakeStore(), chain: stakeChainFromEnv() };
   const deps = { store: getStore(), board: async () => { throw new Error("not needed"); }, stakes };
   const done: { id: string; status: string }[] = [];
   const failed: string[] = [];

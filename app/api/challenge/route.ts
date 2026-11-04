@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getStore } from "@/lib/records";
 import { cancelChallenge, challengeBoards, challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
 import { getStakeStore, stakesEnabled } from "@/lib/stakes";
-import { portaldotStakeChain } from "@/lib/stakeChain";
+import { stakeChainFromEnv } from "@/lib/stakeChain";
 import { stakeView } from "@/lib/challengeStakes";
 import { generateBoard, getPortalMeta } from "../_deps";
 
@@ -12,7 +12,7 @@ const NO_STORE = { "Cache-Control": "no-store" };
 const deps = (): ChallengeDeps => ({
   store: getStore(),
   board: async (c) => generateBoard(await getPortalMeta(c.tokenId), c.date, c.seed),
-  stakes: stakesEnabled() ? { store: getStakeStore(), chain: portaldotStakeChain() } : null,
+  stakes: stakesEnabled() ? { store: getStakeStore(), chain: stakeChainFromEnv() } : null,
 });
 
 function escrowOrUndefined(d: ChallengeDeps): string | undefined {

@@ -36,6 +36,9 @@ export interface StakeChain {
   escrowAddress(): string;
   getTransfer(txHash: string): Promise<ChainTransfer | null>;
   send(to: string, valueWei: bigint): Promise<{ txHash: string; block?: number }>;
+  // Set when the pot sits in the escrow contract: the contract pays out, keyed by challenge id.
+  settle?(challengeId: string, winner: string): Promise<{ txHash: string; block?: number }>;
+  refundAll?(challengeId: string): Promise<{ txHash: string; block?: number }>;
 }
 
 export interface StakeStore {
@@ -129,7 +132,7 @@ export async function settleStake(deps: StakeDeps, challengeId: string, winner: 
   if (rec.status !== "locked") throw new Error("Both players must lock their stake first.");
   const w = winner.toLowerCase();
   if (!rec.locks.some((l) => l.wallet === w)) throw new Error("The winner is not a player in this stake.");
-  const sent = await deps.chain.send(w, potWei(rec));
+  const sent = deps.chain.settle ? await deps.chain.settle(challengeId, w) : await deps.chain.send(w, potWei(rec));
   const next: StakeRecord = { ...rec, status: "settled", winner: w, payoutTx: sent.txHash, payoutBlock: sent.block, settledAt: (deps.now ?? Date.now)() };
   await deps.store.save(next);
   return next;
@@ -142,10 +145,16 @@ export async function refundStake(deps: StakeDeps, challengeId: string): Promise
   if (rec.status === "settled" || rec.status === "refunded") return rec;
   const txs: string[] = [];
   const blocks: number[] = [];
-  for (const l of rec.locks) {
-    const sent = await deps.chain.send(l.wallet, BigInt(rec.amountWei));
+  if (deps.chain.refundAll) {
+    const sent = await deps.chain.refundAll(challengeId);
     txs.push(sent.txHash);
     if (sent.block !== undefined) blocks.push(sent.block);
+  } else {
+    for (const l of rec.locks) {
+      const sent = await deps.chain.send(l.wallet, BigInt(rec.amountWei));
+      txs.push(sent.txHash);
+      if (sent.block !== undefined) blocks.push(sent.block);
+    }
   }
   const next: StakeRecord = { ...rec, status: "refunded", refundTxs: txs, refundBlocks: blocks, settledAt: (deps.now ?? Date.now)() };
   await deps.store.save(next);
