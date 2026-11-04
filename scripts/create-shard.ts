@@ -45,14 +45,16 @@ async function main() {
     /* some nodes only estimate fees for funded accounts */
   }
   console.log(`Issuer ${issuer.address} holds ${fmt(balance)} tPOT.`);
-  console.log(`Asset ${id} is free. Creating ${SHARD_SYMBOL} locks a deposit of ${fmt(deposit)} tPOT (plus a little for the name) and costs a fee of about ${fee} tPOT.`);
+  const metaDeposit = BigInt(api.consts.assets.metadataDepositBase.toString()) + BigInt(api.consts.assets.metadataDepositPerByte.toString()) * BigInt(new TextEncoder().encode(SHARD_NAME + SHARD_SYMBOL).length);
+  const needed = BigInt(deposit.toString()) + metaDeposit;
+  console.log(`Asset ${id} is free. Creating ${SHARD_SYMBOL} locks ${fmt(needed)} tPOT in deposits (${fmt(deposit)} for the token, ${fmt(metaDeposit)} for its name) and costs a fee of about ${fee} tPOT.`);
   console.log(`Once made it will be readable as an ERC-20 token at ${assetErc20Address(id)}.`);
 
   if (!yes) {
     console.log("Dry run: nothing was sent. Add --yes to really create the token.");
     return;
   }
-  if (BigInt(balance.toString()) < BigInt(deposit.toString())) throw new Error("The issuer wallet does not hold enough tPOT for the deposit. Nothing was sent.");
+  if (BigInt(balance.toString()) < needed) throw new Error("The issuer wallet does not hold enough tPOT for the deposit. Nothing was sent.");
 
   const hash = await new Promise<string>((resolve, reject) => {
     batch
