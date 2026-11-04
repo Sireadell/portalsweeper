@@ -105,7 +105,7 @@ The mines never leave the server while a game is running. The server replays the
 | Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
 | Portals minted so far | None. The first mint happens after the first day with a winner. Every mint will show on [/api/claims](https://portalsweeper.vercel.app/api/claims) and be added here with its block. |
 
-To mint one Portal by hand (for a real winner, or a recipient the founder picks), run `npx tsx scripts/mint-portal.ts <portal 1-500> <0x wallet or Portaldot account>`. Without `--yes` it only checks the chain and says where the Portal would go. With `--yes` it mints, then prints the transaction, the block and an explorer link. It needs `ISSUER_MNEMONIC` in the environment and never prints it. If the timer's mint fails, the next daily run retries it.
+To mint one Portal by hand (for a real winner, or any recipient you choose), run `npx tsx scripts/mint-portal.ts <portal 1-500> <0x wallet or Portaldot account>`. Without `--yes` it only checks the chain and says where the Portal would go. With `--yes` it mints, then prints the transaction, the block and an explorer link. It needs `ISSUER_MNEMONIC` in the environment and never prints it. If the timer's mint fails, the next daily run retries it.
 
 There is no contract address. The Portals use Portaldot's built-in NFT module instead of a contract, and the fingerprint is a plain 0-value transaction.
 
