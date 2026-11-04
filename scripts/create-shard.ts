@@ -30,13 +30,13 @@ async function main() {
   const decimals = api.registry.chainDecimals[0] ?? 18;
   const fmt = (v: { toString(): string }) => (Number(v.toString()) / 10 ** decimals).toFixed(4);
 
-  const existing = await api.query.assets.asset(id);
+  const existing = (await api.query.assets.asset(id)) as unknown as { isSome: boolean };
   if (existing.isSome) throw new Error(`Asset ${id} already exists on the chain. Set SHARD_ASSET_ID to a free number. Nothing was sent.`);
 
   const create = api.tx.assets.create(id, issuer.address, SHARD_MIN_BALANCE);
   const meta = api.tx.assets.setMetadata(id, SHARD_NAME, SHARD_SYMBOL, SHARD_DECIMALS);
   const batch = api.tx.utility.batchAll([create, meta]);
-  const balance = (await api.query.system.account(issuer.address)).data.free;
+  const balance = ((await api.query.system.account(issuer.address)) as unknown as { data: { free: { toString(): string } } }).data.free;
   const deposit = api.consts.assets.assetDeposit;
   let fee = "unknown";
   try {
