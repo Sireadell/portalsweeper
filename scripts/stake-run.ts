@@ -20,7 +20,7 @@ const STAKE = "0.01";
 const mArg = process.argv.find((x) => x.startsWith("--matches="));
 const MATCHES = mArg ? Math.max(2, Number(mArg.split("=")[1])) : 8; // half pay out, half end in a draw and refund
 const ESCROW_TOPUP = parseEther("0.5"); // gas for payouts
-const PLAYER_TOPUP = parseEther("0.1"); // stake plus gas
+const PLAYER_TOPUP = parseEther("0.3"); // stake plus fees, a match costs each player about 0.02
 
 function key(name: string) {
   const k = process.env[name];
@@ -64,15 +64,19 @@ async function main() {
 
   const txs: { kind: string; hash: string; block: number }[] = [];
   const log = (kind: string, t: { hash: string; block: number }) => { txs.push({ kind, ...t }); return t; };
-  for (const [n, x, need] of [["escrow", escrow, ESCROW_TOPUP], ["player A", a, PLAYER_TOPUP], ["player B", b, PLAYER_TOPUP]] as const) {
-    if ((await pub.getBalance({ address: x.address })) < need / 2n) log(`Top up ${n}`, await send(deployer, x.address, need));
+  async function topUp() {
+    for (const [n, x, need] of [["escrow", escrow, ESCROW_TOPUP], ["player A", a, PLAYER_TOPUP], ["player B", b, PLAYER_TOPUP]] as const) {
+      if ((await pub.getBalance({ address: x.address })) < need / 3n) log(`Top up ${n}`, await send(deployer, x.address, need));
+    }
   }
+  await topUp();
   console.log("Wallets ready.");
 
   const deps = { store: new MemoryStakeStore(), chain: portaldotStakeChain() };
   const amount = parseTpot(STAKE);
 
   async function match(i: number) {
+    await topUp();
     const id = `run-${i}`;
     const draw = i % 2 === 0;
     const winner = (i >> 1) % 2 === 0 ? a : b;
@@ -86,7 +90,13 @@ async function main() {
     for (const r of list) log(draw ? `Match ${i}: refund` : `Match ${i}: payout to ${winner === a ? "player A" : "player B"}`, r);
     console.log(`Match ${i} ${draw ? "refunded" : "paid out"}.`);
   }
-  for (let i = 1; i <= MATCHES; i++) await match(i);
+  let failure = "";
+  try {
+    for (let i = 1; i <= MATCHES; i++) await match(i);
+  } catch (e) {
+    failure = e instanceof Error ? e.message : String(e); // keep the proof of the matches that did finish
+    console.error(`A match stopped: ${failure}`);
+  }
 
   mkdirSync(path.join(process.cwd(), "proof"), { recursive: true });
   writeFileSync(path.join(process.cwd(), "proof", "stake-matches.json"), JSON.stringify({ at: new Date().toISOString(), stakeTpot: STAKE, txs }, null, 2));
@@ -104,6 +114,7 @@ ${rows}
   console.log(`Done. ${txs.length} transactions. Saved proof/stake-matches.json and docs/stake-proof.md`);
   console.log("Balances after (tPOT):");
   for (const [n, x] of [["escrow", escrow], ["player A", a], ["player B", b]] as const) console.log(`  ${n}  ${await bal(x.address)}`);
+  if (failure) process.exitCode = 1;
 }
 
 main().then(() => process.exit(0)).catch((e) => {
