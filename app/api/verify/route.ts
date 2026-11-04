@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PORTAL_SUPPLY, PORTALDOT_RPC } from "@/lib/types";
 import { dailyCommit, getDailySalt, isRevealable, isValidDate, utcToday } from "@/lib/salt";
 import { findCommit } from "@/lib/commits";
+import { fingerprintOfTx, readLedgerDay } from "@/lib/ledger";
 import { getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
       const tx = await rpc("eth_getTransactionByHash", [post.txHash]);
       if (tx?.blockNumber) {
         const block = await rpc("eth_getBlockByNumber", [tx.blockNumber, false]);
-        chain = { found: true, data: tx.input, from: tx.from, to: tx.to, timestamp: Number(BigInt(block.timestamp)), txHash: post.txHash, block: Number(BigInt(tx.blockNumber)) };
+        chain = { found: true, data: fingerprintOfTx(tx.input, tx.to), from: tx.from, to: tx.to, timestamp: Number(BigInt(block.timestamp)), txHash: post.txHash, block: Number(BigInt(tx.blockNumber)) };
       } else chain = { found: false, txHash: post.txHash, error: "Portaldot did not return that transaction." };
     } catch {
       chain = { found: false, txHash: post.txHash, error: "Could not reach Portaldot just now." };
@@ -47,8 +48,9 @@ export async function GET(req: Request) {
   try {
     meta = await getPortalMeta(tokenId);
   } catch {}
+  const ledger = await readLedgerDay(date);
   return NextResponse.json(
-    { tokenId, date, revealed, commit: dailyCommit(date), salt: revealed ? getDailySalt(date) : null, meta, chain },
+    { tokenId, date, revealed, commit: dailyCommit(date), salt: revealed ? getDailySalt(date) : null, meta, chain, ledger },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

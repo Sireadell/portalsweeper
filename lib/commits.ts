@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { redisUrlCommand } from "./redisUrl";
 
-export type CommitPost = { date: string; commit: string; txHash: string | null; block?: number };
+// kind is "ledger" when the fingerprint went to the DailyLedger contract, otherwise it is a plain note (all older rows).
+export type CommitPost = { date: string; commit: string; txHash: string | null; block?: number; kind?: "note" | "ledger" };
 
 const FILE = () => path.join(process.cwd(), "data", "commits.json");
 
