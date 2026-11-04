@@ -6,6 +6,8 @@ export type AwardDeps = {
   mint: (tokenId: number, wallet: string) => Promise<{ txHash: string; block: number }>;
   ownerOf: (tokenId: number) => Promise<string | null>; // native owner account, null when not minted
   now?: () => number;
+  // Optional: writes the win to the ledger contract and returns the transaction hash, or null if it did not.
+  recordWinner?: (claim: PortalClaim) => Promise<string | null>;
 };
 
 export type AwardOutcome =
@@ -13,6 +15,21 @@ export type AwardOutcome =
   | { status: "minted"; claim: PortalClaim }
   | { status: "already"; claim: PortalClaim }
   | { status: "failed"; date: string; tokenId: number; error: string };
+
+// Writes the win to the ledger once. A ledger problem never undoes the mint: the claim just stays without a
+// ledgerTx and the next run tries again. Without a recordWinner dependency (no ledger set up) nothing changes.
+async function recordOnLedger(deps: AwardDeps, claim: PortalClaim): Promise<PortalClaim> {
+  if (!deps.recordWinner || claim.ledgerTx) return claim;
+  try {
+    const ledgerTx = await deps.recordWinner(claim);
+    if (!ledgerTx) return claim;
+    const saved = { ...claim, ledgerTx };
+    await deps.store.claimSave(saved);
+    return saved;
+  } catch {
+    return claim;
+  }
+}
 
 // After a day ends, the fastest ranked clear of that day's Portal wins the Portal itself: it is minted
 // as a native Portaldot NFT to the winner's account. Safe to call again: a finished claim is left
@@ -25,7 +42,10 @@ export async function awardDay(deps: AwardDeps, date: string): Promise<AwardOutc
   const fresh: PortalClaim = { tokenId, wallet: winner.wallet, date, at: (deps.now ?? Date.now)(), status: "minting" };
   const lock = await deps.store.claimLock(fresh);
   let claim = lock.claim;
-  if (!lock.ok && claim.status === "minted") return { status: "already", claim };
+  if (!lock.ok && claim.status === "minted") {
+    if (claim.date === date) claim = await recordOnLedger(deps, claim);
+    return { status: "already", claim };
+  }
   if (!lock.ok && claim.date !== date) return { status: "already", claim }; // won on another day, never re-awarded
 
   try {
@@ -36,6 +56,7 @@ export async function awardDay(deps: AwardDeps, date: string): Promise<AwardOutc
       claim = { ...claim, status: "minted", txHash, block };
     }
     await deps.store.claimSave(claim);
+    claim = await recordOnLedger(deps, claim);
     return { status: "minted", claim };
   } catch (e) {
     // Leave the lock in place as "minting" so the next run retries this same winner.

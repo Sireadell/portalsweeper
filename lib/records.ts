@@ -119,6 +119,7 @@ export type PortalClaim = {
   status: "minting" | "minted";
   txHash?: string; // the native extrinsic hash once minted
   block?: number;
+  ledgerTx?: string; // the ledger contract call that recorded this win, when the ledger is set up
 };
 export type ClaimLock = { ok: true; claim: PortalClaim } | { ok: false; claim: PortalClaim };
 

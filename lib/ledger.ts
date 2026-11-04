@@ -2,6 +2,8 @@ import { createPublicClient, decodeFunctionData, http, type Hex, type PublicClie
 import artifact from "../contracts/DailyLedger.json";
 import { portaldot as chain } from "./portaldot";
 import { dailyCommit, getDailySalt } from "./salt";
+import type { StoredMove } from "./records";
+import { moveLogHash } from "./winProof";
 
 export const LEDGER_ABI = artifact.abi;
 
@@ -82,4 +84,33 @@ export function fingerprintOfTx(input: string, to?: string | null): string {
   } catch {
     return input;
   }
+}
+
+// Writes a day's winner to the ledger with the fingerprint of the winner's own move log. The day has to be revealed
+// first (the contract refuses otherwise), so this reveals it when that has not happened yet. Returns null when there
+// is no ledger, no move log, or the day was never committed to the contract.
+export async function recordWinnerToLedger(
+  date: string,
+  portal: number,
+  winnerWallet: string,
+  moves: StoredMove[],
+  wallet: WalletClient,
+  pub: PublicClient = publicClient(),
+): Promise<Hex | null> {
+  const address = ledgerAddress();
+  if (!address || !wallet.account || moves.length === 0) return null;
+  const day = await readLedgerDay(date, pub);
+  if (!day?.commit) return null;
+  if (!day.revealed) await revealToLedger(date, wallet, pub);
+  const hash = await wallet.writeContract({
+    address,
+    abi: LEDGER_ABI,
+    functionName: "recordWinner",
+    args: [dayNumber(date), portal, winnerWallet as Hex, moveLogHash(moves)],
+    account: wallet.account,
+    chain,
+  });
+  const receipt = await pub.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error(`The ledger winner record failed: ${hash}`);
+  return hash;
 }

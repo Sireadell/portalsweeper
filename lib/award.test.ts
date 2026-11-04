@@ -102,4 +102,33 @@ describe("awarding the Portal of the day", () => {
     await awardDay(t.deps, D);
     expect(await awardStuck(t.deps, D)).toEqual([]);
   });
+
+  it("writes the win to the ledger once, and a ledger failure never undoes the mint", async () => {
+    const { store, deps } = setup();
+    const tokenId = await portalOfDay(store, D);
+    await finish(store, A, tokenId, 40);
+    const calls: string[] = [];
+    let fail = true;
+    deps.recordWinner = async (c) => {
+      calls.push(c.wallet);
+      if (fail) throw new Error("ledger down");
+      return "0xledger";
+    };
+    const first = await awardDay(deps, D);
+    expect(first.status).toBe("minted");
+    expect(first.status === "minted" && first.claim.ledgerTx).toBeUndefined();
+    fail = false;
+    const second = await awardDay(deps, D);
+    expect(second.status === "already" && second.claim.ledgerTx).toBe("0xledger");
+    await awardDay(deps, D);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("behaves as before when no ledger is set up", async () => {
+    const { store, deps } = setup();
+    const tokenId = await portalOfDay(store, D);
+    await finish(store, B, tokenId, 30);
+    const out = await awardDay(deps, D);
+    expect(out.status === "minted" && out.claim.ledgerTx).toBeUndefined();
+  });
 });

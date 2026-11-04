@@ -65,6 +65,8 @@ async function whoSigned(deps: CotdDeps, address: unknown, signature: unknown, d
 export type BoardFor = (tokenId: number, date: string) => Promise<Board>;
 
 const gameKey = (date: string, wallet: string) => `cotd:${date}:${wallet}`;
+// The key a ranked try's move log is stored under, so the award job can fingerprint the winner's own moves.
+export const cotdGameKey = gameKey;
 
 // Start (or pick back up) the one ranked try. A try that is still running comes back as it was,
 // so a refresh does not cost the try. A finished try cannot start again.

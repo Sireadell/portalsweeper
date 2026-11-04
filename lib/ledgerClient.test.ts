@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { encodeFunctionData, type Hex, type PublicClient, type WalletClient } from "viem";
-import { LEDGER_ABI, commitToLedger, dayNumber, fingerprintOfTx, ledgerAddress, readLedgerDay, revealToLedger } from "./ledger";
+import { moveLogHash } from "./winProof";
+import { LEDGER_ABI, commitToLedger, recordWinnerToLedger, dayNumber, fingerprintOfTx, ledgerAddress, readLedgerDay, revealToLedger } from "./ledger";
 import { commitOf, dailyCommit, getDailySalt } from "./salt";
 
 const ADDR = "0x1234567890123456789012345678901234567890";
@@ -59,5 +60,22 @@ describe("ledger client", () => {
     const wallet = { account: { address: "0x1" }, writeContract: async () => "0xabc" } as unknown as WalletClient;
     const pub = { waitForTransactionReceipt: async () => ({ status: "reverted" }) } as unknown as PublicClient;
     await expect(commitToLedger("2026-11-05", wallet, pub)).rejects.toThrow(/failed/);
+  });
+
+  it("records the winner with the fingerprint of their move log, revealing the day first when needed", async () => {
+    process.env.LEDGER_ADDRESS = ADDR;
+    process.env.PORTAL_SALT_SECRET = "test-secret";
+    const moves = [{ action: "reveal" as const, idx: 3, t: 100 }];
+    const calls: { functionName: string; args: unknown[] }[] = [];
+    const wallet = { account: { address: "0x1" }, writeContract: vi.fn(async (c: { functionName: string; args: unknown[] }) => (calls.push(c), "0xabc" as Hex)) } as unknown as WalletClient;
+    const day = ["0x" + "11".repeat(32), 1n, "0x" + "0".repeat(64), 0n, false];
+    const pub = { readContract: vi.fn(async () => day), waitForTransactionReceipt: vi.fn(async () => ({ status: "success" })) } as unknown as PublicClient;
+    const w = "0x" + "a".repeat(40);
+    expect(await recordWinnerToLedger("2026-11-05", 12, w, moves, wallet, pub)).toBe("0xabc");
+    expect(calls.map((c) => c.functionName)).toEqual(["reveal", "recordWinner"]);
+    expect(calls[1].args).toEqual([20261105, 12, w, moveLogHash(moves)]);
+    expect(await recordWinnerToLedger("2026-11-05", 12, w, [], wallet, pub)).toBeNull();
+    delete process.env.LEDGER_ADDRESS;
+    expect(await recordWinnerToLedger("2026-11-05", 12, w, moves, wallet, pub)).toBeNull();
   });
 });
