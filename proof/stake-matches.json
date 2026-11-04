@@ -1,0 +1,191 @@
+{
+  "at": "2026-11-04T21:45:00.240Z",
+  "stakeTpot": "0.01",
+  "txs": [
+    {
+      "kind": "Top up player A",
+      "hash": "0x29b1e060e53bc04ef875feb55c714fed0487b02613d9f7f244965e3c2aa0e676",
+      "block": 325747
+    },
+    {
+      "kind": "Top up player B",
+      "hash": "0x18516b1726b9c5845a03473b8648543431d93aedfbfa632abc6c2382f869a923",
+      "block": 325750
+    },
+    {
+      "kind": "Match 1: player A locks",
+      "hash": "0x03e63c626659d3c1bc1faacdba464c5fe352553a754df3e086b9ff00bb5f11f0",
+      "block": 325752
+    },
+    {
+      "kind": "Match 1: player B locks",
+      "hash": "0xce2c293cf1bcbaebe789180e88fe573d14fcfbe0d809e6eb560c078cd506d1f5",
+      "block": 325753
+    },
+    {
+      "kind": "Match 1: payout to player A",
+      "hash": "0xb9de620e9ff12ac778a9d1508be44bfea366307268185a7c8239c04b7a3aa2e5",
+      "block": 325754
+    },
+    {
+      "kind": "Match 2: player A locks",
+      "hash": "0x18e4c0b820c3288ba7fe852c5511773d0f97cf7f222d1977cab0953130516733",
+      "block": 325756
+    },
+    {
+      "kind": "Match 2: player B locks",
+      "hash": "0x3665b217139daaff3c00477b51d6e15b7ae4de70d2dacc86860e73a62dcee29b",
+      "block": 325759
+    },
+    {
+      "kind": "Match 2: refund",
+      "hash": "0x56ca41c7706046892ee10c7828acba723fe388741cff2e1da3ab86a807afc067",
+      "block": 325761
+    },
+    {
+      "kind": "Match 2: refund",
+      "hash": "0xa3f2513391f45b28b36ea46ce3211d35d212860f4a3fa0436bf29bbcfde430b4",
+      "block": 325762
+    },
+    {
+      "kind": "Match 3: player A locks",
+      "hash": "0x461a0b13487817fd7b1e27b6ff02074c6d37cc9edce4ac54d0a0f12d035da64b",
+      "block": 325763
+    },
+    {
+      "kind": "Match 3: player B locks",
+      "hash": "0xaec7e222047ab10b71d08ba7f3c59d41454303bc7cd5baf9d3f64b552d9be83c",
+      "block": 325764
+    },
+    {
+      "kind": "Match 3: payout to player B",
+      "hash": "0x966bc68ebbc2625cf701eb58fc4285c8b8a2837fec9fbac789299800a8d9fab4",
+      "block": 325765
+    },
+    {
+      "kind": "Match 4: player A locks",
+      "hash": "0xa82a114b49d3f88965356cf1241d2dfb5d5b19641f1f3596db917b56f6346adf",
+      "block": 325767
+    },
+    {
+      "kind": "Match 4: player B locks",
+      "hash": "0xc9b46ffc081c32b23f35063d1601edbc71ef2f3ff1467fcdebcc13c450768bed",
+      "block": 325769
+    },
+    {
+      "kind": "Match 4: refund",
+      "hash": "0xb176f4ff5e8f272641e869cd21632fcf03b8dac640c0d7d3655671f2a37a85db",
+      "block": 325771
+    },
+    {
+      "kind": "Match 4: refund",
+      "hash": "0xad0653178d603affdbf91cdadabbcdbf1aeea681d058c11f43c3a6c22498717b",
+      "block": 325773
+    },
+    {
+      "kind": "Match 5: player A locks",
+      "hash": "0xabc4945d69207496f91072814658490c493782efae7e465c046910e60711f427",
+      "block": 325775
+    },
+    {
+      "kind": "Match 5: player B locks",
+      "hash": "0xd6e55e7b171fc7e1174de0ec494f247acb7404ea8f8fa60ee054ad1bdf403c7c",
+      "block": 325777
+    },
+    {
+      "kind": "Match 5: payout to player A",
+      "hash": "0x3ac9728f9fbef4a7e522606cec24676ddf58bac85907d7b27927a9365c5471ef",
+      "block": 325779
+    },
+    {
+      "kind": "Match 6: player A locks",
+      "hash": "0xa6548f465bbe4720c6a67faa130b5704a0ade963cf9ae9ccbb765f2ed7bee669",
+      "block": 325780
+    },
+    {
+      "kind": "Match 6: player B locks",
+      "hash": "0xb2d15fc5e74c6ae09e9f89c1fbd3d231f1bbc5c23016010302674cf1772554e3",
+      "block": 325782
+    },
+    {
+      "kind": "Match 6: refund",
+      "hash": "0xeee459e4436f6ecab0215dae4b5b94ca01485a57632fd77f142b6c6982547b5e",
+      "block": 325783
+    },
+    {
+      "kind": "Match 6: refund",
+      "hash": "0x14b2b28967953701565f7e124f5a098509d9e58921bfcbe06ef5647ab15d301c",
+      "block": 325784
+    },
+    {
+      "kind": "Match 7: player A locks",
+      "hash": "0x59359fa20360ad7e0b833c304daf919c2d67811f4ff7ee26aad3dda9c207ebdb",
+      "block": 325786
+    },
+    {
+      "kind": "Match 7: player B locks",
+      "hash": "0x1aa6966c7009d45a8d0789305b551a5d295c4faaaed83d87734200cfbc3a301f",
+      "block": 325789
+    },
+    {
+      "kind": "Match 7: payout to player B",
+      "hash": "0x379fdda2c987aaab3277f5cb850d57c7eb748be6fc33586eeb72ec3a2a81311c",
+      "block": 325792
+    },
+    {
+      "kind": "Match 8: player A locks",
+      "hash": "0xe482c5cb0ea70fcf73fc6c3bb171ae92fe786c78e308d94b81e924720ed847b2",
+      "block": 325794
+    },
+    {
+      "kind": "Match 8: player B locks",
+      "hash": "0x29173bc5520b26267fb5ea0cb36b46351f942fd31e3b012caeee206ee6a21cc0",
+      "block": 325798
+    },
+    {
+      "kind": "Match 8: refund",
+      "hash": "0xf1863148214ba1e781979ff4b2b4bd1e9b0716b8ec82a45b6bc8916dbc835a07",
+      "block": 325800
+    },
+    {
+      "kind": "Match 8: refund",
+      "hash": "0x5b9f071f5bf60057f8d18d56e711059174d229896aaa6076cd9c3b10a3a8829a",
+      "block": 325803
+    },
+    {
+      "kind": "Match 9: player A locks",
+      "hash": "0xad5d6fbdd5ab2526bb843a37d5d44f072bec6d1b65e34b8e559d42b0d596e4b2",
+      "block": 325807
+    },
+    {
+      "kind": "Match 9: player B locks",
+      "hash": "0x5486177772eb26699fcc5e34d93d00103847d86e2d48529293efc25d2a14ea33",
+      "block": 325809
+    },
+    {
+      "kind": "Match 9: payout to player A",
+      "hash": "0x9f31214e6c130f6a1664eb7081c55b9a446d273c3dff989bbfbef32cbcb7f671",
+      "block": 325812
+    },
+    {
+      "kind": "Match 10: player A locks",
+      "hash": "0xf991842382529d21abfe8229e882ead0d2883816a0e0dd69fa435b7375d4e45c",
+      "block": 325814
+    },
+    {
+      "kind": "Match 10: player B locks",
+      "hash": "0x0e9718fb37cd97c024086406b50b6b05420617ba5008bd2c22befb4e971e20cd",
+      "block": 325816
+    },
+    {
+      "kind": "Match 10: refund",
+      "hash": "0xcfe9fa9037b6884301b03cc1153427cb89fadf089b47ecf0a4d9985ffe23c57a",
+      "block": 325818
+    },
+    {
+      "kind": "Match 10: refund",
+      "hash": "0xe7c3b2838bd449c27fada8fef4b124247f646bb9688974e3e35efc24515949b9",
+      "block": 325820
+    }
+  ]
+}
