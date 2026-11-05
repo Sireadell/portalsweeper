@@ -18,9 +18,9 @@ Two players each put up the same amount of tPOT. The faster clear wins both. Thi
 
 ## The limits, stated plainly
 
-- **It is trusted escrow, not trustless.** The escrow wallet key lives on our server. Players trust the server to pay the right person. A contract would remove that trust, but is not possible here.
+- **tPOT stakes sit in an escrow contract, and our server is the referee.** The contract (`0x9cebe7c313b0c86c55d956a3d07bd191fddabf9a`) holds the coins and can only pay one of the two players or refund both. Our server names the winner, so players still trust it to name the right one. Portal stakes are different: the server's escrow wallet holds the Portals until the race ends, which is trusted custody.
 - **Winner is decided by the challenge code.** The stake code pays whoever it is told to pay. `resolveChallengeStake` in `lib/challenge.ts` asks `getChallengeWinner` and only pays once the challenge is settled.
-- **No Portal NFT stakes.** Moving a native NFT needs the player's native signature, and the site only has their EVM wallet. Not built. The Portal NFT is still the daily prize.
+- **Portal stakes need both players to own a Portal.** A normal 0x wallet can move a native Portal by calling the chain's NFT module directly, so each player locks one Portal and the winner receives both in one action (proof on the /chain page). Only a few Portals exist so far, so the demo uses our two test wallets.
 - **Capped at 1 tPOT each.** Only an amount that anyone can get for free.
 - **Payout is checked on chain, but the record is not.** A claim on the challenge id stops two calls paying at the same moment, and a failed send releases the claim so it can be retried. But if the server crashes between sending a payout and saving it, a second settle could pay twice. Fine for a testnet with worthless tokens.
 - **Money sent after the challenge ends.** The lock route refuses a challenge that is already over, but a player who sends tPOT in the seconds around the end could lose it. Another reason this is testnet only.
