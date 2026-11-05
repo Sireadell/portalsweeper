@@ -68,7 +68,7 @@ export async function chainFacts(): Promise<{ at: number; head: number | null; f
       label: "Players can show a Portaldot identity name",
       state: names !== null ? "live" : "waiting",
       value: names !== null ? `Reads the identity pallet. ${names} names are set on the chain today.` : "Could not read names just now.",
-      how: "The game can read names that wallets have set on Portaldot. They are not shown on the Hall yet.",
+      how: "The game can read names that wallets have set on Portaldot. The Hall, the live list and the backing pages show a player's name when they have set one, and a short address when they have not.",
     },
     {
       key: "shard",
