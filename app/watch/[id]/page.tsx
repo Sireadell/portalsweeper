@@ -65,6 +65,12 @@ function ChallengeWatch({ id }: { id: string }) {
         )}
         {view.settled && <ChallengeResult view={view} me={null} />}
         <p className="mt-6 text-center text-[14px]">
+          {view.duel && !view.settled && (
+            <>
+              <Link href={`/event/${id}`} className="text-mint underline-offset-2 hover:underline">Back a player</Link>
+              {" · "}
+            </>
+          )}
           <Link href="/challenge" className="text-mint underline-offset-2 hover:underline">Make your own challenge</Link>
         </p>
       </section>

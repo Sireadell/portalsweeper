@@ -426,6 +426,7 @@ function InviteLink({ id, duel }: { id: string; duel: boolean }) {
         <button type="button" className="btn-main !px-5 !py-2.5 text-[15px]" onClick={share}>Share challenge</button>
         <button type="button" className="btn-ghost" onClick={copy}>Copy link</button>
         {duel && <button type="button" className="btn-ghost" onClick={copyWatch}>Copy watch link</button>}
+        {duel && <Link href={`/event/${id}`} className="btn-ghost">Back a player</Link>}
       </div>
       {note && <p className="mt-2 break-all text-[12px] text-mute" role="status">{note}</p>}
       <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
