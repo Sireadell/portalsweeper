@@ -158,7 +158,7 @@ export default function CotdPage() {
           <div className="card mt-4 p-5 text-center sm:p-6">
             {!address ? (
               <>
-                <p className="text-[15px] text-text2">Connect any wallet to take today's ranked try. The fastest clear wins this Portal.</p>
+                <p className="text-[15px] text-text2">Connect any wallet to take today's ranked try. The fastest three clears earn SHARD.</p>
                 <button className="btn-main btn-lg mt-4" onClick={connect} disabled={busy}>{busy ? "Waiting for your wallet…" : "Connect wallet"}</button>
                 {error && <p className="mt-3 text-[14px] text-boom" role="alert">{error}</p>}
                 <div className="mt-5 border-t border-edge pt-5">

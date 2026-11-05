@@ -98,7 +98,7 @@ export default function PlayPage() {
           {loadErr && <p className="mt-6 text-[14px] text-boom" role="alert">Could not read your Portals right now. Refresh to try again.</p>}
           {portals && portals.length === 0 && (
             <div className="mt-6 rounded-2xl border border-edge bg-panel p-5">
-              <p className="text-white">This wallet holds no Portals yet. Win a Portal of the day to get your first one.</p>
+              <p className="text-white">This wallet holds no Portals yet. Earn 100 SHARD from the Portal of the day to redeem your first one.</p>
               <p className="mt-1 text-[14px] text-mute">You can still try any Portal in practice, no wallet needed.</p>
               <Link href="/judge" className="btn-main mt-4 inline-block">Try Judge mode</Link>
             </div>

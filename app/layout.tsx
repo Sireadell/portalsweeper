@@ -10,7 +10,7 @@ const body = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "https://portalsweeper.vercel.app";
 const TITLE = "Portalsweeper: your Portal is the board";
 const DESCRIPTION =
-  "Every one of 500 Portals is its own daily minesweeper board. Its traits change the rules, clearing the board reveals the Portal's art, and the fastest clear of the Portal of the day wins it as an NFT on Portaldot.";
+  "Every one of 500 Portals is its own daily minesweeper board. Its traits change the rules, clearing the board reveals the Portal's art, and the fastest clears of the Portal of the day earn SHARD, which buys a Portal NFT on Portaldot.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(ORIGIN),
