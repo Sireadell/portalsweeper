@@ -113,6 +113,25 @@ To mint one Portal by hand (for a real winner, or any recipient you choose), run
 
 The only contract is the ledger. The Portals use Portaldot's built-in NFT module instead of a contract, and the daily fingerprint is also posted as a plain 0-value transaction.
 
+## Proof you can check
+
+I ran the Portaldot features for real on the V3 testnet, so you do not have to take my word for any of it. The stake contract is at `0x9cebe7c313b0c86c55d956a3d07bd191fddabf9a`. Every hash below links to its block in the chain explorer, and the same list is on the live **/chain** page.
+
+| What it shows | Hash | Block |
+|---|---|---|
+| Stake contract, put on the chain | [`0x490eabae…301da1`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326760) | 326760 |
+| Stake match won, contract paid the winner | [`0xdb681400…a5eec1`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327257) | 327257 |
+| Stake match drawn, contract refunded both players | [`0x86c39476…dceabb`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327267) | 327267 |
+| First daily fingerprint in the ledger contract | [`0x74f8c3de…c207b1`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327450) | 327450 |
+| EVM wallet calling a native chain feature in one step | [`0xcf5201a2…3d3279`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326771) | 326771 |
+| Daily note with the System Remark call | [`0x166121e0…120b3f`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326933) | 326933 |
+| Replay stored on the chain (Transaction Storage) | [`0x10e3e225…d1eaba`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326969) | 326969 |
+| Identity name "Portalsweeper" | [`0x30c1b98f…7439f4`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332052) | 332052 |
+| Portal collection 25 created (block hash) | [`0x9d64e6e9…a452ba`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332042) | 332042 |
+| SHARD token, asset 5555 (block hash) | [`0xeeda778f…ff9e7c`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332048) | 332048 |
+
+Raw records of the runs are in `proof/`. To open a staked match a wallet needs about 9 tPOT free, and 5 to join one, because the chain keeps a storage fee. This is the testnet only and the stakes in these runs were test coins.
+
 ## What runs on the Portaldot chain
 
 The live page **/chain** reads each of these from Portaldot when you open it and says which ones are switched on.

@@ -2,6 +2,7 @@ import { chainFacts } from "@/lib/chainFacts";
 import { PORTALDOT_CONSOLE, blockLink } from "@/lib/types";
 import { confirmSteps, stakeSteps } from "@/lib/stakeProof";
 import { STAKE_COPY } from "@/lib/stakeCopy";
+import { PROOF, STAKE_CONTRACT } from "@/lib/chainProof";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "On the chain", description: "What Portalsweeper does on Portaldot, read live from the chain, and which parts you have to trust." };
@@ -65,6 +66,34 @@ export default async function ChainPage() {
         </table>
       </div>
       <p className="mt-3 text-[13px] text-mute">{STAKE_COPY.trustNote} {STAKE_COPY.checkNote}</p>
+
+      <h2 className="mt-10 text-[22px] font-bold text-white">Proof you can check</h2>
+      <p className="mt-2 text-[14px] text-text2">
+        Real transactions from the Portaldot V3 testnet. Each link opens the block in the chain explorer. The stake contract lives at <span className="break-all font-mono text-[13px] text-white">{STAKE_CONTRACT}</span>. To open a staked match a wallet needs about 9 tPOT free, and 5 to join one, because the chain keeps a storage fee.
+      </p>
+      <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">
+        <table className="w-full border-collapse text-[14px]">
+          <thead>
+            <tr className="text-left text-[12px] uppercase tracking-wide text-mute">
+              <th className="px-3 py-2 font-semibold">What happened</th>
+              <th className="px-3 py-2 font-semibold">Block</th>
+              <th className="px-3 py-2 font-semibold">{"Hash"}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PROOF.map((r) => (
+              <tr key={r.hash} className="border-t border-edge align-top">
+                <td className="px-3 py-2.5 text-white">{r.what}</td>
+                <td className="px-3 py-2.5 text-text2">{r.block}</td>
+                <td className="px-3 py-2.5">
+                  <a className="break-all font-mono text-[12px] underline" href={blockLink(r.block ?? r.hash)} target="_blank" rel="noreferrer">{r.hash.slice(0, 10)}…{r.hash.slice(-6)}</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-[13px] text-mute">Testnet only. tPOT has no value, and the stakes in these runs were test coins.</p>
 
       <h2 className="mt-10 text-[22px] font-bold text-white">Who you have to trust</h2>
       <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">

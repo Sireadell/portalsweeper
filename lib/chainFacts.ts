@@ -1,6 +1,5 @@
 import { getApi } from "./native";
-import { ledgerAddress, publicClient } from "./ledger";
-import { readCommits } from "./commits";
+import { ledgerAddress, publicClient, readLedgerDay } from "./ledger";
 import { PORTAL_COLLECTION_ID, PORTAL_SUPPLY } from "./types";
 
 export type Fact = { key: string; label: string; state: "live" | "waiting"; value: string; how: string };
@@ -24,7 +23,13 @@ export async function chainFacts(): Promise<{ at: number; head: number | null; f
   const epoch = api ? await safe(async () => (await api.query.babe.epochIndex()).toString()) : null;
   const ledger = ledgerAddress();
   const ledgerCode = ledger ? await safe(async () => ((await pub.getCode({ address: ledger }))?.length ?? 2) / 2 - 1) : null;
-  const ledgerEntries = ledger && ledgerCode ? await safe(async () => (await readCommits()).filter((c) => c.kind === "ledger").length) : null;
+  // Count the days the contract itself holds (last two weeks up to tomorrow, UTC), so the number never depends on a saved file.
+  const ledgerEntries = ledger && ledgerCode ? await safe(async () => {
+    const days = Array.from({ length: 16 }, (_, i) => new Date(Date.now() + (1 - i) * 86400000).toISOString().slice(0, 10));
+    const rows = await Promise.all(days.map((d) => readLedgerDay(d, pub)));
+    const posted = days.filter((_, i) => rows[i]?.commit);
+    return { count: posted.length, latest: posted[0] ?? null };
+  }) : null;
   const shardId = process.env.SHARD_ASSET_ID;
 
   const facts: Fact[] = [
@@ -40,7 +45,7 @@ export async function chainFacts(): Promise<{ at: number; head: number | null; f
       label: "Each day's fingerprint is posted before play",
       state: "live",
       value: ledger && ledgerCode
-        ? `The DailyLedger contract at ${ledger} is deployed and live (${ledgerCode} bytes of code on chain). Each day's fingerprint is written to it when that day's Portal is awarded. ${ledgerEntries ? `${ledgerEntries} entries so far.` : "No entries yet."}`
+        ? `The DailyLedger contract at ${ledger} is deployed and live (${ledgerCode} bytes of code on chain). Each day's fingerprint is written to it when that day's Portal is awarded. ${ledgerEntries && ledgerEntries.count ? `${ledgerEntries.count} ${ledgerEntries.count === 1 ? "entry" : "entries"} in the last two weeks, the latest for ${ledgerEntries.latest}.` : "No recent entries found just now."}`
         : "Posted as a plain note from the game wallet. The ledger contract is not switched on yet.",
       how: "Open /verify, pick a Portal and a finished day, and your browser rebuilds the board and compares.",
     },
