@@ -13,7 +13,7 @@ const TRUST: { part: string; trust: string; why: string }[] = [
   { part: "Chain random number", trust: "The 2 validators", why: "The testnet has only 2 block producers, so one could nudge the number. It still arrives after the fingerprint, so we cannot pick it." },
   { part: "The secret during the day", trust: "Our server", why: "The daily job and the server hold the secret while the day runs. The check proves the board was not changed, not that nobody saw it." },
   { part: "Who is recorded as winner", trust: "Our server wallet", why: "It writes the winner. The fingerprint of the winner's move log lets anyone check that claim." },
-  { part: "Stakes on a challenge", trust: "Our escrow wallet", why: "A wallet our server controls holds the stakes and pays the winner. Simulated until one real stake run passes. Capped at 1 tPOT each." },
+  { part: "Stakes on a challenge", trust: "Escrow contract, our referee", why: "A smart contract on the chain holds the stakes. Our server only names the winner, and the contract pays out or refunds. Tested on the chain with a real win and a real draw. Capped at 1 tPOT each." },
 ];
 
 export default async function ChainPage() {

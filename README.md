@@ -142,7 +142,7 @@ The live page **/chain** reads each of these from Portaldot when you open it and
 | Chain random number | The day's board mixes in a number Portaldot's block producers make (Babe randomness). We read it 3 chain hours after the block holding the fingerprint, so nobody could know it when the secret was fixed. The block it came from is shown on /verify | Built and checked against the live chain. Not switched on yet. Days before it is switched on keep their old board, so every past day still checks out |
 | Winner fingerprint | When the Portal of the day is awarded, the hash of the winner's own move log goes into the ledger next to the Portal and the winning wallet. Anyone with the moves can recompute it | Wired into the daily award. Waits for the ledger, and a failed write never undoes a mint |
 | Names | Reads the name a wallet has set in Portaldot's Identity module, for showing on the Hall | The reader works against the live chain (6 names are set there today). Not on the Hall yet |
-| SHARD token | A reward token made with Portaldot's built-in Assets module, with no contract. The chain also shows every such token as a normal ERC-20 at a fixed address, so wallets and Solidity can read it | Planned. The create script has a free dry run. Not created yet |
+| SHARD token | A reward token made with Portaldot's built-in Assets module, with no contract. The chain also shows every such token as a normal ERC-20 at a fixed address, so wallets and Solidity can read it | Created on the chain as asset 5555. The trading pool is not set up yet |
 
 ### What you have to trust
 
