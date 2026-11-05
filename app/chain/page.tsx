@@ -24,7 +24,7 @@ export default async function ChainPage() {
           <section key={f.key} className="card p-4">
             <div className="flex items-start justify-between gap-3">
               <h2 className="text-[16px] font-bold text-white">{f.label}</h2>
-              <span className={`chip shrink-0 ${f.state === "live" ? "!border-mint/50 !text-mint" : "!text-mute"}`}>{f.state === "live" ? "On" : "Not yet"}</span>
+              {f.state !== "live" && <span className="chip shrink-0 !text-mute">Not yet</span>}
             </div>
             <p className="mt-2 text-[14px] text-text2">{f.value}</p>
             <p className="mt-1 text-[13px] text-mute">Check it: {f.how}</p>
@@ -58,7 +58,12 @@ export default async function ChainPage() {
       </div>
       <p className="mt-3 text-[13px] text-mute">{STAKE_COPY.trustNote} {STAKE_COPY.checkNote}</p>
 
-      <h2 className="mt-10 text-[22px] font-bold text-white">Proof you can check</h2>
+      <details className="group mt-10">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+        <h2 className="text-[22px] font-bold text-white">Proof you can check <span className="text-[14px] font-normal text-mute">({PROOF.length} transactions)</span></h2>
+        <span className="text-[13px] text-mute group-open:hidden">Show</span>
+        <span className="hidden text-[13px] text-mute group-open:inline">Hide</span>
+      </summary>
       <p className="mt-2 text-[14px] text-text2">
         Real transactions from the Portaldot V3 testnet. Each link opens the block in the chain explorer. The stake contract lives at <span className="break-all font-mono text-[13px] text-white">{STAKE_CONTRACT}</span>. To open a staked match a wallet needs about 9 tPOT free, and 5 to join one, because the chain keeps a storage fee.
       </p>
@@ -85,6 +90,7 @@ export default async function ChainPage() {
         </table>
       </div>
       <p className="mt-3 text-[13px] text-mute">Testnet only. tPOT has no value, and the stakes in these runs were test coins.</p>
+      </details>
 
       <p className="mt-10 text-[13px] text-mute">
         This is the Portaldot V3 testnet. tPOT is a test coin with no value, so nothing real is at risk. <a className="underline" href={PORTALDOT_CONSOLE} target="_blank" rel="noreferrer">Open the chain explorer</a>.
