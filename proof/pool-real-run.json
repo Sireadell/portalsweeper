@@ -1,0 +1,79 @@
+{
+  "network": "Portaldot V3 testnet",
+  "at": "2026-11-05T10:49:41.278Z",
+  "payout": {
+    "event": "e1a000000001",
+    "locks": [
+      {
+        "wallet": "0x697ebA3020D7Ae9a686e17FBF3aC2c9320E3CbEE",
+        "side": "creator",
+        "tpot": "0.1",
+        "txHash": "0x2d4f080a8599c4fa78ad8a4146eafb0e36159c491c47bc3aa32257b8c6cda565"
+      },
+      {
+        "wallet": "0x3E5E603dcEc9F5aa559cb7Be470ea0997EdCf62e",
+        "side": "creator",
+        "tpot": "0.1",
+        "txHash": "0xa9df04ddea9e968543d6a18f16de57c572e3839fb51f9a101e33fa266630e595"
+      },
+      {
+        "wallet": "0x9833afD5f9D1007d88CfA3BE9e6c700e0949f9F3",
+        "side": "opponent",
+        "tpot": "0.1",
+        "txHash": "0x884ef5f3e5a3abf2e5b08f97cf05c214763e9b1b3949c0c1775443020a235311"
+      }
+    ],
+    "potWei": "300000000000000000",
+    "status": "settled",
+    "mode": "batch",
+    "payoutTx": "0x66e0f1b146f6c280a470c64166887a4dbdcec95870e97883f58a5792b57ab4aa",
+    "block": 333620,
+    "events": [
+      "balances.Withdraw",
+      "balances.Withdraw",
+      "balances.Transfer",
+      "utility.ItemCompleted",
+      "balances.Transfer",
+      "utility.ItemCompleted",
+      "system.Remarked",
+      "utility.ItemCompleted",
+      "utility.BatchCompleted",
+      "balances.Deposit",
+      "balances.Deposit"
+    ]
+  },
+  "refund": {
+    "event": "e1a000000002",
+    "locks": [
+      {
+        "wallet": "0x3E5E603dcEc9F5aa559cb7Be470ea0997EdCf62e",
+        "side": "creator",
+        "tpot": "0.1",
+        "txHash": "0x7cb75c1efc3f6252b1e428afaa19dbacd1b6524b5cca0232bbeee0ca1393ac18"
+      },
+      {
+        "wallet": "0x9833afD5f9D1007d88CfA3BE9e6c700e0949f9F3",
+        "side": "opponent",
+        "tpot": "0.1",
+        "txHash": "0xb0159292f8568a2ebb05a05035d40e0649287bf24fd0793e1dcd906954e08120"
+      }
+    ],
+    "status": "refunded",
+    "mode": "batch",
+    "refundTx": "0x333d40acc33527417e70a58b43d8c709d08f0301ee03a504c0d98fdf0d95914f",
+    "block": 333623,
+    "events": [
+      "balances.Withdraw",
+      "balances.Withdraw",
+      "balances.Transfer",
+      "utility.ItemCompleted",
+      "balances.Transfer",
+      "utility.ItemCompleted",
+      "system.Remarked",
+      "utility.ItemCompleted",
+      "utility.BatchCompleted",
+      "balances.Deposit",
+      "balances.Deposit"
+    ]
+  }
+}
