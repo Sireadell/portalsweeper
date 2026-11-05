@@ -59,33 +59,36 @@ Why native modules and not more contracts: on this testnet a contract locks abou
 
 ## Proof you can check
 
-Every row is a real transaction on the Portaldot V3 testnet, read back from the chain before it was listed. The same list is on **/chain**. Each link opens the block in the Portaldot node console.
+Every row is a real transaction on the Portaldot V3 testnet, read back from the chain before it was listed. The same list is on **/chain**, and the money side is on **/money**. Each link opens the block in the Portaldot node console.
 
 | What happened | Portaldot feature | Hash | Block |
 |---|---|---|---|
-| Stake escrow contract put on the chain | EVM contract | `0x490eabae…301da1` | [326760][b326760] |
-| Stake race won: the contract paid the winner | EVM contract | `0xdb681400…a5eec1` | [327257][b327257] |
-| Stake race drawn: the contract refunded both players | EVM contract | `0x86c39476…dceabb` | [327267][b327267] |
-| A day's fingerprint written to the ledger contract | EVM contract | `0x74f8c3de…c207b1` | [327450][b327450] |
-| A 0x wallet calling a native feature in one step | EVM plus native | `0xcf5201a2…3d3279` | [326771][b326771] |
-| A daily note with System remark | System | `0x166121e0…120b3f` | [326933][b326933] |
-| A replay file stored on chain (test) | Transaction Storage | `0x10e3e225…d1eaba` | [326969][b326969] |
+| Stake contract put on the chain | EVM contract | `0x490eabae…301da1` | [326760][b326760] |
+| Stake match won: the contract paid the winner | EVM contract | `0xdb681400…a5eec1` | [327257][b327257] |
+| Stake match drawn: the contract refunded both players | EVM contract | `0x86c39476…dceabb` | [327267][b327267] |
+| First daily fingerprint written to the ledger contract | EVM contract | `0x74f8c3de…c207b1` | [327450][b327450] |
+| A wallet on the EVM side calling a native chain feature in one step | EVM plus native | `0xcf5201a2…3d3279` | [326771][b326771] |
+| Daily note written with the System Remark call | System | `0x166121e0…120b3f` | [326933][b326933] |
+| A replay file stored on the chain (Transaction Storage) | Transaction Storage | `0x10e3e225…d1eaba` | [326969][b326969] |
 | Identity name "Portalsweeper" set | Identity | `0x30c1b98f…7439f4` | [332052][b332052] |
 | Portal collection 25 created (block hash) | Nfts | `0x9d64e6e9…a452ba` | [332042][b332042] |
-| SHARD, asset 5555, created (block hash) | Assets | `0xeeda778f…ff9e7c` | [332048][b332048] |
-| Portal #102 minted with its name, image and traits | Nfts | `0xca1af6cb…374ad9` | [332827][b332827] |
+| SHARD token (asset 5555) created (block hash) | Assets | `0xeeda778f…ff9e7c` | [332048][b332048] |
+| Portal #102 minted to a player with its name, image and traits | Nfts | `0xca1af6cb…374ad9` | [332827][b332827] |
 | SHARD trading pool opened (5 tPOT and 90 SHARD) | Assets pool | `0xabe2dbb4…dab405` | [332885][b332885] |
 | One action: mint Portal #103, write 3 traits, issue SHARD, leave a note (rehearsal to a team wallet) | Utility batch | `0xebf6729c…bef94f` | [332941][b332941] |
 | Portal swap offered from a normal 0x wallet | Nfts from EVM | `0x04f14ae2…4a9b21` | [332984][b332984] |
 | Portal swap accepted by the other wallet | Nfts from EVM | `0x6a7642db…524b8f` | [332995][b332995] |
 | Portal #104 minted from a pre-signed order | Nfts from EVM | `0x1506a9b4…adaf84` | [333041][b333041] |
-| Daily SHARD prizes 10, 4, 2 paid in one action (test day) | Utility batch, Assets | `0x6fdfdfa7…9ce6f8` | [333404][b333404] |
-| Redeem: 100 SHARD burned and Portal #477 minted in one action | Utility batch, Assets, Nfts | `0xf3460a82…4ecbc7` | [333419][b333419] |
-| Portal stake: first player locks a Portal | Nfts from EVM | `0xbaf0b075…0b36d3` | [333468][b333468] |
+| Player A sets a chain name from a normal 0x wallet | Identity from EVM | `0xe702eb82…fda116` | [334681][b334681] |
+| Player B sets a chain name from a normal 0x wallet | Identity from EVM | `0x60da17df…765b48` | [334682][b334682] |
+| Portal stake: player locks a Portal in escrow | Nfts from EVM | `0xbaf0b075…0b36d3` | [333468][b333468] |
 | Portal stake: second player locks a Portal | Nfts from EVM | `0x776b2b31…6e39b2` | [333470][b333470] |
 | Portal stake: winner receives both Portals in one action | Utility batch, Nfts | `0xed5b9b77…02c34b` | [333472][b333472] |
-| Backing: winners' backers paid in one action (test coins) | Utility batch | `0x66e0f1b1…7ab4aa` | [333620][b333620] |
-| Backing: cancelled race refunded in one action (test coins) | Utility batch | `0x333d40ac…95914f` | [333623][b333623] |
+| Daily SHARD prizes for 1st, 2nd and 3rd paid in one action (test day) | Utility batch, Assets | `0x6fdfdfa7…9ce6f8` | [333404][b333404] |
+| Redeem: 100 SHARD burned and Portal #477 minted in one action | Utility batch, Assets, Nfts | `0xf3460a82…4ecbc7` | [333419][b333419] |
+| Backing pool: winners' backers paid in one action (test coins) | Utility batch | `0x66e0f1b1…7ab4aa` | [333620][b333620] |
+| Backing pool with a 5% treasury cut: winner paid, cut sent to the treasury and a note listing pot, cut and share, all in one action (test coins) | Utility batch | `0x40a46343…297422` | [335236][b335236] |
+| Backing pool: cancelled event refunded in one action (test coins) | Utility batch | `0x333d40ac…95914f` | [333623][b333623] |
 
 Full hashes are in `lib/chainProof.ts`, and raw records of the runs are in `proof/`. All of these were run by our own test wallets. The node console shows blocks, so open the block and find the hash in it.
 
@@ -93,10 +96,10 @@ Full hashes are in `lib/chainProof.ts`, and raw records of the runs are in `proo
 
 | What the rubric asks | Where to see it |
 |---|---|
-| Technical Feasibility | The live site, the 23 transactions above, 392 tests on every push, and /verify, which checks any past day against Portaldot from your own browser |
+| Technical Feasibility | The live site, the 26 transactions above, 392 tests on every push, and /verify, which checks any past day against Portaldot from your own browser |
 | Innovation, effective use of V3 | Nfts, Assets, Utility batch, Identity, System remark and two EVM contracts, with a normal 0x wallet reaching the native modules directly (table above) |
 | Ecosystem Contribution | The daily ledger contract works for any game that fixes a secret before play: a word game, a card deal, a raffle. Guide in [`docs/portaldot.md`](docs/portaldot.md), MIT licensed |
-| Business Potential | How it would make money, below. All of it is planned, none of it charges anyone today |
+| Business Potential | How Portalsweeper makes money, above, and the live counts on /money. Everything runs on testnet coins |
 
 ## How a board works
 
@@ -148,16 +151,19 @@ flowchart LR
   W[Viewers, no sign-in] -- "15 s behind" --> API
 ```
 
-## How it would make money
+## How Portalsweeper makes money
 
-Nothing is charged today. These are plans, and the table says which parts already run.
+People pay for the thing they want to own (a Portal), sponsors pay for attention (a sponsored day), and I keep a small cut when people back a player in a race. Nobody pays just to play. Everything below runs on testnet coins with no value, and every number on [/money](https://portalsweeper.vercel.app/money) is either a real count read from Portaldot or a labelled example with its inputs written next to it.
 
-| Money line | Plan | What exists today |
+| Money line | How it works | State today |
 |---|---|---|
-| Portal sales | Sell unminted Portals with a pre-signed mint, so the buyer pays and mints in one step | The mechanism ran for real (Portal #104, block 333041). No price set |
-| Backing pots | Keep about 5% of each backing pot | Backing runs on testnet with the cut set to 0 |
-| Sponsored days | A project funds the day's prize and pays about 20% on top | Planned |
-| Pool swap fees | A share of SHARD and tPOT swap fees | Only if the chain pays them to the pool owner. Not confirmed |
+| Pool cut | When a backing pool pays out, 5% of the pot goes to a treasury wallet in the same chain action as the winners. The note on chain lists the pot, the cut and every backer's share. Refunds take nothing. Only pools opened after the deploy carry the cut | Live in tPOT on testnet. A paid pool with the cut ran at block [335236][b335236] |
+| Portals | There are 500 Portals and no more will be made. The loop is SHARD only: the Challenge of the Day top 3 earn 10, 4 and 2 SHARD, and 100 SHARD is burned to redeem a Portal, so every redeem takes SHARD out for good | The redeem runs on chain (Portal #477, block [333419][b333419]). A mainnet price is not set |
+| Sponsored days | A project pays the day's prize plus a fee and gets its name on the board | Planned, not built |
+
+SHARD is only ever earned by finishing in the top 3 of a one-try ranked day, so there is nothing to farm for turning up. /money also shows a made-up example of how the three lines add up, labelled as an example and not a forecast.
+
+Real money is a different question. Staking real value on a game with any luck in it is regulated in many places, and Minesweeper sometimes forces a guess. So the plan for mainnet starts with free-entry sponsored days, takes legal advice country by country, and only allows real stakes where they are clearly legal.
 
 ## What you have to trust
 
@@ -193,7 +199,7 @@ Nothing is charged today. These are plans, and the table says which parts alread
 | SHARD | Assets asset **5555**, 0 decimals. ERC-20 view at `0x000015b300000000000000000000000000010000` |
 | Stake escrow contract | `0x9cebe7c313b0c86c55d956a3d07bd191fddabf9a`. Opening a staked race needs about 9 tPOT free and joining about 5, because the chain keeps a storage fee |
 | Daily ledger contract | `0xf815869398505e795566f329f0867c0e5304145c`, 1883 bytes of code. Source in `contracts/DailyLedger.sol` |
-| Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82`. First fingerprint 22 Oct 2026, [block 148888][b148888] |
+| Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82`. First fingerprint written to the ledger contract at [block 327450][b327450] |
 | Identity | The game's account is named "Portalsweeper" |
 
 ## Development log
@@ -201,7 +207,7 @@ Nothing is charged today. These are plans, and the table says which parts alread
 | Date | What changed |
 |---|---|
 | 2026-10-19 to 22 | Built Chogsweeper on Monad, the game this one grew from ([repo](https://github.com/Sireadell/chogsweeper)) |
-| 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Posted the first daily fingerprint (block 148888) |
+| 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Started posting a daily fingerprint |
 | 2026-10-23 | Demo video, pitch deck and architecture diagram |
 | 2026-11-01 | Friend races, and tPOT stakes on them |
 | 2026-11-04 | Deployed the ledger contract. First real stake runs on Portaldot. Tests, type checks and a build on every push |
@@ -270,7 +276,6 @@ Nothing secret is ever written in this repo.
 
 > **Can you clear today's board fastest?**
 
-[b148888]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888
 [b326760]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326760
 [b327257]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327257
 [b327267]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327267
@@ -287,10 +292,13 @@ Nothing secret is ever written in this repo.
 [b332984]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332984
 [b332995]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332995
 [b333041]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333041
-[b333404]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333404
-[b333419]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333419
+[b334681]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/334681
+[b334682]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/334682
 [b333468]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333468
 [b333470]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333470
 [b333472]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333472
+[b333404]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333404
+[b333419]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333419
 [b333620]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333620
+[b335236]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/335236
 [b333623]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333623
