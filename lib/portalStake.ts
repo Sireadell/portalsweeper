@@ -37,16 +37,16 @@ export function payoutBatch(api: ApiPromise, moves: PortalPayout[], note: string
   return api.tx.utility.batchAll(calls) as Call;
 }
 
-// Who gets which Portal. `entries` are the two seated players with the Portal each locked.
+// Who gets which Portal. `entries` are the seated players with the Portal each locked. `to` is an 0x wallet.
 export type PortalEntry = { wallet: string; portal: number };
 export type RaceEnd = { kind: "win"; winner: string } | { kind: "draw" } | { kind: "cancel" };
 
-export function payoutPlan(entries: PortalEntry[], end: RaceEnd, mapped: (wallet: string) => string): PortalPayout[] {
+export function payoutPlan(entries: PortalEntry[], end: RaceEnd): PortalPayout[] {
   if (entries.length < 1 || entries.length > 2) throw new Error("A race holds one or two staked Portals.");
-  if (end.kind === "win") {
+  if (end.kind === "win" && entries.length === 2) {
     const w = entries.find((e) => e.wallet.toLowerCase() === end.winner.toLowerCase());
-    if (!w || entries.length !== 2) return entries.map((e) => ({ portal: e.portal, to: mapped(e.wallet) }));
-    return entries.map((e) => ({ portal: e.portal, to: mapped(w.wallet) }));
+    if (!w) throw new Error("The winner is not a player in this stake.");
+    return entries.map((e) => ({ portal: e.portal, to: w.wallet.toLowerCase() }));
   }
-  return entries.map((e) => ({ portal: e.portal, to: mapped(e.wallet) }));
+  return entries.map((e) => ({ portal: e.portal, to: e.wallet.toLowerCase() }));
 }

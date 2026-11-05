@@ -192,7 +192,7 @@ export async function challengeProgress(deps: ChallengeDeps, id: string): Promis
 
 export async function createChallenge(
   deps: ChallengeDeps,
-  input: { address: unknown; signature: unknown; tokenId?: unknown; stakeTpot?: unknown; duel?: unknown },
+  input: { address: unknown; signature: unknown; tokenId?: unknown; stakeTpot?: unknown; stakePortal?: unknown; duel?: unknown },
 ): Promise<{ ok: true; challenge: ChallengeView } | ChallengeError> {
   const now = (deps.now ?? Date.now)();
   const date = utcToday(new Date(now));
@@ -208,6 +208,9 @@ export async function createChallenge(
       return { ok: false, status: 400, error: e instanceof Error ? e.message : "That stake is not valid." };
     }
   }
+  const stakePortal = input.stakePortal === true && !!deps.stakes;
+  if (stakePortal && stakeTpot) return { ok: false, status: 400, error: "Stake either tPOT or a Portal, not both." };
+  if (stakePortal && !deps.stakes?.chain.verifyPortalLock) return { ok: false, status: 400, error: "Portal stakes are not available." };
   const seed = (deps.newSeed ?? (() => `0x${randomBytes(32).toString("hex")}`))();
   let tokenId = portalForSeed(seed);
   if (input.tokenId !== undefined) {
@@ -218,9 +221,9 @@ export async function createChallenge(
   for (let tries = 0; tries < 5; tries++) {
     const ch: Challenge = { id: (deps.newId ?? (() => randomBytes(6).toString("hex")))(), seed, tokenId, date, creator: who, createdAt: now, expiresAt: now + CHALLENGE_LIFE_MS, ...(input.duel === true ? { duel: true } : {}) };
     if (await deps.store.challengeCreate(ch)) {
-      if (stakeTpot && deps.stakes) {
+      if ((stakeTpot || stakePortal) && deps.stakes) {
         try {
-          await createStake(deps.stakes, ch.id, { creator: who, amountTpot: stakeTpot });
+          await createStake(deps.stakes, ch.id, stakePortal ? { creator: who, asset: "portal" } : { creator: who, amountTpot: stakeTpot as string });
         } catch {
           return { ok: false, status: 500, error: "The challenge was made but its stake could not be set. Make a new one." };
         }
@@ -258,6 +261,13 @@ export async function startChallenge(
       if (stake.status !== "locked" && stake.status !== "open") return { ok: false, status: 403, error: "The stake on this challenge is closed." };
       if (!stake.locks.some((l) => l.wallet === who)) return { ok: false, status: 403, error: "Lock your stake first. Both players must put up the same stake before anyone plays." };
       if (stake.status !== "locked") return { ok: false, status: 403, error: "Waiting for the other player to lock their stake." };
+      // Portal stakes: look at the chain once more before seating. Both Portals must still sit with the escrow wallet.
+      if (stake.asset === "portal" && deps.stakes?.chain.portalHeld) {
+        for (const l of stake.locks) {
+          if (l.portal !== undefined && !(await deps.stakes.chain.portalHeld(l.portal)))
+            return { ok: false, status: 403, error: `Portal #${l.portal} is no longer held in escrow, so nobody can sit down.` };
+        }
+      }
     }
     const seat = await deps.store.challengeSeat(ch.id, slot, { wallet: who, startedAt: now });
     if (!seat.ok && seat.entry.wallet !== who) return { ok: false, status: 409, error: "This challenge already has two players." };

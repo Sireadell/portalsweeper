@@ -4,15 +4,17 @@
 // tPOT has no value. Nothing here depends on the challenge code: the challenge flow calls
 // createStake, lockStake, settleStake and refundStake with its own challenge id.
 import { redisUrlCommand } from "./redisUrl";
+import { checkPortal, payoutPlan, portalPayoutNote, type PortalPayout } from "./portalStake";
 
 export const STAKE_MAX_WEI = 10n ** 18n; // 1 tPOT cap per player
 
 export type StakeStatus = "open" | "locked" | "settled" | "refunded";
 
-export type StakeLock = { wallet: string; txHash: string; at: number };
+export type StakeLock = { wallet: string; txHash: string; at: number; portal?: number };
 
 export type StakeRecord = {
   challengeId: string;
+  asset?: "tpot" | "portal"; // "portal": each player locks one Portal (trusted custody), amountWei is "0"
   amountWei: string; // each player's stake, in wei (18 decimals)
   creator: string; // lowercase 0x wallet of the player who set the terms
   opponent?: string; // lowercase 0x wallet of the second player
@@ -27,7 +29,7 @@ export type StakeRecord = {
   settledAt?: number;
 };
 
-export type StakeTerms = { creator: string; amountTpot: string };
+export type StakeTerms = { creator: string; amountTpot: string } | { creator: string; asset: "portal" };
 
 // What the server reads back from chain about one transfer.
 export type ChainTransfer = { from: string; to: string; valueWei: bigint; ok: boolean };
@@ -39,6 +41,11 @@ export interface StakeChain {
   // Set when the pot sits in the escrow contract: the contract pays out, keyed by challenge id.
   settle?(challengeId: string, winner: string): Promise<{ txHash: string; block?: number }>;
   refundAll?(challengeId: string): Promise<{ txHash: string; block?: number }>;
+  // Portal stakes (trusted custody by the escrow wallet). The player moved the Portal with their own wallet.
+  portalEscrowAddress?(): string;
+  verifyPortalLock?(wallet: string, portal: number, txHash: string): Promise<{ ok: true } | { ok: false; error: string }>;
+  portalHeld?(portal: number): Promise<boolean>; // the escrow still owns this Portal
+  payoutPortals?(note: string, moves: PortalPayout[]): Promise<{ txHash: string; block?: number }>;
 }
 
 export interface StakeStore {
@@ -77,9 +84,11 @@ export const potWei = (r: StakeRecord): bigint => BigInt(r.amountWei) * BigInt(r
 export async function createStake(deps: StakeDeps, challengeId: string, terms: StakeTerms): Promise<StakeRecord> {
   if (!challengeId) throw new Error("Missing challenge id.");
   if (!isWallet(terms.creator)) throw new Error("Not an 0x address.");
+  const portalStake = "asset" in terms;
   const rec: StakeRecord = {
     challengeId,
-    amountWei: parseTpot(terms.amountTpot).toString(),
+    ...(portalStake ? { asset: "portal" as const } : {}),
+    amountWei: portalStake ? "0" : parseTpot(terms.amountTpot).toString(),
     creator: terms.creator.toLowerCase(),
     locks: [],
     status: "open",
@@ -98,6 +107,7 @@ export async function lockStake(deps: StakeDeps, challengeId: string, player: st
   const rec = await deps.store.get(challengeId);
   if (!rec) throw new Error("No stake on this challenge.");
   if (rec.status !== "open") throw new Error("This stake is no longer open.");
+  if (rec.asset === "portal") throw new Error("This challenge stakes a Portal, not tPOT.");
   if (rec.locks.some((l) => l.wallet === wallet)) return rec; // already locked, safe to call again
   if (rec.locks.length >= 2) throw new Error("Both stakes are already locked.");
 
@@ -122,6 +132,39 @@ export async function lockStake(deps: StakeDeps, challengeId: string, player: st
   return next;
 }
 
+// Portal stake: the player moved a Portal to the escrow wallet with their own wallet and passes the transaction
+// hash. It only counts if chain shows that exact transfer from that wallet and the escrow owns the Portal now.
+export async function lockPortal(deps: StakeDeps, challengeId: string, player: string, portal: number, txHash: string): Promise<StakeRecord> {
+  if (!isWallet(player)) throw new Error("Not an 0x address.");
+  if (!HASH.test(txHash)) throw new Error("Not a transaction hash.");
+  checkPortal(portal);
+  const wallet = player.toLowerCase();
+  const rec = await deps.store.get(challengeId);
+  if (!rec) throw new Error("No stake on this challenge.");
+  if (rec.asset !== "portal") throw new Error("This challenge does not stake a Portal.");
+  if (rec.status !== "open") throw new Error("This stake is no longer open.");
+  if (rec.locks.some((l) => l.wallet === wallet)) return rec;
+  if (rec.locks.length >= 2) throw new Error("Both stakes are already locked.");
+  if (rec.locks.some((l) => l.portal === portal)) throw new Error("That Portal is already staked here.");
+  if (!deps.chain.verifyPortalLock) throw new Error("Portal stakes are not available.");
+  const v = await deps.chain.verifyPortalLock(wallet, portal, txHash);
+  if (!v.ok) throw new Error(v.error);
+  const tx = txHash.toLowerCase();
+  if (!(await deps.store.claimTx(tx, challengeId))) throw new Error("That transfer already backs another stake.");
+  const fresh = await deps.store.get(challengeId);
+  if (!fresh || fresh.status !== "open" || fresh.locks.length >= 2) {
+    await deps.store.releaseTx(tx);
+    throw new Error("This stake is no longer open.");
+  }
+  const next: StakeRecord = { ...fresh, locks: [...fresh.locks, { wallet, txHash: tx, at: (deps.now ?? Date.now)(), portal }] };
+  if (next.locks.length === 2) next.status = "locked";
+  if (wallet !== next.creator) next.opponent = wallet;
+  await deps.store.save(next);
+  return next;
+}
+
+const portalEntries = (r: StakeRecord) => r.locks.map((l) => ({ wallet: l.wallet, portal: l.portal as number }));
+
 // The match is over. The winner must be one of the two players. Safe to call again: a payout that
 // already went out is returned, not sent twice.
 export async function settleStake(deps: StakeDeps, challengeId: string, winner: string): Promise<StakeRecord> {
@@ -132,7 +175,13 @@ export async function settleStake(deps: StakeDeps, challengeId: string, winner: 
   if (rec.status !== "locked") throw new Error("Both players must lock their stake first.");
   const w = winner.toLowerCase();
   if (!rec.locks.some((l) => l.wallet === w)) throw new Error("The winner is not a player in this stake.");
-  const sent = deps.chain.settle ? await deps.chain.settle(challengeId, w) : await deps.chain.send(w, potWei(rec));
+  let sent: { txHash: string; block?: number };
+  if (rec.asset === "portal") {
+    if (!deps.chain.payoutPortals) throw new Error("Portal stakes are not available.");
+    sent = await deps.chain.payoutPortals(portalPayoutNote(challengeId, "win", w), payoutPlan(portalEntries(rec), { kind: "win", winner: w }));
+  } else {
+    sent = deps.chain.settle ? await deps.chain.settle(challengeId, w) : await deps.chain.send(w, potWei(rec));
+  }
   const next: StakeRecord = { ...rec, status: "settled", winner: w, payoutTx: sent.txHash, payoutBlock: sent.block, settledAt: (deps.now ?? Date.now)() };
   await deps.store.save(next);
   return next;
@@ -145,7 +194,15 @@ export async function refundStake(deps: StakeDeps, challengeId: string): Promise
   if (rec.status === "settled" || rec.status === "refunded") return rec;
   const txs: string[] = [];
   const blocks: number[] = [];
-  if (deps.chain.refundAll) {
+  if (rec.asset === "portal") {
+    // Every locked Portal goes back to its owner in one batch.
+    if (rec.locks.length) {
+      if (!deps.chain.payoutPortals) throw new Error("Portal stakes are not available.");
+      const sent = await deps.chain.payoutPortals(portalPayoutNote(challengeId, "cancel"), payoutPlan(portalEntries(rec), { kind: "cancel" }));
+      txs.push(sent.txHash);
+      if (sent.block !== undefined) blocks.push(sent.block);
+    }
+  } else if (deps.chain.refundAll) {
     const sent = await deps.chain.refundAll(challengeId);
     txs.push(sent.txHash);
     if (sent.block !== undefined) blocks.push(sent.block);

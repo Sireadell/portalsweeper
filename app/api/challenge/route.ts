@@ -3,7 +3,7 @@ import { getStore } from "@/lib/records";
 import { cancelChallenge, challengeBoards, challengeProgress, createChallenge, getChallengeView, isChallengeId, moveChallenge, resolveChallengeStake, startChallenge, type ChallengeDeps } from "@/lib/challenge";
 import { getStakeStore, stakesEnabled } from "@/lib/stakes";
 import { stakeChainFromEnv } from "@/lib/stakeChain";
-import { stakeView } from "@/lib/challengeStakes";
+import { escrowFor, stakeView } from "@/lib/challengeStakes";
 import { generateBoard, getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +15,8 @@ const deps = (): ChallengeDeps => ({
   stakes: stakesEnabled() ? { store: getStakeStore(), chain: stakeChainFromEnv() } : null,
 });
 
-function escrowOrUndefined(d: ChallengeDeps): string | undefined {
-  try {
-    return d.stakes?.chain.escrowAddress();
-  } catch {
-    return undefined;
-  }
+function escrowOrUndefined(d: ChallengeDeps, rec: Parameters<typeof escrowFor>[1]): string | undefined {
+  return d.stakes ? escrowFor(d.stakes.chain, rec) : undefined;
 }
 
 // The stake on a challenge, or undefined when stakes are off or there is none. Reading it also pays out
@@ -29,10 +25,10 @@ async function stakeFor(d: ChallengeDeps, id: string) {
   if (!d.stakes) return undefined;
   try {
     const rec = (await resolveChallengeStake(d, id)) ?? (await d.stakes.store.get(id));
-    return rec ? stakeView(rec, escrowOrUndefined(d)) : undefined;
+    return rec ? stakeView(rec, escrowOrUndefined(d, rec)) : undefined;
   } catch {
     const rec = await d.stakes.store.get(id);
-    return rec ? stakeView(rec, escrowOrUndefined(d)) : undefined; // payout will be retried on the next read
+    return rec ? stakeView(rec, escrowOrUndefined(d, rec)) : undefined; // payout will be retried on the next read
   }
 }
 
@@ -68,7 +64,7 @@ export async function POST(req: Request) {
   }
   try {
     if (b.action === "create") {
-      const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId, stakeTpot: b.stakeTpot, duel: b.duel });
+      const out = await createChallenge(deps(), { address: b.address, signature: b.signature, tokenId: b.tokenId, stakeTpot: b.stakeTpot, stakePortal: b.stakePortal, duel: b.duel });
       if (!out.ok) return NextResponse.json({ error: out.error }, { status: out.status });
       const stake = await stakeFor(deps(), out.challenge.id);
       return NextResponse.json({ challenge: out.challenge, ...(stake ? { stake } : {}) }, { headers: NO_STORE });

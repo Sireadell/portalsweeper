@@ -6,10 +6,12 @@ import type { ChallengeWinner } from "./challenge";
 
 // What the page needs to show a pot. Nothing private is in a stake record.
 export function stakeView(r: StakeRecord, escrow?: string) {
+  const portal = r.asset === "portal";
   return {
+    asset: (portal ? "portal" : "tpot") as "portal" | "tpot",
     challengeId: r.challengeId,
     status: r.status,
-    stakeTpot: formatTpot(r.amountWei),
+    stakeTpot: portal ? "0" : formatTpot(r.amountWei),
     potTpot: formatTpot(potWei(r)),
     creator: r.creator,
     opponent: r.opponent ?? null,
@@ -20,13 +22,22 @@ export function stakeView(r: StakeRecord, escrow?: string) {
     refundTxs: r.refundTxs ?? [],
     refundBlocks: r.refundBlocks ?? [],
     escrow: escrow ?? null,
-    note: "Testnet tPOT, no value.",
+    note: portal ? "Testnet Portals. Trusted custody: the game server holds staked Portals until the race ends." : "Testnet tPOT, no value.",
   };
 }
 
 // Pays or refunds once the challenge is settled. Safe to call from many places at once: a claim on the
 // challenge id lets one caller through, and a finished stake is just returned. If the chain send fails
 // the claim is released so the next call (or the timer) tries again.
+// The wallet a player sends their stake to: the escrow wallet for Portals, else the escrow address (wallet or contract).
+export function escrowFor(chain: StakeDeps["chain"], r: StakeRecord): string | undefined {
+  try {
+    return r.asset === "portal" ? chain.portalEscrowAddress?.() : chain.escrowAddress();
+  } catch {
+    return undefined;
+  }
+}
+
 export async function resolveStake(deps: StakeDeps, challengeId: string, result: ChallengeWinner): Promise<StakeRecord | null> {
   const rec = await deps.store.get(challengeId);
   if (!rec) return null;
