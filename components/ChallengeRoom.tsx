@@ -298,7 +298,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
                 ) : showStake && stake && stake.status === "open" && !myLock ? (
                   <>
                     <p className="text-[15px] text-text2">
-                      This challenge has a stake. Put up <b className="text-white">{stake.stakeTpot} tPOT</b> to play. Nobody plays until both of you have. The winner takes the pot. Testnet tPOT, no value.
+                      This challenge has a stake. Put up <b className="text-white">{stake.stakeTpot} tPOT</b> to play. Nobody plays until both of you have. The winner takes the pot. Testnet tPOT, no value. Your wallet also needs about 9 tPOT free to open a staked match, or 5 to join one, because the chain charges a storage fee for it.
                     </p>
                     <button className="btn-main btn-lg mt-4" onClick={lock} disabled={locking || !stake.escrow}>
                       {locking ? "Check your wallet…" : `Lock ${stake.stakeTpot} tPOT`}

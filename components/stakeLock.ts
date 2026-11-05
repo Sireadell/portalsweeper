@@ -25,6 +25,11 @@ export async function sendAndLockStake(opts: { challengeId: string; wallet: stri
   } else {
     const id = keccak256(toHex(opts.challengeId));
     const status = Number(((await pub.readContract({ address: opts.escrow as Hex, abi: ESCROW_READ_ABI, functionName: "getMatch", args: [id] })) as readonly unknown[])[4]);
+    // The chain charges a storage deposit with every contract call: about 8 tPOT to open a match, 4 to join.
+    // It checks the wallet can cover it before it accepts the bet, so say so plainly instead of a vague error.
+    const need = parseEther(status === 0 ? "9" : "5") + value;
+    const have = await pub.getBalance({ address: opts.wallet as Hex });
+    if (have < need) throw new Error(`Your wallet needs about ${status === 0 ? 9 : 5} tPOT free to ${status === 0 ? "open" : "join"} a staked match (the chain's storage fee, mostly kept by the network). You have ${Number(have / 10n ** 15n) / 1000} tPOT.`);
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 7 * 86400);
     txHash = status === 0
       ? await client.writeContract({ address: opts.escrow as Hex, abi: ESCROW_WRITE_ABI, functionName: "create", args: [id, deadline], value })
