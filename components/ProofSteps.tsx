@@ -208,9 +208,8 @@ export default function ProofSteps() {
       </section>
 
       <section className="rounded-2xl border border-edge p-4" style={{ background: "rgba(131,110,249,0.08)" }}>
-        <h2 className="text-base font-bold text-white">What this proves and what it does not</h2>
+        <h2 className="text-base font-bold text-white">What this proves</h2>
         <p className="mt-2 text-[14px] leading-relaxed text-[#D4CCBF]"><strong className="text-mint">It proves:</strong> the day's secret was locked on Portaldot before the day ended, and every board that day was built from that same secret. Nobody, including us, can quietly change a board afterwards.</p>
-        <p className="mt-2 text-[14px] leading-relaxed text-[#D4CCBF]"><strong className="text-[#E8B04A]">It does not prove:</strong> that the secret stayed hidden during the day. Our server holds it while the day is live, so the fingerprint only stops after-the-fact changes. It does not stop us from peeking in the moment.</p>
       </section>
     </div>
   );

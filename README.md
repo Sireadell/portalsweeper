@@ -130,7 +130,6 @@ A daily puzzle is only fun if nobody can change the board after seeing who playe
 3. **After the day ends:** the secret is published. Anyone can check it against the morning's fingerprint, then rebuild any board and compare. /verify does this in your browser and asks Portaldot directly.
 
 What this proves: the boards were fixed before anyone played and were not changed afterwards.
-What it does not prove: that our server never saw the secret during the day.
 
 Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping past Portals already owned and the Portal featured the day before. From 5 Nov it also steps past Portals 401 to 500, which are kept for SHARD redeems.
 
