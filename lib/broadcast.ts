@@ -5,8 +5,9 @@ import { createHash } from "node:crypto";
 import { recoverMessageAddress, type Hex } from "viem";
 import * as G from "./game";
 import { replayLog } from "./live";
-import type { StoredMove } from "./records";
+import type { RecordStore, StoredMove } from "./records";
 import type { Board } from "./types";
+import { broadcastMessage } from "./cotd-message";
 import { redisUrlCommand } from "./redisUrl";
 
 export const DELAY_MS = 15_000;
@@ -16,8 +17,7 @@ export const MAX_LIVE = 50;
 export const LINGER_MS = 10 * 60_000; // a broadcast stays up this long after the game ends
 export const MAX_RUN_MS = 2 * 3_600_000; // a game with no end is dropped from the list after this
 
-export const broadcastMessage = (date: string) =>
-  `Portalsweeper broadcast ${date}\nI am letting anyone watch my ranked try, 15 seconds late. No fee, no transaction.`;
+export { broadcastMessage };
 
 // ---------------------------------------------------------------------------
 // A small key-value layer over the same Redis the records use (no new service)
@@ -247,3 +247,69 @@ export async function heartbeat(k: Kv, code: string, viewer: string, now: number
 }
 
 export const recoverBroadcast = (message: string, signature: string) => recoverMessageAddress({ message, signature: signature as Hex });
+
+// ---------------------------------------------------------------------------
+// The answer for GET /api/live?id=CODE
+// ---------------------------------------------------------------------------
+export type LiveSeat = { role: string; wallet: string; view: SeatView };
+export type LiveAnswer = {
+  code: string;
+  kind: BroadcastKind;
+  tokenId: number;
+  tags: string[];
+  startedAt: number;
+  endedAt: number | null; // when the last game ended (real time, not delayed)
+  delayMs: number;
+  serverNow: number;
+  viewers: number;
+  cols: number;
+  rows: number;
+  seats: LiveSeat[];
+};
+
+export type LiveDeps = {
+  store: RecordStore;
+  kv: Kv;
+  rankedBoard: (tokenId: number, date: string, wallet: string) => Promise<Board>;
+  raceBoard: (id: string) => Promise<Board | null>;
+};
+
+export async function liveAnswer(d: LiveDeps, b: Broadcast, now: number): Promise<LiveAnswer | null> {
+  const seats: LiveSeat[] = [];
+  let board: Board | null = null;
+  let lastT = 0;
+  // Reads one seat's log. Whether the real game (not the delayed picture) is over decides when the 10 minutes start.
+  const take = async (role: string, wallet: string, key: string): Promise<boolean> => {
+    const log = await d.store.movesGet(key);
+    seats.push({ role, wallet, view: seatView(board!, log, now) });
+    const real = replayLog(board!, log);
+    const ended = real.status === "won" || real.status === "lost";
+    if (ended) lastT = Math.max(lastT, log[log.length - 1].t);
+    return ended;
+  };
+  let allOver = false;
+  if (b.kind === "ranked" && b.wallet) {
+    board = await d.rankedBoard(b.tokenId, b.date, b.wallet);
+    allOver = await take("player", b.wallet, `cotd:${b.date}:${b.wallet}`);
+  } else {
+    board = await d.raceBoard(b.code);
+    if (!board) return null;
+    const entries = await d.store.challengeEntries(b.code);
+    const ends: boolean[] = [];
+    for (const r of ["creator", "opponent"] as const) {
+      const e = entries[r];
+      if (e) ends.push(await take(r, e.wallet, `challenge:${b.code}:${e.wallet}`));
+    }
+    allOver = ends.length === 2 && ends.every(Boolean);
+  }
+  let endedAt = b.endedAt ?? null;
+  if (!endedAt && allOver && lastT) {
+    endedAt = lastT;
+    await endBroadcast(d.kv, b.code, lastT).catch(() => undefined);
+  }
+  return {
+    code: b.code, kind: b.kind, tokenId: b.tokenId, tags: b.tags, startedAt: b.startedAt, endedAt, delayMs: DELAY_MS, serverNow: now,
+    viewers: await viewerCount(d.kv, b.code, now).catch(() => 0),
+    cols: board.cols, rows: board.rows, seats,
+  };
+}

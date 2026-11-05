@@ -6,12 +6,12 @@ import type { ChallengeBoards, ChallengeView } from "@/lib/challenge";
 import DuelBoards from "@/components/DuelBoards";
 import { ChallengeResult } from "@/components/ChallengeRoom";
 import { portalLabel } from "@/lib/names";
+import LiveBoard from "@/components/LiveBoard";
 
 type Progress = { creator?: number; opponent?: number };
 
 // A read-only view of a challenge for supporters. No wallet, no signing, never a mine.
-export default function WatchPage() {
-  const { id } = useParams<{ id: string }>();
+function ChallengeWatch({ id }: { id: string }) {
   const [view, setView] = useState<ChallengeView | null>(null);
   const [boards, setBoards] = useState<ChallengeBoards | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -66,6 +66,36 @@ export default function WatchPage() {
         {view.settled && <ChallengeResult view={view} me={null} />}
         <p className="mt-6 text-center text-[14px]">
           <Link href="/challenge" className="text-mint underline-offset-2 hover:underline">Make your own challenge</Link>
+        </p>
+      </section>
+    </main>
+  );
+}
+
+// /watch/CODE: a live broadcast (a ranked try or a race with a backing event) when the code is one,
+// else the plain friend-challenge view. Either way: no sign-in, never a mine.
+export default function WatchPage() {
+  const { id } = useParams<{ id: string }>();
+  const [mode, setMode] = useState<"checking" | "live" | "challenge">("checking");
+  useEffect(() => {
+    let stop = false;
+    fetch(`/api/live?id=${encodeURIComponent(id)}`, { cache: "no-store" })
+      .then((r) => { if (!stop) setMode(r.ok ? "live" : "challenge"); })
+      .catch(() => { if (!stop) setMode("challenge"); });
+    return () => { stop = true; };
+  }, [id]);
+  if (mode === "checking") return <main className="page-narrow" aria-busy><p className="text-[14px] text-mute" role="status">Loading…</p></main>;
+  if (mode === "challenge") return <ChallengeWatch id={id} />;
+  return (
+    <main className="page">
+      <section className="mx-auto max-w-[900px] pt-2">
+        <p className="eyebrow">Live now</p>
+        <h1 className="mb-4 mt-2 text-[32px] font-extrabold tracking-tight text-white sm:text-[40px]">Watching a live game</h1>
+        <LiveBoard code={id} />
+        <p className="mt-6 text-center text-[14px]">
+          <Link href="/live" className="text-mint underline-offset-2 hover:underline">All live games</Link>
+          {" · "}
+          <Link href="/cotd" className="text-mint underline-offset-2 hover:underline">Play today's Portal</Link>
         </p>
       </section>
     </main>

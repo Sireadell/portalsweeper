@@ -7,7 +7,7 @@ import type { LiveState } from "@/lib/live";
 import { useWallet } from "@/components/useWallet";
 import GameScreen from "@/components/GameScreen";
 import CotdCard from "@/components/CotdCard";
-import { cotdMessage } from "@/lib/cotd-message";
+import { broadcastMessage, cotdMessage } from "@/lib/cotd-message";
 import { todayUTC } from "@/components/dailySalt";
 import { generateBoard, getPortalMeta } from "@/components/deps";
 import { newPracticeSalt } from "@/lib/practice";
@@ -26,6 +26,8 @@ export default function CotdPage() {
   const [msg, setMsg] = useState("");
   const [game, setGame] = useState<{ board: Board; live: LiveState; meta: PortalMeta; date: string; sig: string } | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [wantCast, setWantCast] = useState(false);
+  const [cast, setCast] = useState<{ code?: string; error?: string } | null>(null);
   const [free, setFree] = useState<{ board: Board; meta: PortalMeta; round: number } | null>(null);
 
   async function start() {
@@ -55,9 +57,24 @@ export default function CotdPage() {
       }
       setGame({ board: j.board, live: j.live, meta: j.meta, date: j.board.date, sig });
       setPhase("playing");
+      if (wantCast) void broadcast();
     } catch {
       setMsg("Could not reach the server. Check your connection and try again.");
       setPhase("ready");
+    }
+  }
+
+  // One more signed message (no gas) lets anyone watch this try, 15 seconds late. A problem here never stops the game.
+  async function broadcast() {
+    setCast(null);
+    try {
+      const eth = window.ethereum as unknown as Eth;
+      const bsig = await eth.request({ method: "personal_sign", params: [toHex(broadcastMessage(todayUTC())), address!] });
+      const r = await fetch("/api/live", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "start", address, signature: bsig }) });
+      const j = await r.json();
+      setCast(r.ok ? { code: j.code } : { error: j.error ?? "Could not start the broadcast." });
+    } catch {
+      setCast({ error: "No signature was given, so the game is not broadcast. Your ranked try carries on." });
     }
   }
 
@@ -158,6 +175,10 @@ export default function CotdPage() {
                 <p className="text-[14px] text-mute">
                   You get one ranked try. Your wallet signs a short message (free, no transaction). The mines stay on the server and its clock times you from your first tap. If you leave, press Start again to pick the try back up, but the clock keeps running.
                 </p>
+                <label className="mt-4 flex items-start justify-center gap-2 text-left text-[14px] text-text2">
+                  <input type="checkbox" className="mt-1" checked={wantCast} onChange={(e) => setWantCast(e.target.checked)} />
+                  <span>Broadcast my game. Anyone can watch from /live, 15 seconds late, with no sign-in. One more signature, no fee. They never see a mine.</span>
+                </label>
                 <button className="btn-main btn-lg mt-4" onClick={start} disabled={phase === "signing"}>
                   {phase === "signing" ? "Check your wallet…" : "Start my ranked try"}
                 </button>
@@ -178,6 +199,15 @@ export default function CotdPage() {
         </>
       )}
 
+      {phase === "playing" && game && cast && (
+        <p className="mx-auto mb-3 max-w-[720px] text-center text-[14px]" role="status">
+          {cast.code ? (
+            <>You are live. Share <Link href={`/watch/${cast.code}`} className="text-mint underline-offset-2 hover:underline">/watch/{cast.code}</Link>.</>
+          ) : (
+            <span className="text-boom">{cast.error}</span>
+          )}
+        </p>
+      )}
       {phase === "playing" && game && (
         <GameScreen meta={game.meta} board={game.board} live={game.live} remote={move} mode="cotd" preset={{ twist: "classic", cpu: "off" }} address={address} footer={footer} />
       )}

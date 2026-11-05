@@ -3,6 +3,7 @@ import { getStore } from "@/lib/records";
 import { getDailySalt } from "@/lib/salt";
 import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
 import { moveRanked, startRanked, summarize, type BoardFor, type CotdDeps } from "@/lib/cotd";
+import { endRankedBroadcast, getKv } from "@/lib/broadcast";
 import { generateBoard, getPortalMeta } from "../_deps";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ const boardFor: BoardFor = async (tokenId, date, wallet) => {
   const random = usesChainRandom(date) ? (await readStoredRandom(date))?.value : undefined;
   return generateBoard(await getPortalMeta(tokenId), date, getDailySalt(date), random, wallet);
 };
-const deps = (): CotdDeps & { board: BoardFor } => ({ store: getStore(), board: boardFor });
+const deps = (): CotdDeps & { board: BoardFor } => ({ store: getStore(), board: boardFor, onEnd: (date, wallet, at) => endRankedBroadcast(getKv(), date, wallet, at) });
 
 // Today's featured Portal, the leaderboard, yesterday's winner. ?address=0x.. adds that wallet's own status.
 export async function GET(req: Request) {

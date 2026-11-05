@@ -43,6 +43,8 @@ export type CotdDeps = {
   store: RecordStore;
   now?: () => number;
   recover?: (message: string, signature: string) => Promise<string>;
+  // Called once when a ranked try ends, so a broadcast of it can start its countdown.
+  onEnd?: (date: string, wallet: string, at: number) => Promise<void> | void;
 };
 
 export type CotdError = { ok: false; status: number; error: string };
@@ -112,6 +114,7 @@ export async function moveRanked(
   if (!played.justEnded || cur.finishedAt) return { ok: true, live };
   const out = await deps.store.cotdFinish(date, who, { won: played.g.status === "won", seconds: live.elapsed, moves: countMoves(played.g), at: now });
   if (!out.ok) return { ok: true, live };
+  try { await deps.onEnd?.(date, who, now); } catch { /* a broadcast problem never costs the result */ }
   const ranked = rankCotd(await deps.store.cotdEntries(date));
   const idx = ranked.findIndex((e) => e.wallet === who);
   return { ok: true, live, rank: idx >= 0 ? idx + 1 : null };
