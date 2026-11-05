@@ -90,9 +90,10 @@ export default function LiveBoard({ code }: { code: string }) {
   // A viewer tab says it is open: right away, then every 15 seconds.
   useEffect(() => {
     let stop = false;
+    const tab = Array.from(crypto.getRandomValues(new Uint8Array(6)), (x) => x.toString(16).padStart(2, "0")).join("");
     async function beat() {
       try {
-        const r = await fetch("/api/live", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "heartbeat", id: code }) });
+        const r = await fetch("/api/live", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "heartbeat", id: code, tab }) });
         if (!stop && r.ok) setViewers((await r.json()).viewers);
       } catch { /* ignore */ }
     }

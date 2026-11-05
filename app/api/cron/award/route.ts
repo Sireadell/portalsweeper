@@ -41,6 +41,44 @@ export async function GET(req: Request) {
     deps.recordWinner = async (claim) =>
       recordWinnerToLedger(claim.date, claim.tokenId, claim.wallet, await store.movesGet(cotdGameKey(claim.date, claim.wallet)), wallet);
   }
+  // AWARD_MODE=shard pays the top 3 in SHARD (and on the founding day the winner's Portal too). Anything else keeps the old Portal award.
+  if (process.env.AWARD_MODE === "shard") {
+    const safeTiles: AwardShardDeps["safeTiles"] = async (e) => {
+      const random = usesChainRandom(e.date) ? (await readStoredRandom(e.date))?.value : undefined;
+      const b = await generateBoard(await getPortalMeta(e.tokenId), e.date, getDailySalt(e.date), random, e.wallet);
+      return b.cols * b.rows - b.mines;
+    };
+    const shardDeps: AwardShardDeps = {
+      store,
+      kv: getKv(),
+      safeTiles,
+      moves: (e) => store.movesGet(cotdGameKey(e.date, e.wallet)),
+      playedBefore: async (wallet, d) => {
+        for (let i = 1; i <= 30; i++) {
+          const prev = await store.cotdEntry(addDays(d, -i), wallet).catch(() => null);
+          if (prev?.finishedAt) return true;
+        }
+        return false;
+      },
+      portalOwner: portalOwnerOf,
+      shardSupply,
+      send: sendAward,
+    };
+    if (deps.recordWinner && ledgerAddress()) {
+      const record = deps.recordWinner;
+      shardDeps.ledgerWinner = ledgerWinnerOf;
+      shardDeps.recordWinner = (d, tokenId, entry) => record({ tokenId, wallet: entry.wallet, date: d, at: Date.now(), status: "minted" });
+    }
+    try {
+      const out = await awardShardDay(shardDeps, date);
+      console.log("award shard", JSON.stringify(out));
+      return NextResponse.json({ mode: "shard", ...out }, { status: out.status === "failed" ? 500 : 200 });
+    } catch (e) {
+      const error = e instanceof Error ? e.message : "Award failed.";
+      console.error("award shard crashed", error);
+      return NextResponse.json({ status: "failed", date, error }, { status: 500 });
+    }
+  }
   try {
     const out = await awardDay(deps, date);
     // On the normal daily run also finish any earlier day whose mint failed.

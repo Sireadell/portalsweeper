@@ -121,13 +121,21 @@ describe("broadcast list", () => {
 });
 
 describe("viewers", () => {
-  it("counts a viewer seen in the last 20 s, limits a heartbeat to one per 10 s", async () => {
+  it("counts a viewer seen in the last 20 s, limits a heartbeat to one per 10 s per tab", async () => {
     const k = new MemoryKv();
     const now = Date.now();
-    expect((await heartbeat(k, "c1", "v1", now)).counted).toBe(true);
-    expect((await heartbeat(k, "c1", "v1", now + 100)).counted).toBe(false);
-    expect((await heartbeat(k, "c1", "v2", now + 200)).viewers).toBe(2);
+    expect((await heartbeat(k, "c1", "v1", "aaaaaa", now)).counted).toBe(true);
+    expect((await heartbeat(k, "c1", "v1", "aaaaaa", now + 100)).counted).toBe(false);
+    // a second tab on the same address is a second viewer
+    expect((await heartbeat(k, "c1", "v1", "bbbbbb", now + 200)).viewers).toBe(2);
     expect(await viewerCount(k, "c1", now + 19_000)).toBe(2);
     expect(await viewerCount(k, "c1", now + 21_000)).toBe(0);
+  });
+
+  it("stops one address from inflating the count past 5 tabs", async () => {
+    const k = new MemoryKv();
+    const now = Date.now();
+    for (let i = 0; i < 9; i++) await heartbeat(k, "c2", "v1", `00000${i}`, now);
+    expect(await viewerCount(k, "c2", now)).toBe(5);
   });
 });

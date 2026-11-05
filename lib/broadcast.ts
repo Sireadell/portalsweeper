@@ -71,6 +71,7 @@ export class MemoryKv implements Kv {
         return "OK" as T;
       }
       case "ZADD": this.zset(key).set(String(r[1]), Number(r[0])); return 1 as T;
+      case "ZSCORE": return (this.zset(key).get(String(r[0])) ?? null) as T;
       case "ZREM": return (this.zset(key).delete(String(r[0])) ? 1 : 0) as T;
       case "ZCOUNT": return [...this.zset(key).values()].filter((s) => s >= num(r[0]) && s <= num(r[1])).length as T;
       case "ZRANGE": return [...this.zset(key).entries()].sort((x, y) => x[1] - y[1]).map((e) => e[0]) as T;
@@ -236,11 +237,23 @@ export async function viewerCount(k: Kv, code: string, now: number): Promise<num
   return Number(await k.cmd("ZCOUNT", viewKey(code), now - VIEWER_WINDOW_MS, "+inf")) || 0;
 }
 
-// One heartbeat per hashed address per 10 seconds; a faster one is ignored (not an error).
-export async function heartbeat(k: Kv, code: string, viewer: string, now: number): Promise<{ counted: boolean; viewers: number }> {
-  const gate = await k.cmd("SET", `bc:hb:${code}:${viewer}`, "1", "NX", "EX", HEARTBEAT_GAP_S);
+export const MAX_TABS_PER_ADDRESS = 5;
+export const cleanTab = (t: unknown) => (typeof t === "string" && /^[0-9a-f]{6,16}$/.test(t) ? t : "0");
+
+// One heartbeat per tab per 10 seconds; a faster one is ignored (not an error). Each tab counts as one viewer,
+// and one hashed address can hold at most 5 tabs, so a script cannot inflate the count by making up tab names.
+export async function heartbeat(k: Kv, code: string, viewer: string, tab: string, now: number): Promise<{ counted: boolean; viewers: number }> {
+  const member = `${viewer}:${tab}`;
+  const gate = await k.cmd("SET", `bc:hb:${code}:${member}`, "1", "NX", "EX", HEARTBEAT_GAP_S);
   if (gate !== "OK") return { counted: false, viewers: await viewerCount(k, code, now) };
-  await k.cmd("ZADD", viewKey(code), now, viewer);
+  const mine = `bc:vip:${code}:${viewer}`;
+  await k.cmd("ZREMRANGEBYSCORE", mine, 0, now - VIEWER_WINDOW_MS);
+  const known = await k.cmd<string | null>("ZSCORE", mine, tab);
+  if (known === null && Number(await k.cmd("ZCOUNT", mine, 0, "+inf")) >= MAX_TABS_PER_ADDRESS)
+    return { counted: false, viewers: await viewerCount(k, code, now) };
+  await k.cmd("ZADD", mine, now, tab);
+  await k.cmd("EXPIRE", mine, 120);
+  await k.cmd("ZADD", viewKey(code), now, member);
   await k.cmd("ZREMRANGEBYSCORE", viewKey(code), 0, now - VIEWER_WINDOW_MS);
   await k.cmd("EXPIRE", viewKey(code), 120);
   return { counted: true, viewers: await viewerCount(k, code, now) };

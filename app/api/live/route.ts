@@ -5,7 +5,7 @@ import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
 import { hallNames } from "@/lib/hallNames";
 import { shortWallet } from "@/lib/cotd";
 import {
-  broadcastMessage, getBroadcast, getKv, hashViewer, heartbeat, isCode, isLive, listBroadcasts, liveAnswer, recoverBroadcast,
+  broadcastMessage, cleanTab, getBroadcast, getKv, hashViewer, heartbeat, isCode, isLive, listBroadcasts, liveAnswer, recoverBroadcast,
   registerRanked, type LiveDeps,
 } from "@/lib/broadcast";
 import { generateBoard, getPortalMeta } from "../_deps";
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     const d = deps();
     if (b.action === "heartbeat") {
       if (!isCode(b.id) || !(await getBroadcast(d.kv, b.id))) return NextResponse.json({ error: "That broadcast does not exist." }, { status: 404, headers: NO_STORE });
-      const out = await heartbeat(d.kv, b.id, hashViewer(clientIp(req), utcToday(new Date(now))), now);
+      const out = await heartbeat(d.kv, b.id, hashViewer(clientIp(req), utcToday(new Date(now))), cleanTab(b.tab), now);
       return NextResponse.json({ viewers: out.viewers }, { headers: NO_STORE });
     }
     if (b.action === "start") {

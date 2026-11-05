@@ -58,7 +58,7 @@ const attributesFor = (id: number) => {
 };
 
 // Signs and sends one transaction as the issuer and waits for its block.
-async function sendIssuerTx(tx: ReturnType<Awaited<ReturnType<typeof getApi>>["tx"]["utility"]["batchAll"]>): Promise<{ txHash: string; block: number }> {
+export async function sendIssuerTx(tx: ReturnType<Awaited<ReturnType<typeof getApi>>["tx"]["utility"]["batchAll"]>): Promise<{ txHash: string; block: number }> {
   const api = await getApi();
   const issuer = await issuerPair();
   return new Promise((resolve, reject) => {
