@@ -56,6 +56,9 @@ export default async function ChainPage() {
       <p className="mt-3 max-w-[820px] text-[15px] leading-relaxed text-text2">
         Each card below is read from Portaldot the moment you open this page{head ? `, at block ${head}` : ""}. A card marked Not yet is built but not running on the chain.
       </p>
+      <p className="mt-2 max-w-[820px] text-[14px] leading-relaxed text-text2">
+        A Portaldot account can pay its chain fee in SHARD. The chain swaps a little SHARD for tPOT through the SHARD pool, and the account never needs tPOT. The last transaction in the table below shows it.
+      </p>
 
       <div className="mt-6 grid gap-3 lg:grid-cols-2">
         {facts.map((f) => (

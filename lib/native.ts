@@ -7,10 +7,18 @@ import { cryptoWaitReady, encodeAddress, decodeAddress } from "@polkadot/util-cr
 import { hexToU8a, u8aToHex } from "@polkadot/util";
 import { PORTAL_COLLECTION_ID, PORTAL_SUPPLY, PORTALDOT_WS } from "./types";
 
+// This chain pays fees in an asset with the id shape NativeOrWithId, not polkadot-js's default MultiLocation.
+export const FEE_ASSET_TYPES = {
+  types: { NativeOrWithId: { _enum: { Native: "Null", WithId: "u32" } } },
+  signedExtensions: {
+    ChargeAssetTxPayment: { extrinsic: { tip: "Compact<Balance>", assetId: "Option<NativeOrWithId>" }, payload: {} },
+  },
+};
+
 let apiPromise: Promise<ApiPromise> | null = null;
 export function getApi(): Promise<ApiPromise> {
   if (!apiPromise) {
-    apiPromise = ApiPromise.create({ provider: new WsProvider(PORTALDOT_WS), noInitWarn: true, throwOnConnect: true }).catch((e) => {
+    apiPromise = ApiPromise.create({ provider: new WsProvider(PORTALDOT_WS), noInitWarn: true, throwOnConnect: true, ...FEE_ASSET_TYPES }).catch((e) => {
       apiPromise = null;
       throw e;
     });

@@ -30,4 +30,5 @@ export const PROOF: ProofRow[] = [
   { what: "Backing pool: winners' backers paid in one action (test coins)", hash: "0x66e0f1b146f6c280a470c64166887a4dbdcec95870e97883f58a5792b57ab4aa", block: 333620, kind: "tx" },
   { what: "Backing pool with a 5% treasury cut: winner paid, cut sent to the treasury and a note listing pot, cut and share, all in one action (test coins)", hash: "0x40a4634314c406dea129ca88dc4938c1cfb7ae3c7157a6e961a146f57f297422", block: 335236, kind: "tx" },
   { what: "Backing pool: cancelled event refunded in one action (test coins)", hash: "0x333d40acc33527417e70a58b43d8c709d08f0301ee03a504c0d98fdf0d95914f", block: 333623, kind: "tx" },
+  { what: "Chain fee paid in SHARD: a native account sent a note, SHARD went down by 1 and its tPOT did not move", hash: "0x73ef1b4abcf921afbeade9745784f2be0bccea71dfe1e1d09b46d9154c3ead65", block: 338726, kind: "tx" },
 ];
