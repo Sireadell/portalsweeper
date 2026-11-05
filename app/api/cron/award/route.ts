@@ -8,6 +8,12 @@ import { privateKeyToAccount } from "viem/accounts";
 import { portaldot as chain } from "@/lib/portaldot";
 import { ledgerAddress, recordWinnerToLedger } from "@/lib/ledger";
 import { cotdGameKey } from "@/lib/cotd";
+import { awardShardDay, type AwardShardDeps } from "@/lib/shardAward";
+import { getKv } from "@/lib/shardKv";
+import { ledgerWinnerOf, portalOwnerOf, sendAward, shardSupply } from "@/lib/shardChain";
+import { getDailySalt } from "@/lib/salt";
+import { readStoredRandom, usesChainRandom } from "@/lib/chainRandom";
+import { generateBoard, getPortalMeta } from "../../_deps";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
