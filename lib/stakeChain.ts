@@ -71,7 +71,15 @@ export function portalStakeMethods(): Required<Pick<StakeChain, "portalEscrowAdd
       const call = payoutBatch(api, moves.map((m) => ({ portal: m.portal, to: mappedAccount(m.to) })), note);
       const wallet = createWalletClient({ account: account(), chain: portaldot, transport: http() });
       const hash = await wallet.sendTransaction({ to: PALLETS_ADDRESS, data: ethCallData(call), value: 0n });
-      const rc = await pub.waitForTransactionReceipt({ hash, timeout: 90_000 });
+      let rc;
+      try {
+        rc = await pub.waitForTransactionReceipt({ hash, timeout: 90_000 });
+      } catch (e) {
+        // The node can be slow to answer after the payout already landed. If every Portal sits with its new owner, it is paid.
+        const seen = await portalOwners(moves.map((m) => m.portal));
+        if (moves.every((m) => seen.get(m.portal) === mappedAccount(m.to))) return { txHash: hash };
+        throw e;
+      }
       if (rc.status !== "success") throw new Error("Portal payout failed on chain.");
       const owners = await portalOwners(moves.map((m) => m.portal));
       for (const m of moves) if (owners.get(m.portal) !== mappedAccount(m.to)) throw new Error(`Portal #${m.portal} did not reach its new owner.`);

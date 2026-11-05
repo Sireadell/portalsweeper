@@ -275,6 +275,17 @@ describe("backing", () => {
     expect(v.backs[0].name).toBe("Ada");
     expect(v.sides[1].payoutPerTpot).toBeNull();
   });
+  it("shows the payout after the 5% cut", async () => {
+    const s = setup();
+    await s.race();
+    await open(s);
+    await back(s, 1, W(1), "creator", "0.1");
+    s.pay(2, W(2), "0.1");
+    await back(s, 2, W(2), "opponent", "0.1");
+    const rec = (await s.deps.store.get(ID))!;
+    expect(eventView({ ...rec, cutBps: 0 }, null, new Map()).sides[0].payoutPerTpot).toBe(2);
+    expect(eventView({ ...rec, cutBps: 500 }, null, new Map()).sides[0].payoutPerTpot).toBe(1.9);
+  });
   it("rejects bad transfers", async () => {
     const s = setup();
     await s.race();

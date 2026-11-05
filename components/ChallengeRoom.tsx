@@ -178,7 +178,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
     try {
       setStake((await sendAndLockPortal({ challengeId: id, wallet: address, portal: pick })) as Stake);
     } catch (e) {
-      setMsg(e instanceof Error && e.message ? e.message : "Could not lock the Portal.");
+      setMsg(e instanceof Error && /reject|denied/i.test(e.message) ? "You closed the wallet request. Nothing was sent." : e instanceof Error && e.message ? e.message : "Could not lock the Portal.");
     } finally {
       setLocking(false);
     }
@@ -192,7 +192,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
       const j = await sendAndLockStake({ challengeId: id, wallet: address, escrow: stake.escrow, stakeTpot: stake.stakeTpot });
       setStake(j as Stake);
     } catch (e) {
-      setMsg(e instanceof Error && e.message ? e.message : "Could not lock the stake.");
+      setMsg(e instanceof Error && /reject|denied/i.test(e.message) ? "You closed the wallet request. Nothing was sent." : e instanceof Error && e.message ? e.message : "Could not lock the stake.");
     } finally {
       setLocking(false);
     }

@@ -95,7 +95,9 @@ export default function RedeemPanel() {
       : isTaken
         ? `Portal #${n} is already taken. Pick another.`
         : !enough
-          ? `You have ${have} SHARD. You need ${price}.`
+          ? info?.balance === null
+            ? "Could not read your SHARD balance just now. Try again in a moment."
+            : `You have ${have} SHARD. You need ${price}.`
           : full
             ? `The testnet limit of ${info?.redeemsPerDay} redeems a day is used up. Try after midnight UTC.`
             : valid

@@ -326,7 +326,8 @@ export function eventView(rec: PoolEvent, facts: RaceFacts | null, names: Map<st
   const o = sideTotal(rec, "opponent");
   const pot = c + o;
   const label = (w: string | null) => (w ? names.get(w) ?? `${w.slice(0, 6)}…${w.slice(-4)}` : null);
-  const mult = (mine: bigint) => (mine > 0n && pot > 0n ? Number((pot * 100n) / mine) / 100 : null);
+  const payable = pot - cutOf(pot, rec.cutBps ?? 0);
+  const mult = (mine: bigint) => (mine > 0n && pot > 0n ? Number((payable * 100n) / mine) / 100 : null);
   const mk = (side: Side, wallet: string | null, total: bigint) => ({
     side,
     wallet,
