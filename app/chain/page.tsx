@@ -5,16 +5,7 @@ import { STAKE_COPY } from "@/lib/stakeCopy";
 import { PROOF, STAKE_CONTRACT } from "@/lib/chainProof";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "On the chain", description: "What Portalsweeper does on Portaldot, read live from the chain, and which parts you have to trust." };
-
-const TRUST: { part: string; trust: string; why: string }[] = [
-  { part: "Fingerprint posted before play", trust: "Nobody", why: "It sits on the chain with a block time, so it cannot be changed after people start playing." },
-  { part: "Secret checked against the fingerprint", trust: "Nobody", why: "Your browser does this on /verify today. Once the ledger contract is on the chain, it does the same check itself and refuses a wrong secret." },
-  { part: "Chain random number", trust: "The 2 validators", why: "The testnet has only 2 block producers, so one could nudge the number. It still arrives after the fingerprint, so we cannot pick it." },
-  { part: "The secret during the day", trust: "Our server", why: "The daily job and the server hold the secret while the day runs. The check proves the board was not changed, not that nobody saw it." },
-  { part: "Who is recorded as winner", trust: "Our server wallet", why: "It writes the winner. The fingerprint of the winner's move log lets anyone check that claim." },
-  { part: "Stakes on a challenge", trust: "Escrow contract, our referee", why: "A smart contract on the chain holds the stakes. Our server only names the winner, and the contract pays out or refunds. Tested on the chain with a real win and a real draw. Capped at 1 tPOT each." },
-];
+export const metadata = { title: "On the chain", description: "What Portalsweeper does on Portaldot, read live from the chain." };
 
 export default async function ChainPage() {
   const { facts, head } = await chainFacts();
@@ -95,28 +86,7 @@ export default async function ChainPage() {
       </div>
       <p className="mt-3 text-[13px] text-mute">Testnet only. tPOT has no value, and the stakes in these runs were test coins.</p>
 
-      <h2 className="mt-10 text-[22px] font-bold text-white">Who you have to trust</h2>
-      <div className="mt-3 overflow-x-auto rounded-xl border border-edge bg-ink2">
-        <table className="w-full border-collapse text-[14px]">
-          <thead>
-            <tr className="text-left text-[12px] uppercase tracking-wide text-mute">
-              <th className="px-3 py-2 font-semibold">Part</th>
-              <th className="px-3 py-2 font-semibold">You trust</th>
-              <th className="px-3 py-2 font-semibold">Why</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TRUST.map((t) => (
-              <tr key={t.part} className="border-t border-edge align-top">
-                <td className="px-3 py-2.5 text-white">{t.part}</td>
-                <td className="px-3 py-2.5">{t.trust}</td>
-                <td className="px-3 py-2.5 text-text2">{t.why}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-4 text-[13px] text-mute">
+      <p className="mt-10 text-[13px] text-mute">
         This is the Portaldot V3 testnet. tPOT is a test coin with no value, so nothing real is at risk. <a className="underline" href={PORTALDOT_CONSOLE} target="_blank" rel="noreferrer">Open the chain explorer</a>.
       </p>
     </main>
