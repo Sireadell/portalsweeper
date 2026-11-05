@@ -158,7 +158,8 @@ export async function awardShardDay(deps: AwardShardDeps, date: string, opts: { 
     // Founding day: the winner also gets that day's Portal, unless someone already owns that number.
     let portal: number | null = null;
     let portalSkipped: string | undefined;
-    if (founding && rows[0].place === 1) {
+    // Off unless FOUNDING_PORTAL=1: a Portal is bought with 100 SHARD, never handed out for a win.
+    if (founding && process.env.FOUNDING_PORTAL === "1" && rows[0].place === 1) {
       if (await deps.portalOwner(tokenId)) portalSkipped = `Portal #${tokenId} is already owned, so only SHARD was paid`;
       else {
         portal = tokenId;

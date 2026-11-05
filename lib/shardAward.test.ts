@@ -172,7 +172,17 @@ describe("awardShardDay", () => {
     expect(t.sent[0].rows[0].wallet).toBe(A);
   });
 
+  it("founding day pays SHARD only unless FOUNDING_PORTAL is on", async () => {
+    const t = setup({ history: () => false });
+    const d = "2026-11-05";
+    await clear(t.store, A, 20, true, d);
+    await awardShardDay(t.deps, d);
+    expect(t.sent[0].portal).toBeNull();
+    expect(t.sent[0].rows[0]).toMatchObject({ wallet: A, amount: 10 });
+  });
+
   it("founding day waives history and sends the Portal with the winner", async () => {
+    process.env.FOUNDING_PORTAL = "1";
     const t = setup({ history: () => false });
     const d = "2026-11-05";
     await clear(t.store, A, 20, true, d);
@@ -182,9 +192,11 @@ describe("awardShardDay", () => {
     expect(t.sent[0].portal).toBe(id);
     expect(t.sent[0].rows[0]).toMatchObject({ wallet: A, amount: 10, portal: id });
     expect((await t.store.claimGet(id))?.wallet).toBe(A);
+    delete process.env.FOUNDING_PORTAL;
   });
 
   it("founding day skips a Portal id that is already taken but still pays SHARD", async () => {
+    process.env.FOUNDING_PORTAL = "1";
     const t = setup({ history: () => false });
     const d = "2026-11-05";
     await clear(t.store, A, 20, true, d);
@@ -192,6 +204,7 @@ describe("awardShardDay", () => {
     await awardShardDay(t.deps, d);
     expect(t.sent[0].portal).toBeNull();
     expect((await readDayState(t.kv, d))?.portalSkipped).toMatch(/already owned/);
+    delete process.env.FOUNDING_PORTAL;
   });
 
   it("later days pay SHARD only and need history", async () => {
