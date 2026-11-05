@@ -220,6 +220,10 @@ Real money is a different question. Staking real value on a game with any luck i
 
 Portalsweeper is a remix of my own game, [Chogsweeper](https://github.com/Sireadell/chogsweeper) (October 2026), which ran on Monad for an existing NFT collection. For Portaldot I replaced the collection with 500 generated Portals, moved the fingerprints to Portaldot, and built the Portal, SHARD and race features on Portaldot's native modules.
 
+## Where this goes next
+
+Portalsweeper starts as one daily game and grows into a board of many games. Friends can already back the player they trust in a race, and the pool is shared among the backers who called it right. Next I want a place to browse every game being played, and more daily boards that use the same idea: your Portal is the board.
+
 ## Run it locally
 
 You need [Node.js](https://nodejs.org) 22 or newer and [Git](https://git-scm.com).
