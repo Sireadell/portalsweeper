@@ -20,6 +20,8 @@ export const PROOF: ProofRow[] = [
   { what: "Portal swap offered from a normal 0x wallet", hash: "0x04f14ae2acc201d0ed05bcb981703036c9953b449f5186d538f058b9e14a9b21", block: 332984, kind: "tx" },
   { what: "Portal swap accepted by the other wallet", hash: "0x6a7642dbf3de4ed4d859b33478d59206e8f2a3ce8535c72264056d11d3524b8f", block: 332995, kind: "tx" },
   { what: "Portal #104 minted from a pre-signed order", hash: "0x1506a9b43d494a9391c501a4384016781a917ed37301a7151cc0ec3919adaf84", block: 333041, kind: "tx" },
+  { what: "Player A sets a chain name from a normal 0x wallet", hash: "0xe702eb82778ad5177266ea0a2c091b800b33dbb88f3a7f9705aebc78b9fda116", block: 334681, kind: "tx" },
+  { what: "Player B sets a chain name from a normal 0x wallet", hash: "0x60da17dfa0d20f2c42118c4eafdf77d25e727e93cfa8d78eae0f877388765b48", block: 334682, kind: "tx" },
   { what: "Portal stake: player locks a Portal in escrow", hash: "0xbaf0b075ec57e754893538d7357714e19f742f985dafe6c3d4843890c70b36d3", block: 333468, kind: "tx" },
   { what: "Portal stake: second player locks a Portal", hash: "0x776b2b31d3b4c3545411b82e49e284dc852a4b7b6c5db14419166046916e39b2", block: 333470, kind: "tx" },
   { what: "Portal stake: winner receives both Portals in one action", hash: "0xed5b9b7700fa50a6b803b00286888e39578cec7272b84b01fa2df378b802c34b", block: 333472, kind: "tx" },
