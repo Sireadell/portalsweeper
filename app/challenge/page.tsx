@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@/components/useWallet";
 import { signText } from "@/components/signing";
 import { todayUTC } from "@/components/dailySalt";
-import { StakeSelector } from "@/components/StakePanel";
+import { PORTAL_STAKE, StakeSelector } from "@/components/StakePanel";
 import { challengeCreateMessage } from "@/lib/challenge-message";
 import { fromRoomCode } from "@/lib/roomCode";
 import { useFriends } from "@/components/useFriends";
@@ -48,7 +48,7 @@ export default function NewChallengePage() {
       const r = await fetch("/api/challenge", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "create", address, signature: sig, duel, ...(stake !== "0" ? { stakeTpot: stake } : {}) }),
+        body: JSON.stringify({ action: "create", address, signature: sig, duel, ...(stake === PORTAL_STAKE ? { stakePortal: true } : stake !== "0" ? { stakeTpot: stake } : {}) }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? "Could not make the challenge.");
@@ -95,7 +95,8 @@ export default function NewChallengePage() {
                   </button>
                 </div>
                 <StakeSelector value={stake} onChange={setStake} />
-                {stake !== "0" && <p className="mb-3 text-[13px] text-mute">Each player puts up {stake} tPOT before playing. The winner takes both. Testnet tPOT, no value.</p>}
+                {stake === PORTAL_STAKE ? <p className="mb-3 text-[13px] text-mute">Each player moves one Portal from their wallet to the game server before playing. The winner gets both. Trusted custody: the game server holds staked Portals until the race ends, and sends each one back on a draw or a cancel. Testnet Portals.</p>
+                  : stake !== "0" && <p className="mb-3 text-[13px] text-mute">Each player puts up {stake} tPOT before playing. The winner takes both. Testnet tPOT, no value.</p>}
                 <button className="btn-main btn-lg" onClick={make} disabled={making}>{making ? "Check your wallet…" : friend ? `Challenge @${friend}` : "Make a challenge link"}</button>
                 {msg && <p className="mt-3 text-[14px] text-boom" role="alert">{msg}</p>}
               </>

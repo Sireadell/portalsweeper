@@ -15,7 +15,7 @@ import PortalArt from "./PortalArt";
 import { portalLabel } from "@/lib/names";
 import { blockLink } from "@/lib/types";
 import { PotDisplay } from "./StakePanel";
-import { sendAndLockStake } from "./stakeLock";
+import { sendAndLockPortal, sendAndLockStake } from "./stakeLock";
 import { stakesEnabled } from "@/lib/stakesFlag";
 import type { stakeView } from "@/lib/challengeStakes";
 
@@ -155,6 +155,35 @@ export default function ChallengeRoom({ id }: { id: string }) {
     }
   }
 
+  // Portal stakes: the Portals this wallet holds, to pick one to put up.
+  const [myPortals, setMyPortals] = useState<number[]>([]);
+  const [pick, setPick] = useState<number | null>(null);
+  const portalStake = stake?.asset === "portal";
+  useEffect(() => {
+    if (!address || !portalStake) return;
+    let off = false;
+    fetch(`/api/portals?owner=${address}`).then((r) => r.json()).then((j: { id: number }[]) => {
+      if (off || !Array.isArray(j)) return;
+      const ids = j.map((m) => m.id);
+      setMyPortals(ids);
+      setPick((p) => p ?? ids[0] ?? null);
+    }).catch(() => {});
+    return () => { off = true; };
+  }, [address, portalStake]);
+
+  async function lockPortalStake() {
+    if (!address || pick === null) return;
+    setMsg("");
+    setLocking(true);
+    try {
+      setStake((await sendAndLockPortal({ challengeId: id, wallet: address, portal: pick })) as Stake);
+    } catch (e) {
+      setMsg(e instanceof Error && e.message ? e.message : "Could not lock the Portal.");
+    } finally {
+      setLocking(false);
+    }
+  }
+
   async function lock() {
     if (!address || !stake?.escrow) return;
     setMsg("");
@@ -270,7 +299,7 @@ export default function ChallengeRoom({ id }: { id: string }) {
                   {address && <button type="button" className="btn-ghost" onClick={cancel} disabled={cancelling}>{cancelling ? "Check your wallet…" : "Cancel this challenge"}</button>}
                 </div>
               )}
-              {showStake && stake && <PotDisplay stakeTpot={stake.stakeTpot} potTpot={stake.potTpot} locked={stake.locks.length} />}
+              {showStake && stake && <PotDisplay stakeTpot={stake.stakeTpot} potTpot={stake.potTpot} locked={stake.locks.length} asset={stake.asset} portals={stake.locks.flatMap((l) => (l.portal ? [l.portal] : []))} />}
               <div className="card mt-4 p-5 text-center sm:p-6">
                 {myDone ? (
                   <>
@@ -295,6 +324,29 @@ export default function ChallengeRoom({ id }: { id: string }) {
                   </>
                 ) : view.status === "expired" ? (
                   <p className="text-[15px] text-text2">This challenge ran out before a second player joined.</p>
+                ) : showStake && stake && stake.asset === "portal" && stake.status === "open" && !myLock ? (
+                  <>
+                    <p className="text-[15px] text-text2">
+                      This race has a Portal stake. Put up one of your Portals to play. Nobody plays until both of you have. <b className="text-white">The winner gets both Portals.</b> A draw or a cancel sends each one back.
+                    </p>
+                    <p className="mt-2 text-[13px] text-mute" data-testid="portal-custody">Trusted custody: the game server holds staked Portals until the race ends. Testnet Portals. Your wallet also needs a little tPOT for the transfer fee.</p>
+                    {myPortals.length ? (
+                      <>
+                        <div className="mt-3 flex flex-wrap justify-center gap-2" role="radiogroup" aria-label="Portal to stake">
+                          {myPortals.map((p) => (
+                            <button key={p} type="button" role="radio" aria-checked={pick === p} className="pick !w-auto px-4" aria-pressed={pick === p} onClick={() => setPick(p)}>
+                              <b>#{p}</b>
+                            </button>
+                          ))}
+                        </div>
+                        <button className="btn-main btn-lg mt-4" onClick={lockPortalStake} disabled={locking || pick === null || !stake.escrow}>
+                          {locking ? "Check your wallet…" : pick === null ? "Pick a Portal" : `Put up Portal #${pick}`}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="mt-3 text-[15px] text-boom">This wallet holds no Portal, so it cannot join a Portal stake.</p>
+                    )}
+                  </>
                 ) : showStake && stake && stake.status === "open" && !myLock ? (
                   <>
                     <p className="text-[15px] text-text2">
@@ -462,15 +514,19 @@ function StakeResult({ stake }: { stake: Stake }) {
   const refunded = stake.status === "refunded";
   return (
     <div className="mt-4 rounded-xl border border-edge bg-ink2 px-3 py-2.5 text-[14px] text-text2" data-testid="stake-result">
-      <p>
-        Stake: <b className="text-white">{stake.stakeTpot} tPOT</b> each · Pot: <b className="text-white">{stake.potTpot} tPOT</b>
-      </p>
+      {stake.asset === "portal" ? (
+        <p>Stake: <b className="text-white">one Portal each</b>{stake.locks.length ? ` (${stake.locks.map((l) => `#${l.portal}`).join(" and ")})` : ""}</p>
+      ) : (
+        <p>
+          Stake: <b className="text-white">{stake.stakeTpot} tPOT</b> each · Pot: <b className="text-white">{stake.potTpot} tPOT</b>
+        </p>
+      )}
       {paid && stake.payoutTx && (
-        <p className="mt-1">Paid to {short(stake.winner)}. <TxRef label="Payout transaction" tx={stake.payoutTx} block={stake.payoutBlock} /></p>
+        <p className="mt-1">{stake.asset === "portal" ? "Both Portals went to" : "Paid to"} {short(stake.winner)}. <TxRef label="Payout transaction" tx={stake.payoutTx} block={stake.payoutBlock} /></p>
       )}
       {refunded && (
         <p className="mt-1">
-          {stake.refundTxs.length ? "Stakes returned to the wallets they came from. " : "Nothing was locked, so nothing moved. "}
+          {stake.refundTxs.length ? (stake.asset === "portal" ? "Portals returned to the wallets they came from. " : "Stakes returned to the wallets they came from. ") : "Nothing was locked, so nothing moved. "}
           {stake.refundTxs.map((t, i) => <TxRef key={t} label={`Refund ${i + 1}`} tx={t} block={stake.refundBlocks[i]} />)}
         </p>
       )}

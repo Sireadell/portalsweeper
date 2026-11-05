@@ -52,3 +52,36 @@ export async function sendAndLockStake(opts: { challengeId: string; wallet: stri
   }
   throw new Error(`${last} Your transfer ${txHash} was sent. Do not send it again; ask the site owner to check it.`);
 }
+
+// Portal stake: the player moves one Portal to the escrow wallet with their own wallet. The server builds the bytes
+// of the transfer (the browser does not carry the chain library), the wallet signs and sends them, then the server
+// looks at the chain before it counts the lock.
+export async function sendAndLockPortal(opts: { challengeId: string; wallet: string; portal: number }): Promise<unknown> {
+  const eth = window.ethereum as EIP1193Provider | undefined;
+  if (!eth) throw new Error("No wallet found in this browser.");
+  const call = await fetch("/api/stakes", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "portalcall", challengeId: opts.challengeId, portal: opts.portal }),
+  });
+  const cj = await call.json();
+  if (!call.ok) throw new Error(cj.error ?? "Could not prepare the Portal transfer.");
+  const client = createWalletClient({ account: opts.wallet as Hex, chain: portaldot, transport: custom(eth) });
+  const txHash = await client.sendTransaction({ to: cj.to as Hex, data: cj.data as Hex, value: 0n });
+  const pub = createPublicClient({ chain: portaldot, transport: http() });
+  await pub.waitForTransactionReceipt({ hash: txHash });
+  let last = "Could not lock the Portal.";
+  for (let i = 0; i < 8; i++) {
+    const r = await fetch("/api/stakes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "lock", challengeId: opts.challengeId, wallet: opts.wallet, portal: opts.portal, txHash }),
+    });
+    const j = await r.json();
+    if (r.ok) return j;
+    last = j.error ?? last;
+    if (!/not found yet|does not hold/i.test(last)) break;
+    await new Promise((res) => setTimeout(res, 3000));
+  }
+  throw new Error(`${last} Your Portal transfer ${txHash} was sent. Do not send it again; ask the site owner to check it.`);
+}
