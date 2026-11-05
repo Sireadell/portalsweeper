@@ -5,6 +5,7 @@
     { "path": "/api/cron/set-random?", "schedule": "10 4 * * *" },
     { "path": "/api/cron/post-commit", "schedule": "5 0 * * *" },
     { "path": "/api/cron/award", "schedule": "15 0 * * *" },
-    { "path": "/api/cron/stakes", "schedule": "30 0 * * *" }
+    { "path": "/api/cron/stakes", "schedule": "30 0 * * *" },
+    { "path": "/api/cron/predict", "schedule": "45 0 * * *" }
   ]
 }
