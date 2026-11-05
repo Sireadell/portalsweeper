@@ -31,4 +31,5 @@ export const PROOF: ProofRow[] = [
   { what: "Backing pool with a 5% treasury cut: winner paid, cut sent to the treasury and a note listing pot, cut and share, all in one action (test coins)", hash: "0x40a4634314c406dea129ca88dc4938c1cfb7ae3c7157a6e961a146f57f297422", block: 335236, kind: "tx" },
   { what: "Backing pool: cancelled event refunded in one action (test coins)", hash: "0x333d40acc33527417e70a58b43d8c709d08f0301ee03a504c0d98fdf0d95914f", block: 333623, kind: "tx" },
   { what: "Chain fee paid in SHARD: a native account sent a note, SHARD went down by 1 and its tPOT did not move", hash: "0x73ef1b4abcf921afbeade9745784f2be0bccea71dfe1e1d09b46d9154c3ead65", block: 338726, kind: "tx" },
+  { what: "Portal sale: Player B bought Portal #398 from the treasury through the chain's built-in shop for 6.52 tPOT, new owner read back from the chain", hash: "0xd2878f0c4dbf36b8203bf1a88b8986cbf96a3150b723ddaa0dbb895ef02f7c7f", block: 339731, kind: "tx" },
 ];

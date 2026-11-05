@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { moneyFacts } from "@/lib/moneyFacts";
 import { MODEL_INPUTS, modelRows } from "@/lib/moneyModel";
+import { portalSaleOn, saleFacts } from "@/lib/portalSale";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -40,6 +41,7 @@ export default async function MoneyPage() {
     },
   ];
   const rows = modelRows();
+  const sale = portalSaleOn() ? await saleFacts() : null;
   return (
     <main className="page-narrow">
       <p className="eyebrow mt-2">Portaldot V3 testnet</p>
@@ -77,6 +79,28 @@ export default async function MoneyPage() {
         <li><b className="text-white">Pool cut.</b> When a pool pays out, {f.cutPercentNow > 0 ? `${f.cutPercentNow}%` : "a small share"} of the pot goes to the treasury wallet, in the same chain action as the winners. The note on the chain lists the pot, the cut and every backer's share. Refunds take nothing.</li>
         <li><b className="text-white">Sponsored days.</b> A brand would pay a day's prize plus a fee and get its name on the board. Planned, not built.</li>
       </ul>
+
+      {portalSaleOn() && (
+        <section className="card mt-8 p-4" aria-labelledby="sale-title">
+          <p className="text-[12px] font-bold uppercase tracking-wider text-mint">Real, on the testnet</p>
+          <h2 id="sale-title" className="mt-1 text-[20px] font-bold text-white">Buy a Portal</h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-text2">
+            A Portal can be bought straight from the chain with its built-in shop, from a normal 0x wallet, in one action. The price is what 100 SHARD cost at the SHARD pool price right now, rounded up to the next 0.01 tPOT. These are testnet coins with no value.
+          </p>
+          {sale === null ? (
+            <p className="mt-2 text-[15px] text-text2">{NOPE}</p>
+          ) : (
+            <>
+              <p className="mt-2 text-[26px] font-extrabold text-white">{sale.priceTpot.toFixed(2)}<span className="ml-1.5 text-[14px] font-semibold text-text2">tPOT each</span></p>
+              <p className="mt-1 text-[13px] text-mute">
+                {sale.forSale.length > 0 ? `For sale now: Portal ${sale.forSale.map((n) => "#" + n).join(", ")}.` : "Nothing is for sale right now."}
+                {sale.sold.length > 0 ? ` Already bought: ${sale.sold.map((n) => "#" + n).join(", ")}.` : ""}
+              </p>
+            </>
+          )}
+          <p className="mt-2 text-[13px] text-mute">The first real purchase is in the proof list on the <Link href="/chain" className="text-mint underline-offset-2 hover:underline">chain page</Link>.</p>
+        </section>
+      )}
 
       <section className="card mt-8 border-dashed p-4" aria-labelledby="model-title">
         <p className="text-[12px] font-bold uppercase tracking-wider text-gold">Modelled example, made up</p>
