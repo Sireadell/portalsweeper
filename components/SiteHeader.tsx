@@ -18,6 +18,7 @@ const MORE = [
   { href: "/live", label: "Live" },
   { href: "/shard", label: "SHARD" },
   { href: "/chain", label: "On the chain" },
+  { href: "/money", label: "Money" },
   { href: "/verify", label: "Verify a board" },
   // The optional Daily Portal shows in the menu only when it is switched on.
   ...(process.env.NEXT_PUBLIC_PORTAL_ENABLED === "true" ? [{ href: "/portal", label: "Daily Portal" }] : []),

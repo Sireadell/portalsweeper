@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { FileRecordStore } from "./records";
 import {
-  BACK_MAX_WEI, MAX_BACKERS, MemoryPoolStore, REFUND_AFTER_MS, backEvent, eventView, openEvent, resolveEvent, splitPot,
+  BACK_MAX_WEI, MAX_BACKERS, MemoryPoolStore, REFUND_AFTER_MS, backEvent, cutOf, eventView, openEvent, poolCutBps, resolveEvent, splitPot,
   type PoolDeps,
 } from "./predictions";
 import { poolNote, weiToNative, type Payment, type PoolChain } from "./poolPayout";
@@ -65,7 +65,179 @@ describe("splitPot", () => {
     expect(odd.reduce((s, p) => s + p.wei, 0n)).toBeLessThanOrEqual(10n);
   });
   it("keeps the house cut out when one is set", () => {
-    expect(splitPot([{ wallet: W(1), amountWei: 10n }], 1000n, 500)[0].wei).toBe(950n);
+    expect(splitPot([{ wallet: W(1), amountWei: 10n }], 1_000_000n, 500)[0].wei).toBe(950_000n);
+  });
+});
+
+describe("the pool cut", () => {
+  const TREASURY = "0x" + "7e".repeat(20);
+  const withCut = async <T,>(bps: string | undefined, f: () => Promise<T>): Promise<T> => {
+    const old = { b: process.env.POOL_CUT_BPS, t: process.env.TREASURY_ADDRESS };
+    if (bps === undefined) delete process.env.POOL_CUT_BPS; else process.env.POOL_CUT_BPS = bps;
+    process.env.TREASURY_ADDRESS = TREASURY;
+    try {
+      return await f();
+    } finally {
+      if (old.b === undefined) delete process.env.POOL_CUT_BPS; else process.env.POOL_CUT_BPS = old.b;
+      if (old.t === undefined) delete process.env.TREASURY_ADDRESS; else process.env.TREASURY_ADDRESS = old.t;
+    }
+  };
+  const total = (ps: Payment[]) => ps.reduce((s, p) => s + p.wei, 0n);
+
+  it("reads the setting safely: off unless it is a whole number from 0 to 1000", () => {
+    expect(poolCutBps(undefined)).toBe(0);
+    expect(poolCutBps("")).toBe(0);
+    expect(poolCutBps("500")).toBe(500);
+    expect(poolCutBps(" 250 ")).toBe(250);
+    expect(poolCutBps("5%")).toBe(0);
+    expect(poolCutBps("-5")).toBe(0);
+    expect(poolCutBps("9999")).toBe(0);
+    expect(poolCutBps("1001")).toBe(0);
+  });
+  it("takes exactly 5% of a round pot, 0% leaves it whole", () => {
+    const pot = parseTpot("0.6");
+    expect(cutOf(pot, 500)).toBe(parseTpot("0.03"));
+    expect(cutOf(pot, 0)).toBe(0n);
+    const w = [{ wallet: W(1), amountWei: parseTpot("0.1") }, { wallet: W(2), amountWei: parseTpot("0.3") }];
+    expect(total(splitPot(w, pot, 0))).toBe(pot);
+    const five = splitPot(w, pot, 500);
+    expect(total(five)).toBe(parseTpot("0.57"));
+    expect(total(five) + cutOf(pot, 500)).toBe(pot);
+  });
+  it("odd amounts: winners plus cut never come to more than the pot, and the cut is a whole chain unit", () => {
+    for (const pot of [1n, 9_999n, 10_000n, 123_456_789_012_345_678n, 999_999_999_999_999_999n, 7n * 10n ** 17n + 3n]) {
+      for (const bps of [0, 1, 500, 999, 1000]) {
+        const w = [{ wallet: W(1), amountWei: 3n }, { wallet: W(2), amountWei: 5n }, { wallet: W(3), amountWei: 7n }];
+        const cut = cutOf(pot, bps);
+        expect(cut % 10_000n).toBe(0n);
+        expect(cut * 10_000n).toBeLessThanOrEqual(pot * BigInt(bps));
+        expect(total(splitPot(w, pot, bps)) + cut).toBeLessThanOrEqual(pot);
+      }
+    }
+  });
+  it("a cut too small to send is not taken", () => {
+    expect(cutOf(1_000n, 500)).toBe(0n);
+    expect(cutOf(0n, 500)).toBe(0n);
+  });
+  it("one backer on the winning side still gets the pot minus the cut", () => {
+    const out = splitPot([{ wallet: W(1), amountWei: parseTpot("0.2") }], parseTpot("1"), 500);
+    expect(out).toEqual([{ to: W(1), wei: parseTpot("0.95") }]);
+  });
+  it("is off by default: the payout and the note are exactly as before", async () => {
+    await withCut(undefined, async () => {
+      const s = setup();
+      await s.race();
+      await open(s);
+      await back(s, 1, W(1), "creator", "0.1");
+      await back(s, 3, W(3), "opponent", "0.2");
+      await s.seat("creator", P1);
+      await s.seat("opponent", P2);
+      await s.finish("creator", true, 30);
+      await s.finish("opponent", true, 50);
+      const rec = (await resolveEvent(s.deps, ID))!;
+      expect(rec.cutWei).toBeUndefined();
+      expect(s.batches[0].note).toBe(poolNote(ID, P1));
+      expect(s.batches[0].payments).toEqual([{ to: W(1), wei: parseTpot("0.3") }]);
+    });
+  });
+  it("5% goes to the treasury in the same batch, with a note that states pot, cut and each backer", async () => {
+    await withCut("500", async () => {
+      const s = setup();
+      await s.race();
+      await open(s);
+      await back(s, 1, W(1), "creator", "0.1");
+      await back(s, 2, W(2), "creator", "0.3");
+      await back(s, 3, W(3), "opponent", "0.2");
+      await s.seat("creator", P1);
+      await s.seat("opponent", P2);
+      await s.finish("creator", true, 30);
+      await s.finish("opponent", true, 50);
+      const rec = (await resolveEvent(s.deps, ID))!;
+      expect(rec.status).toBe("settled");
+      expect(s.batches).toHaveLength(1);
+      const pay = s.batches[0].payments;
+      const to = Object.fromEntries(pay.map((p) => [p.to, p.wei]));
+      expect(to[TREASURY]).toBe(parseTpot("0.03"));
+      expect(to[W(1)]).toBe(parseTpot("0.1425")); // 0.57 x 0.1/0.4
+      expect(to[W(2)]).toBe(parseTpot("0.4275"));
+      expect(total(pay)).toBeLessThanOrEqual(parseTpot("0.6"));
+      const note = s.batches[0].note;
+      expect(note).toContain(poolNote(ID, P1));
+      expect(note).toContain("pot=0.6");
+      expect(note).toContain(`cut=0.03(5%)->${TREASURY}`);
+      expect(note).toContain(`${W(1)}=0.1425`);
+      expect(note).toContain(`${W(2)}=0.4275`);
+      expect(rec.cutWei).toBe(parseTpot("0.03").toString());
+      const v = eventView(rec, null, new Map(), ESCROW);
+      expect(v.note).toBe(note);
+      expect(v.cut.paidTpot).toBe("0.03");
+      expect(v.cut.percent).toBe(5);
+    });
+  });
+  it("the percent a backer was told is the percent applied, even if the setting changes later", async () => {
+    const s = setup();
+    await withCut("500", async () => { await s.race(); await open(s); });
+    await back(s, 1, W(1), "creator", "0.1");
+    await back(s, 3, W(3), "opponent", "0.2");
+    await s.seat("creator", P1);
+    await s.seat("opponent", P2);
+    await s.finish("creator", true, 30);
+    await s.finish("opponent", true, 50);
+    await withCut("0", async () => { await resolveEvent(s.deps, ID); });
+    expect(s.batches[0].payments.find((p) => p.to === TREASURY)?.wei).toBe(parseTpot("0.015"));
+  });
+  it("without a treasury setting the cut stays in the escrow wallet and no extra transfer is made", async () => {
+    const old = process.env.TREASURY_ADDRESS;
+    delete process.env.TREASURY_ADDRESS;
+    try {
+      await withCut("500", async () => { delete process.env.TREASURY_ADDRESS; });
+      process.env.POOL_CUT_BPS = "500";
+      const s = setup();
+      await s.race();
+      await open(s);
+      await back(s, 1, W(1), "creator", "0.1");
+      await back(s, 3, W(3), "opponent", "0.2");
+      await s.seat("creator", P1);
+      await s.seat("opponent", P2);
+      await s.finish("creator", true, 30);
+      await s.finish("opponent", true, 50);
+      const rec = (await resolveEvent(s.deps, ID))!;
+      expect(s.batches[0].payments).toEqual([{ to: W(1), wei: parseTpot("0.285") }]);
+      expect(rec.cutTo).toBe(ESCROW);
+      expect(s.batches[0].note).toContain(`->${ESCROW}`);
+    } finally {
+      delete process.env.POOL_CUT_BPS;
+      if (old !== undefined) process.env.TREASURY_ADDRESS = old;
+    }
+  });
+  it("refunds take no cut (draw, cancel and 24 hours)", async () => {
+    await withCut("500", async () => {
+      const draw = setup();
+      await draw.race();
+      await open(draw);
+      await back(draw, 1, W(1), "creator", "0.1");
+      await back(draw, 3, W(3), "opponent", "0.2");
+      await draw.seat("creator", P1);
+      await draw.seat("opponent", P2);
+      await draw.finish("creator", false, 5);
+      await draw.finish("opponent", false, 6);
+      const r = (await resolveEvent(draw.deps, ID))!;
+      expect(r.status).toBe("refunded");
+      expect(draw.batches[0].payments).toEqual([{ to: W(1), wei: parseTpot("0.1") }, { to: W(3), wei: parseTpot("0.2") }]);
+      expect(draw.batches[0].note).toBe(poolNote(ID, "refund"));
+      expect(r.cutWei).toBeUndefined();
+
+      const late = setup();
+      await late.race();
+      await open(late);
+      await back(late, 1, W(1), "creator", "0.1");
+      await back(late, 3, W(3), "opponent", "0.2");
+      late.tick(REFUND_AFTER_MS + 1000);
+      const l = (await resolveEvent(late.deps, ID))!;
+      expect(l.status).toBe("refunded");
+      expect(total(late.batches[0].payments)).toBe(parseTpot("0.3"));
+      expect(late.batches[0].payments.some((p) => p.to === TREASURY)).toBe(false);
+    });
   });
 });
 

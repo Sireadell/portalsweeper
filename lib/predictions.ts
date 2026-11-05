@@ -14,7 +14,7 @@ import { challengeOutcome, isChallengeId } from "./challenge";
 import type { RecordStore } from "./records";
 import { eventOpenMessage } from "./predictMessage";
 import { formatTpot, isWallet, parseTpot } from "./stakes";
-import { poolNote, type PoolChain, type Payment } from "./poolPayout";
+import { WEI_PER_NATIVE, poolNote, poolPayNote, type PoolChain, type Payment } from "./poolPayout";
 import { redisUrlCommand } from "./redisUrl";
 
 export const BACK_MAX_WEI = 5n * 10n ** 17n; // 0.5 tPOT per backer
@@ -22,7 +22,8 @@ export const BACK_MIN_WEI = 10n ** 16n; // 0.01 tPOT, so a payout is never round
 export const MAX_BACKERS = 20;
 export const REFUND_AFTER_MS = 24 * 3_600_000;
 export const HOUSE_CUT_BPS_PLANNED = 500; // 5%, shown as planned
-export const HOUSE_CUT_BPS_NOW = 0; // nothing is kept on testnet
+export const HOUSE_CUT_BPS_NOW = 0; // nothing is kept unless POOL_CUT_BPS is set
+export const MAX_CUT_BPS = 1000; // a typo in the setting can never take more than 10%
 export const POOL_LABEL = "Testnet play coins with no value. Trusted pool held by the game server.";
 
 export type Side = "creator" | "opponent";
@@ -53,6 +54,11 @@ export type PoolEvent = {
   payoutMode?: "batch" | "single";
   payoutTxs?: string[]; // set when payouts went one by one
   settledAt?: number;
+  // The cut in basis points (500 = 5%), fixed when backing opens so what a backer was told is what is applied.
+  cutBps?: number;
+  cutWei?: string; // what the cut came to when the pool paid out (absent on refunds)
+  cutTo?: string; // the treasury wallet that got it
+  payoutNote?: string; // the exact note written on the chain with the payout
 };
 
 // What the race looks like from the pool's point of view.
@@ -89,6 +95,7 @@ export interface PoolStore {
   claimTx(key: string, id: string): Promise<boolean>;
   releaseTx(key: string): Promise<void>;
   listLive(): Promise<string[]>;
+  listAll(): Promise<PoolEvent[]>;
 }
 
 export type PoolDeps = {
@@ -115,12 +122,33 @@ export const counted = (r: PoolEvent): Back[] => r.backs.filter((b) => !b.refund
 export const sideTotal = (r: PoolEvent, side: Side): bigint => counted(r).filter((b) => b.side === side).reduce((s, b) => s + BigInt(b.amountWei), 0n);
 export const potOf = (r: PoolEvent): bigint => sideTotal(r, "creator") + sideTotal(r, "opponent");
 
-// Winners share the pot (minus the house cut, 0 on testnet) in proportion to what each put in. The few wei
-// that rounding leaves over stay in the escrow wallet.
+// The cut setting. Anything that is not a whole number from 0 to 1000 means no cut at all.
+export function poolCutBps(raw: string | undefined = process.env.POOL_CUT_BPS): number {
+  if (!raw || !/^\d{1,4}$/.test(raw.trim())) return 0;
+  const n = Number(raw.trim());
+  return n > MAX_CUT_BPS ? 0 : n;
+}
+
+// Where the cut goes: TREASURY_ADDRESS if it is a real wallet, otherwise the escrow wallet itself.
+export function treasuryAddress(escrow: string, raw: string | undefined = process.env.TREASURY_ADDRESS): string {
+  const t = raw?.trim();
+  return t && isWallet(t) ? t.toLowerCase() : escrow.toLowerCase();
+}
+
+// The cut of a pot, rounded DOWN to a whole chain unit (the chain cannot send less), so it is exact and can
+// never be more than bps of the pot. Zero when the cut is off or too small to send.
+export function cutOf(potWei: bigint, bps: number): bigint {
+  if (bps <= 0 || potWei <= 0n) return 0n;
+  const raw = (potWei * BigInt(bps)) / 10_000n;
+  return (raw / WEI_PER_NATIVE) * WEI_PER_NATIVE;
+}
+
+// Winners share the pot minus the cut in proportion to what each put in. The few wei that rounding leaves
+// over stay in the escrow wallet, so winners plus cut never come to more than the pot.
 export function splitPot(winners: { wallet: string; amountWei: bigint }[], potWei: bigint, houseBps = HOUSE_CUT_BPS_NOW): Payment[] {
   const total = winners.reduce((s, w) => s + w.amountWei, 0n);
   if (total <= 0n) return [];
-  const distributable = (potWei * BigInt(10_000 - houseBps)) / 10_000n;
+  const distributable = potWei - cutOf(potWei, houseBps);
   return winners.map((w) => ({ to: w.wallet, wei: (distributable * w.amountWei) / total }));
 }
 
@@ -143,7 +171,7 @@ export async function openEvent(deps: PoolDeps, input: { id: unknown; address: u
   const existing = await deps.store.get(id);
   if (existing) return existing;
   if (facts.started || facts.settled) throw new PoolError(409, "This race has already started, so backing cannot open.");
-  const rec: PoolEvent = { id, creator: facts.creator, createdAt: nowOf(deps), backs: [], status: "open" };
+  const rec: PoolEvent = { id, creator: facts.creator, createdAt: nowOf(deps), backs: [], status: "open", cutBps: poolCutBps() };
   if (!(await deps.store.create(rec))) return (await deps.store.get(id)) ?? rec;
   return rec;
 }
@@ -237,11 +265,21 @@ export async function resolveEvent(deps: PoolDeps, id: string): Promise<PoolEven
     const backRefunds: Payment[] = rec.backs.filter((b) => b.refundOnly || !eligible.includes(b)).map((b) => ({ to: b.wallet, wei: BigInt(b.amountWei) }));
     let payments: Payment[];
     let note: string;
+    let cut = 0n;
+    let cutTo: string | undefined;
     if (d.kind === "pay") {
       const winners = eligible.filter((b) => b.side === d.side).map((b) => ({ wallet: b.wallet, amountWei: BigInt(b.amountWei) }));
       const pot = eligible.reduce((s, b) => s + BigInt(b.amountWei), 0n);
-      payments = [...splitPot(winners, pot), ...backRefunds];
-      note = poolNote(id, d.winner);
+      const bps = rec.cutBps ?? 0;
+      const shares = splitPot(winners, pot, bps);
+      cut = cutOf(pot, bps);
+      const escrow = deps.chain.escrowAddress().toLowerCase();
+      const treasury = treasuryAddress(escrow);
+      cutTo = treasury;
+      // A cut that stays in the escrow wallet needs no transfer. Refunds never carry a cut.
+      const toTreasury: Payment[] = cut > 0n && treasury !== escrow ? [{ to: treasury, wei: cut }] : [];
+      payments = [...shares, ...toTreasury, ...backRefunds];
+      note = cut > 0n ? poolPayNote(id, d.winner, { potWei: pot, cutWei: cut, cutBps: bps, treasury, shares }) : poolNote(id, d.winner);
     } else {
       payments = rec.backs.map((b) => ({ to: b.wallet, wei: BigInt(b.amountWei) }));
       note = poolNote(id, "refund");
@@ -269,7 +307,7 @@ export async function resolveEvent(deps: PoolDeps, id: string): Promise<PoolEven
     }
     const next: PoolEvent =
       d.kind === "pay"
-        ? { ...base, status: "settled", winner: d.winner, winnerSide: d.side, payoutTx: sentTx, payoutBlock: sentBlock, payoutMode: mode, ...(all ? { payoutTxs: all } : {}), reason: "Backers of the winner shared the pot." }
+        ? { ...base, status: "settled", winner: d.winner, winnerSide: d.side, payoutTx: sentTx, payoutBlock: sentBlock, payoutMode: mode, ...(all ? { payoutTxs: all } : {}), ...(cut > 0n ? { payoutNote: note, cutWei: cut.toString(), cutTo } : {}), reason: cut > 0n ? "Backers of the winner shared the pot after the cut." : "Backers of the winner shared the pot." }
         : { ...base, status: "refunded", winner: facts.winner, payoutTx: sentTx, payoutBlock: sentBlock, payoutMode: mode, ...(all ? { payoutTxs: all } : {}), reason: d.reason };
     await deps.store.save(next);
     return next;
@@ -305,7 +343,13 @@ export function eventView(rec: PoolEvent, facts: RaceFacts | null, names: Map<st
     capTpot: formatTpot(BACK_MAX_WEI),
     minTpot: formatTpot(BACK_MIN_WEI),
     maxBackers: MAX_BACKERS,
-    houseCutPercent: { now: HOUSE_CUT_BPS_NOW / 100, planned: HOUSE_CUT_BPS_PLANNED / 100 },
+    houseCutPercent: { now: (rec.cutBps ?? HOUSE_CUT_BPS_NOW) / 100, planned: HOUSE_CUT_BPS_PLANNED / 100 },
+    cut: {
+      percent: (rec.cutBps ?? 0) / 100,
+      treasury: rec.cutBps && escrow ? treasuryAddress(escrow) : null,
+      paidTpot: rec.cutWei ? formatTpot(rec.cutWei) : null,
+      paidTo: rec.cutTo ?? null,
+    },
     closed: rec.status !== "open",
     sides: [mk("creator", facts?.creator ?? rec.creator, c), mk("opponent", facts?.opponent ?? null, o)],
     backs: rec.backs.map((b) => ({ wallet: b.wallet, name: label(b.wallet), side: b.side, amountTpot: formatTpot(b.amountWei), txHash: b.txHash, refundOnly: b.refundOnly ?? null })),
@@ -316,7 +360,7 @@ export function eventView(rec: PoolEvent, facts: RaceFacts | null, names: Map<st
     payoutBlock: rec.payoutBlock ?? null,
     payoutMode: rec.payoutMode ?? null,
     payoutTxs: rec.payoutTxs ?? [],
-    note: rec.status === "settled" ? poolNote(rec.id, rec.winner ?? "refund") : rec.status === "refunded" ? poolNote(rec.id, "refund") : null,
+    note: rec.status === "settled" ? rec.payoutNote ?? poolNote(rec.id, rec.winner ?? "refund") : rec.status === "refunded" ? poolNote(rec.id, "refund") : null,
     expiresAt: rec.createdAt + REFUND_AFTER_MS,
     escrow: escrow ?? null,
   };
@@ -352,6 +396,9 @@ export class MemoryPoolStore implements PoolStore {
   async listLive() {
     return [...this.recs.values()].filter((r) => r.status === "open" || r.status === "locked").map((r) => r.id);
   }
+  async listAll() {
+    return [...this.recs.values()];
+  }
 }
 
 export class RedisPoolStore implements PoolStore {
@@ -385,6 +432,20 @@ export class RedisPoolStore implements PoolStore {
   }
   async listLive() {
     return (await this.cmd<string[] | null>("SMEMBERS", "pools:live")) ?? [];
+  }
+  // Every pool record, found by walking the keys. Used only by the read-only money page.
+  async listAll() {
+    const out: PoolEvent[] = [];
+    let cursor = "0";
+    do {
+      const r = await this.cmd<[string, string[]]>("SCAN", cursor, "MATCH", "pool:*", "COUNT", 200);
+      cursor = String(r[0]);
+      for (const k of r[1]) {
+        const raw = await this.cmd<string | null>("GET", k);
+        if (raw) out.push(JSON.parse(raw) as PoolEvent);
+      }
+    } while (cursor !== "0");
+    return out;
   }
 }
 

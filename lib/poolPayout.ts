@@ -22,6 +22,22 @@ export function poolNote(eventId: string, who: string): string {
   return `portalsweeper:pool:${eventId}:${who}`;
 }
 
+// The note for a payout that carries a cut: it states the pot, the cut and what each backer got, in tPOT,
+// so anyone can add it up from the chain alone.
+const tpotText = (wei: bigint): string => {
+  const whole = wei / 10n ** 18n;
+  const frac = (wei % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
+  return frac ? `${whole}.${frac}` : `${whole}`;
+};
+export function poolPayNote(
+  eventId: string,
+  winner: string,
+  d: { potWei: bigint; cutWei: bigint; cutBps: number; treasury: string; shares: { to: string; wei: bigint }[] },
+): string {
+  const paid = d.shares.map((s) => `${s.to}=${tpotText(s.wei)}`).join(",");
+  return `${poolNote(eventId, winner)}|pot=${tpotText(d.potWei)}|cut=${tpotText(d.cutWei)}(${d.cutBps / 100}%)->${d.treasury}|paid=${paid}`;
+}
+
 export interface PoolChain {
   escrowAddress(): string;
   getTransfer(txHash: string): Promise<{ from: string; to: string; valueWei: bigint; ok: boolean } | null>;

@@ -11,7 +11,7 @@ export type EventSide = { side: "creator" | "opponent"; wallet: string | null; n
 export type EventBack = { wallet: string; name: string | null; side: "creator" | "opponent"; amountTpot: string; txHash: string; refundOnly: string | null };
 export type EventData = {
   id: string; status: "open" | "locked" | "settled" | "refunded"; label: string; potTpot: string; capTpot: string; minTpot: string; maxBackers: number;
-  houseCutPercent: { now: number; planned: number }; closed: boolean; sides: EventSide[]; backs: EventBack[];
+  houseCutPercent: { now: number; planned: number }; cut: { percent: number; treasury: string | null; paidTpot: string | null; paidTo: string | null }; closed: boolean; sides: EventSide[]; backs: EventBack[];
   winner: string | null; winnerSide: "creator" | "opponent" | null; reason: string | null;
   payoutTx: string | null; payoutBlock: number | null; payoutMode: "batch" | "single" | null; payoutTxs: string[]; note: string | null;
   expiresAt: number; escrow: string | null;
@@ -178,6 +178,7 @@ export default function BackPanel({ id, event, race, escrow, onChange }: { id: s
               {event.payoutBlock ? <> in <a className="text-mint underline-offset-2 hover:underline" href={blockLink(event.payoutBlock)} target="_blank" rel="noreferrer">block {event.payoutBlock}</a></> : null}
             </p>
           )}
+          {event.cut.paidTpot && <p className="mt-1">The treasury cut was <b className="text-white">{event.cut.paidTpot} tPOT</b> ({event.cut.percent}% of the pot), paid in the same action as the backers.</p>}
           {event.note && <p className="mt-1 break-all text-[13px] text-mute">Note on the chain: {event.note}</p>}
         </div>
       )}
