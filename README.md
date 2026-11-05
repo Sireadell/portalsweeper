@@ -1,33 +1,110 @@
-# Portalsweeper: a daily minesweeper where the Portal is the board, and winning it makes it yours
+# Portalsweeper: a daily Minesweeper for 500 Portal NFTs on Portaldot V3
 
-Portalsweeper is a daily puzzle game on **Portaldot V3**.
-There are 500 Portals. Each one gets its own minesweeper board every day, its traits change the rules, and clearing the board reveals the Portal's art.
-Every day one unclaimed Portal is the **Portal of the day**. Anyone can take one ranked try, and the fastest clear **wins that Portal as a native NFT on Portaldot**.
+Portalsweeper is a daily puzzle game on the **Portaldot V3 testnet**.
+There are 500 Portals. Each one gets its own Minesweeper board every day, its traits change the rules, and clearing the board reveals the Portal's art.
+The three fastest clears of the daily Challenge win SHARD, a token on Portaldot's Assets module. 100 SHARD buys a Portal, minted to you as a native NFT, and the 100 SHARD are burned.
 
-> **Can you win today's Portal?**
+> **Can you clear today's board fastest?**
 
 Live: **https://portalsweeper.vercel.app**
 
 Demo video (2 min): **https://youtu.be/VoFko5kYYdk**
 
-Tests run on every push (see the Actions tab).
+392 tests in 48 files run on every push (see the Actions tab). MIT licensed.
 
 Built for [Portaldot Hacker House 2026](https://dorahacks.io/hackathon/portaldot-hacker-house-2026), Ecosystem DApps track.
 
-## Try it in one minute, no wallet
+## Check it in one minute
 
-1. Open **/judge**
-2. Type any Portal number from 1 to 500 (try 9, a Legendary).
-3. Read the rule cards, then play. Tap to open a tile. To flag, right-click, or turn on Flag mode on a phone.
-4. Clear the board and the Portal's art appears.
+No wallet and no sign-up for any of these.
 
-Want more? **/practice** gives unlimited boards, and every win chains into the next Portal.
+| Open this | What you'll see |
+|---|---|
+| [/chain](https://portalsweeper.vercel.app/chain) | Every Portaldot feature the game uses, read from the chain when you open the page, plus a list of real transactions. Click any hash to open its block in the Portaldot node console |
+| [/judge](https://portalsweeper.vercel.app/judge) | Type 9 and play a Legendary Portal: 14 by 14, 30 mines, and its stone frame takes one hit for you |
+| [/verify](https://portalsweeper.vercel.app/verify) | Pick a past day and a Portal. Your browser asks Portaldot for that morning's fingerprint, rebuilds the board and says match or mismatch |
+| [/live](https://portalsweeper.vercel.app/live) | Games being played right now, 15 seconds behind, with a viewer count |
+
+## What you can do
+
+| Feature | How it works | Portaldot part |
+|---|---|---|
+| Daily board | Every Portal has a new board each UTC day. Practice is unlimited and needs no wallet | |
+| Challenge of the Day | One shared Portal each day. One ranked try per wallet, timed by the server. 1st, 2nd and 3rd win 10, 4 and 2 SHARD, all paid in one chain action | Assets, Utility batch, System remark, ledger contract |
+| Redeem a Portal | Sign a free message, and one chain action takes 100 SHARD from you, burns it, mints the Portal to you with its traits and leaves a note. All or nothing | Assets, Nfts, Utility batch |
+| Race a friend | Send a link, both play the same hidden board, the faster clear wins | |
+| Stake tPOT on a race | Both players lock the same amount in an escrow contract (up to 1 tPOT). Win pays the pot, a draw refunds both | EVM contract (pallet-revive) |
+| Stake a Portal on a race | Each player locks one Portal from their normal 0x wallet. The winner gets both in one action | Nfts called from an EVM wallet |
+| Watch live | A player ticks "Broadcast my game". Anyone can watch with no sign-in, 15 seconds behind, with a viewer count. Mines are never sent while the game runs | Identity (player names) |
+| Back a player | On a race, viewers put up to 0.5 tPOT on one of the two players. The two players cannot back. Backers of the winner split the pot, paid in one action. A cancelled race refunds everyone | Utility batch, Identity |
+
+Daily rule: SHARD goes only to the top 3 of the Challenge of the Day. Nobody gets a free Portal for a win. Friend races, practice, the daily Portal boards and streaks pay no SHARD, because two wallets could farm them.
+
+## How it uses Portaldot
+
+Portaldot V3 runs an EVM side and a native side on one chain. Portalsweeper uses both, and a normal 0x wallet reaches the native modules directly.
+
+| Portaldot feature | What Portalsweeper does with it |
+|---|---|
+| Nfts (native NFT module) | The 500 Portals live in collection 25. Each mint carries the Portal's name, image link and traits on chain. Portal swaps, pre-signed mints and Portal stakes all use it |
+| Assets (native token module) | SHARD is asset 5555, no contract needed. The chain also shows it as a normal ERC-20 at `0x000015b300000000000000000000000000010000`. A SHARD and tPOT trading pool is open |
+| Utility batch | One all-or-nothing action for the award (mint, traits, SHARD, note), the daily SHARD prizes, a redeem, a Portal stake payout and a backing payout |
+| Identity | The game's own account is named "Portalsweeper". Player names set in Identity show on /live and on backing pages |
+| System remark | A short note on chain for each award, redeem and payout, with the winner's move log fingerprint |
+| EVM side (pallet-revive) | Two Solidity contracts: the stake escrow and the daily ledger. Wallets connect and sign here |
+| EVM plus native | A normal 0x wallet calls Nfts through the chain's built-in bridge address, so swaps, pre-signed mints and Portal stakes need no second wallet. A Portal minted to a player lands on the native account Portaldot links to their 0x wallet |
+| Chain random number | Each day's board mixes in a number from Portaldot's block producers, read after the fingerprint is posted. On from 5 Nov |
+
+Why native modules and not more contracts: on this testnet a contract locks about 0.06 tPOT per byte of code. A small ERC-721 would lock hundreds of tPOT. A native NFT mint locks about 0.1 tPOT.
+
+## Proof you can check
+
+Every row is a real transaction on the Portaldot V3 testnet, read back from the chain before it was listed. The same list is on **/chain**. Each link opens the block in the Portaldot node console.
+
+| What happened | Portaldot feature | Hash | Block |
+|---|---|---|---|
+| Stake escrow contract put on the chain | EVM contract | `0x490eabae…301da1` | [326760][b326760] |
+| Stake race won: the contract paid the winner | EVM contract | `0xdb681400…a5eec1` | [327257][b327257] |
+| Stake race drawn: the contract refunded both players | EVM contract | `0x86c39476…dceabb` | [327267][b327267] |
+| A day's fingerprint written to the ledger contract | EVM contract | `0x74f8c3de…c207b1` | [327450][b327450] |
+| A 0x wallet calling a native feature in one step | EVM plus native | `0xcf5201a2…3d3279` | [326771][b326771] |
+| A daily note with System remark | System | `0x166121e0…120b3f` | [326933][b326933] |
+| A replay file stored on chain (test) | Transaction Storage | `0x10e3e225…d1eaba` | [326969][b326969] |
+| Identity name "Portalsweeper" set | Identity | `0x30c1b98f…7439f4` | [332052][b332052] |
+| Portal collection 25 created (block hash) | Nfts | `0x9d64e6e9…a452ba` | [332042][b332042] |
+| SHARD, asset 5555, created (block hash) | Assets | `0xeeda778f…ff9e7c` | [332048][b332048] |
+| Portal #102 minted with its name, image and traits | Nfts | `0xca1af6cb…374ad9` | [332827][b332827] |
+| SHARD trading pool opened (5 tPOT and 90 SHARD) | Assets pool | `0xabe2dbb4…dab405` | [332885][b332885] |
+| One action: mint Portal #103, write 3 traits, issue SHARD, leave a note (rehearsal to a team wallet) | Utility batch | `0xebf6729c…bef94f` | [332941][b332941] |
+| Portal swap offered from a normal 0x wallet | Nfts from EVM | `0x04f14ae2…4a9b21` | [332984][b332984] |
+| Portal swap accepted by the other wallet | Nfts from EVM | `0x6a7642db…524b8f` | [332995][b332995] |
+| Portal #104 minted from a pre-signed order | Nfts from EVM | `0x1506a9b4…adaf84` | [333041][b333041] |
+| Daily SHARD prizes 10, 4, 2 paid in one action (test day) | Utility batch, Assets | `0x6fdfdfa7…9ce6f8` | [333404][b333404] |
+| Redeem: 100 SHARD burned and Portal #477 minted in one action | Utility batch, Assets, Nfts | `0xf3460a82…4ecbc7` | [333419][b333419] |
+| Portal stake: first player locks a Portal | Nfts from EVM | `0xbaf0b075…0b36d3` | [333468][b333468] |
+| Portal stake: second player locks a Portal | Nfts from EVM | `0x776b2b31…6e39b2` | [333470][b333470] |
+| Portal stake: winner receives both Portals in one action | Utility batch, Nfts | `0xed5b9b77…02c34b` | [333472][b333472] |
+| Backing: winners' backers paid in one action (test coins) | Utility batch | `0x66e0f1b1…7ab4aa` | [333620][b333620] |
+| Backing: cancelled race refunded in one action (test coins) | Utility batch | `0x333d40ac…95914f` | [333623][b333623] |
+
+Full hashes are in `lib/chainProof.ts`, and raw records of the runs are in `proof/`. All of these were run by our own test wallets. The node console shows blocks, so open the block and find the hash in it.
+
+## For the judges
+
+| What the rubric asks | Where to see it |
+|---|---|
+| Technical Feasibility | The live site, the 23 transactions above, 392 tests on every push, and /verify, which checks any past day against Portaldot from your own browser |
+| Innovation, effective use of V3 | Nfts, Assets, Utility batch, Identity, System remark and two EVM contracts, with a normal 0x wallet reaching the native modules directly (table above) |
+| Ecosystem Contribution | The daily ledger contract works for any game that fixes a secret before play: a word game, a card deal, a raffle. Guide in [`docs/portaldot.md`](docs/portaldot.md), MIT licensed |
+| Business Potential | How it would make money, below. All of it is planned, none of it charges anyone today |
 
 ## How a board works
 
-You open a Portal's board for today. It is the same board for everyone who opens that Portal today, and it changes at midnight UTC.
+You open a Portal's board for today. It changes at midnight UTC. For the Challenge of the Day each wallet gets its own board, so watching someone else play tells you nothing about yours.
 
 Under the tiles sits the Portal's own artwork. Each tile you clear opens a little window onto it. Clear them all and you see the whole Portal.
+
+During a ranked try the mines stay on the server. Each tap is sent there, checked against the real board, and only the cells it opens come back. The server's clock times you, so nobody can send in a made-up time.
 
 ## Traits change the rules
 
@@ -42,181 +119,98 @@ Every Portal has eight traits (Tier, Gate, Rift, Core, Frame, Sigil, Pattern, Re
 
 Board sizes: 307 Portals play 8 by 8, 147 play 9 by 9, 25 play 10 by 10, 15 play 12 by 12 and 6 play 14 by 14.
 
-The seeded script rebuilds the same Portal traits and artisan assignments. Portraits are AI-made and layered from the source pictures in `public/artisans`, so those files are needed to reproduce the artwork. The current set has one source picture for each of ten trades. The patterns include Adire and Kente.
-
-## Win the Portal of the day
-
-1. Each UTC day, one unclaimed Portal is featured.
-2. Connect any wallet and sign a message (no gas, no transaction) to take your one ranked try. The mines stay on the server: each tap is sent there, checked against the real board, and only the cells it opens come back. The server's clock times you from your first tap to your last move. A refresh picks the try back up; the clock keeps running.
-3. Just after midnight UTC, the fastest clear wins. The Portal is minted to the winner with Portaldot's native NFT pallet (`pallet-nfts`).
-4. The NFT goes to the native account that Portaldot links to your 0x wallet, so it shows up for that wallet with no extra setup.
-
-Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping forward past Portals already won and the Portal featured the day before. From 5 Nov 2026 it also steps past Portals 401 to 500, which are kept as Shard rewards.
+The seeded script rebuilds the same Portal traits and artisan assignments. Portraits are generated and layered from the source pictures in `public/artisans`, so those files are needed to reproduce the artwork. The current set has one source picture for each of ten trades. The patterns include Adire and Kente.
 
 ## Fairness you can check yourself
 
 A daily puzzle is only fun if nobody can change the board after seeing who played. So each day works like a sealed envelope:
 
-1. **Morning:** the site makes a secret for the day and posts only its fingerprint on Portaldot. The fingerprint is a short code that matches that one secret and no other.
-2. **During the day:** the secret stays hidden, so nobody can work out where the mines are.
-3. **After the day ends:** the secret is published. Anyone can check it matches the fingerprint posted that morning, then rebuild any Portal's board and compare.
-
-Check a past day at **/verify**. It takes about a minute: pick a day and a Portal, and the page shows match or mismatch. Your browser asks Portaldot directly, so the answer does not rely on our server.
+1. **Morning:** the site makes a secret for the day and posts only its fingerprint on Portaldot. It is also written to the ledger contract. The fingerprint matches that one secret and no other.
+2. **During the day:** the secret stays hidden. Later, a random number from the chain is mixed in, so we could not have picked a board we liked.
+3. **After the day ends:** the secret is published. Anyone can check it against the morning's fingerprint, then rebuild any board and compare. /verify does this in your browser and asks Portaldot directly.
 
 What this proves: the boards were fixed before anyone played and were not changed afterwards.
-What it does not prove: the site itself can see the secret during the day.
+What it does not prove: that our server never saw the secret during the day.
 
-## How it uses Portaldot
+Which Portal is featured can be worked out by anyone: `keccak256("portal-of-the-day:DATE:FINGERPRINT") mod 500 + 1`, stepping past Portals already owned and the Portal featured the day before. From 5 Nov it also steps past Portals 401 to 500, which are kept for SHARD redeems.
 
-Portaldot V3 runs two sides on one chain, and Portalsweeper uses both:
-
-| Side | What Portalsweeper does there |
-|---|---|
-| EVM side (pallet-revive, chain id 420420777) | The daily fingerprint post: a 0 value transaction with the fingerprint as its data. Your wallet connects and signs here |
-| Native side (pallet-nfts) | The Portal collection. Each Portal of the day winner gets a real native NFT |
-| The link between them | pallet-revive maps an 0x wallet to the native account `0x… ++ 0xEE × 12`. Portalsweeper mints to that account, so the 0x wallet owns the Portal |
-
-Why native NFTs and not a Solidity contract: on the V3 testnet a contract locks a storage deposit of about 0.06 tPOT per byte of code (`revive.depositPerByte`). A small ERC-721 would lock hundreds of tPOT. A native NFT mint locks about 0.1 tPOT (`nfts.itemDeposit`).
-
-### Architecture
-
-![How Portalsweeper fits together: the browser, our server, and Portaldot's EVM side and NFT module](docs/architecture.png)
+## Architecture
 
 ```mermaid
 flowchart LR
-  P[Player's browser] -- "one move at a time" --> API[Next.js API on Vercel]
+  P[Player's browser] -- "one tap at a time" --> API[Next.js API on Vercel]
   API -- "only the cells that opened" --> P
-  API <-- "move logs, results, streaks" --> DB[(Redis)]
-  API -- "board = secret salt + Portal + date" --> API
-  CRON[Daily timer] -- "00:05 UTC: post today's fingerprint" --> EVM[Portaldot EVM side<br/>0-value tx]
-  CRON -- "00:15 UTC: mint yesterday's Portal to the fastest wallet" --> NFT[Portaldot native side<br/>pallet-nfts, collection 5]
-  P -- "sign in with a wallet message" --> API
-  V[Anyone] -- "check the revealed salt against the fingerprint" --> EVM
+  API <-- "move logs, results, streaks, races" --> DB[(Redis)]
+  CRON[Daily timers] -- "00:05 UTC: today's fingerprint" --> EVM[Portaldot EVM side<br/>ledger and escrow contracts]
+  CRON -- "00:15 UTC: SHARD to the top 3, one batch" --> NAT[Portaldot native side<br/>Nfts collection 25, Assets 5555]
+  P -- "0x wallet: stakes, swaps, Portal locks" --> EVM
+  EVM -- "built-in bridge address" --> NAT
+  V[Anyone] -- "check the secret against the fingerprint" --> EVM
+  W[Viewers, no sign-in] -- "15 s behind" --> API
 ```
 
-The mines never leave the server while a game is running. The server replays the move log on the real board, keeps the clock, and records the result itself, so a player cannot send in a made-up score.
+## How it would make money
 
-### Portaldot testnet deployment
+Nothing is charged today. These are plans, and the table says which parts already run.
+
+| Money line | Plan | What exists today |
+|---|---|---|
+| Portal sales | Sell unminted Portals with a pre-signed mint, so the buyer pays and mints in one step | The mechanism ran for real (Portal #104, block 333041). No price set |
+| Backing pots | Keep about 5% of each backing pot | Backing runs on testnet with the cut set to 0 |
+| Sponsored days | A project funds the day's prize and pays about 20% on top | Planned |
+| Pool swap fees | A share of SHARD and tPOT swap fees | Only if the chain pays them to the pool owner. Not confirmed |
+
+## What you have to trust
+
+| Part | Who you trust | Plain status |
+|---|---|---|
+| Fingerprint posted before play | Nobody | On chain with a block time, cannot be changed |
+| Secret checked against the fingerprint | Nobody | Your browser does it on /verify, and the ledger contract refuses a wrong secret |
+| Chain random number | The testnet's 2 block producers | One could nudge it. It still arrives after the fingerprint, so we cannot pick it |
+| The secret during the day | Our server | It holds the secret while the day runs |
+| Who won a race or the Challenge | Our server, as referee | It names the winner. The move log fingerprint in each note lets anyone check that claim |
+| tPOT race stakes | The escrow contract, plus our server as referee | The contract can only pay one of the two players or refund both |
+| Portal stakes and backing pots | Our server's escrow wallet | Trusted custody: the server holds staked Portals and pooled tPOT until the race ends |
+| The coins | Nobody, there is nothing to lose | Testnet only. tPOT has no value |
+
+## What this is not
+
+- **Not real money.** Portaldot V3 is a testnet and tPOT has no value. Every stake, pot and prize uses test coins.
+- **Not trustless.** Our server is the referee and holds staked Portals and backing pots. Only tPOT race stakes sit in a contract.
+- **Not farm-proof.** One ranked try per wallet, not per person. Someone with many wallets can still farm SHARD. Planned fix: require an Identity name or 3 days of ranked history before paying.
+- **Not many Portals yet.** 4 of 500 exist (#102, #103, #104 and #477), all minted by our own test runs. Nobody outside the team has won or redeemed one yet.
+- **Not real players yet.** So far the top clear on 5 Nov is one of our own test wallets. 5 Nov is the first day the SHARD prize rule runs, and its payout goes out at 00:15 UTC on 6 Nov.
+- **Not click-tested by a person with a browser wallet.** The screens for stakes, redeem, backing and live watching were run and checked with scripts against the live chain, not yet clicked through by hand.
+- **No swap button in the game.** The SHARD pool, Portal swaps and pre-signed mints were run by script. The game screens do not offer them yet.
+- **The fairness check has a limit.** It proves boards were not changed after play, not that our server never saw the secret.
+- **Records live on a free database.** Fine for now, not built for a big crowd.
+
+## Portaldot testnet deployment
 
 | What | Value |
 |---|---|
 | Network | Portaldot V3 testnet, `wss://test-node-v3.portaldot.dev`. EVM side chain id 420420777, RPC `https://test-evm-rpc-v3.portaldot.dev` |
-| Portal collection | Native NFT pallet (pallet-nfts), collection id **5**, max 500, only the issuer can mint. Created in block [`0x56619eef…eb6fd5`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/0x56619eef26eb975273e0edfe5bef0b6337a288a4ae23c53818b3d83ed0eb6fd5) |
-| Collection issuer | `5GxegAnxmYtA8EQXCCuSy5KTJu7fLsR6THtXpx7bw3P6yeqc` |
-| First daily fingerprint | 2026-10-22, tx `0xbdab89b89b034f57296e912129cc45b093eb5403e4682dbfa3f23791bd01b872`, [block 148888](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888) |
-| Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82` |
-| Portals minted so far | None. The first mint happens after the first day with a winner. Every mint will show on [/api/claims](https://portalsweeper.vercel.app/api/claims) and be added here with its block. |
-| Ledger contract | `0xf815869398505e795566f329f0867c0e5304145c` on the EVM side, 1883 bytes of code on the chain. Source in `contracts/DailyLedger.sol` |
-| First real stake run | 4 Nov 2026, 10 transactions in blocks 325506 to 325521, all successful. Raw record in `proof/stake-run.json`, made by `scripts/stake-run.ts` |
-
-To mint one Portal by hand (for a real winner, or any recipient you choose), run `npx tsx scripts/mint-portal.ts <portal 1-500> <0x wallet or Portaldot account>`. Without `--yes` it only checks the chain and says where the Portal would go. With `--yes` it mints, then prints the transaction, the block and an explorer link. It needs `ISSUER_MNEMONIC` in the environment and never prints it. If the timer's mint fails, the next daily run retries it.
-
-The only contract is the ledger. The Portals use Portaldot's built-in NFT module instead of a contract, and the daily fingerprint is also posted as a plain 0-value transaction.
-
-## Proof you can check
-
-I ran the Portaldot features for real on the V3 testnet, so you do not have to take my word for any of it. The stake contract is at `0x9cebe7c313b0c86c55d956a3d07bd191fddabf9a`. Every hash below links to its block in the chain explorer, and the same list is on the live **/chain** page.
-
-| What it shows | Hash | Block |
-|---|---|---|
-| Stake contract, put on the chain | [`0x490eabae…301da1`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326760) | 326760 |
-| Stake match won, contract paid the winner | [`0xdb681400…a5eec1`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327257) | 327257 |
-| Stake match drawn, contract refunded both players | [`0x86c39476…dceabb`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327267) | 327267 |
-| First daily fingerprint in the ledger contract | [`0x74f8c3de…c207b1`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327450) | 327450 |
-| EVM wallet calling a native chain feature in one step | [`0xcf5201a2…3d3279`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326771) | 326771 |
-| Daily note with the System Remark call | [`0x166121e0…120b3f`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326933) | 326933 |
-| Replay stored on the chain (Transaction Storage) | [`0x10e3e225…d1eaba`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326969) | 326969 |
-| Identity name "Portalsweeper" | [`0x30c1b98f…7439f4`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332052) | 332052 |
-| Portal collection 25 created (block hash) | [`0x9d64e6e9…a452ba`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332042) | 332042 |
-| SHARD token, asset 5555 (block hash) | [`0xeeda778f…ff9e7c`](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332048) | 332048 |
-
-Raw records of the runs are in `proof/`. To open a staked match a wallet needs about 9 tPOT free, and 5 to join one, because the chain keeps a storage fee. This is the testnet only and the stakes in these runs were test coins.
-
-## What runs on the Portaldot chain
-
-The live page **/chain** reads each of these from Portaldot when you open it and says which ones are switched on.
-
-| Part | What it does | Status today |
-|---|---|---|
-| Ledger contract | `contracts/DailyLedger.sol`, Solidity running on Portaldot's EVM side (pallet-revive). It holds each day's fingerprint before anyone plays. When the day's secret is revealed, the contract hashes it itself and refuses one that does not match. After that it records the day's winner | Deployed at `0xf815869398505e795566f329f0867c0e5304145c` (1883 bytes of code on the chain). 10 tests pass on a local EVM |
-| Chain random number | The day's board mixes in a number Portaldot's block producers make (Babe randomness). We read it 3 chain hours after the block holding the fingerprint, so nobody could know it when the secret was fixed. The block it came from is shown on /verify | Built and checked against the live chain. Not switched on yet. Days before it is switched on keep their old board, so every past day still checks out |
-| Winner fingerprint | When the Portal of the day is awarded, the hash of the winner's own move log goes into the ledger next to the Portal and the winning wallet. Anyone with the moves can recompute it | Wired into the daily award. Waits for the ledger, and a failed write never undoes a mint |
-| Names | Reads the name a wallet has set in Portaldot's Identity module, for showing on the Hall | The reader works against the live chain (6 names are set there today). Not on the Hall yet |
-| SHARD token | A reward token made with Portaldot's built-in Assets module, with no contract. The chain also shows every such token as a normal ERC-20 at a fixed address, so wallets and Solidity can read it | Created on the chain as asset 5555. The trading pool is not set up yet |
-
-### What you have to trust
-
-| Part | Who you have to trust | Plain status |
-|---|---|---|
-| Fingerprint posted before play | Nobody | Live. It sits on the chain with a block time and cannot be changed afterwards |
-| Secret checked against the fingerprint | Nobody | Live today in your browser on /verify. The ledger contract is now on the chain and makes the same check when a secret is revealed to it |
-| Chain random number | The testnet's 2 validators | Not trustless. With only 2 block producers, one could nudge the number. It still arrives after the fingerprint, so we cannot pick it. Not switched on yet |
-| The secret during the day | Our daily job and server | They hold the secret while the day is running. The fingerprint proves the board was not changed, not that nobody saw it |
-| Who is recorded as winner | Our server wallet | It writes the winner. The move log fingerprint lets anyone check that claim |
-| Stakes on a challenge | The escrow wallet, which our server controls | Trusted. One real run passed on Portaldot: a win paid out and a draw refunded both players, 10 transactions in all (see /chain). The escrow is still our wallet, so you trust us to pay the right person |
-| Portal NFTs | The collection issuer | Collection 5 exists. Nothing has been minted on it yet |
-| Ledger contract and SHARD token | Nobody once live | The ledger contract is on the chain. The SHARD token is not created yet |
-| The coins | Nobody, there is nothing to lose | Testnet only. tPOT has no value |
-
-### Use the ledger in your own game
-
-The ledger works for any daily game that fixes a secret before play: a word game, a card deal, a raffle. How to deploy it from a normal wallet, call it, and read Portaldot's native tokens as ERC-20 is in [`docs/portaldot.md`](docs/portaldot.md). MIT licensed.
-
-## Status at check-in (Oct 24)
-
-Done:
-- Live game: daily board for each of the 500 Portals, trait rules, shareable results, streaks
-- Portal of the day with one ranked try per wallet; every move checked on the server
-- Portal collection created on Portaldot V3 (pallet-nfts, collection id 5)
-- Daily fingerprint posted on the Portaldot EVM side, and a page to check it
-- Demo video: https://youtu.be/VoFko5kYYdk
-
-Still to do before Nov 6:
-- **PvP:** challenge a friend by link, both play the same board, and the faster clear wins
-- **Stakes:** built behind a flag (see `docs/stakes.md`). One real run passed on Portaldot on 4 Nov: a win paid out and a draw refunded. tPOT only, no Portal NFT stakes
-- First real Portal of the day award minted to a winner (the timer runs at 00:15 UTC)
-- More testing and polish on the live site
-
-## Reasons to come back
-
-| Feature | What it is |
-|---|---|
-| Daily board | One board per Portal per day. Its record and streak belong to the Portal, so they stay with it if it changes hands |
-| Portal of the day | One shared board for everyone. One ranked try per wallet. Fastest clear wins the Portal as an NFT |
-| My Portals | Connect the wallet that holds your Portals. Each one gets a ranked board every day |
-| Streaks | Current and best streak, with a "clear today to keep it" reminder |
-| Reveal wall | All 500 Portals, filling in with art as players clear them |
-| Hall | Today's top 10 and yesterday's winner |
-| Share card | A picture of the revealed Portal with the board size, time, date and that day's fingerprint |
-| Practice | Unlimited unranked boards for any Portal, no wallet |
-
-## What this is not
-
-- **One try per wallet, not per person.** Today's mines never reach the browser and the server keeps the time, so nobody can read the board or report a fake time. But someone with many wallets still gets many tries.
-- **The fairness check has a limit.** It proves boards were not changed afterwards, not that the site never saw the secret.
-- **No Portal has been won yet.** The award flow is tested (see `lib/award.test.ts`), but the first real mint happens after the first day with a winner.
-- **The Portal frames and trait rules are my own design.** The artisan portraits are AI-made source pictures layered into the generated frames.
-- **Records live on a free database.** That is fine for now, but it is not built for a large crowd.
-- **Testnet only.** Portaldot V3 is a testnet, and tPOT has no value. Stakes on a match use that testnet tPOT, so nothing real is ever at risk.
-- **Stakes are trusted escrow.** Players send tPOT to a wallet our server controls, and the server pays the winner. It is plain transfers, not a contract, so you have to trust the server to pay the right person. One real run on Portaldot shows the flow works, not that it is trustless. Stakes are capped at 1 tPOT. Details and limits in `docs/stakes.md`.
+| Portal collection | Nfts collection **25**, max 500, only the issuer can mint |
+| SHARD | Assets asset **5555**, 0 decimals. ERC-20 view at `0x000015b300000000000000000000000000010000` |
+| Stake escrow contract | `0x9cebe7c313b0c86c55d956a3d07bd191fddabf9a`. Opening a staked race needs about 9 tPOT free and joining about 5, because the chain keeps a storage fee |
+| Daily ledger contract | `0xf815869398505e795566f329f0867c0e5304145c`, 1883 bytes of code. Source in `contracts/DailyLedger.sol` |
+| Fingerprint poster wallet | `0x6cE5b32C1747442ff480DC1ce60a2b229CCa0F82`. First fingerprint 22 Oct 2026, [block 148888][b148888] |
+| Identity | The game's account is named "Portalsweeper" |
 
 ## Development log
 
 | Date | What changed |
 |---|---|
 | 2026-10-19 to 22 | Built Chogsweeper on Monad, the game this one grew from ([repo](https://github.com/Sireadell/chogsweeper)) |
-| 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Created collection 5 on the native NFT pallet. Posted the first daily fingerprint (block 148888) |
+| 2026-10-22 | Moved the game to Portaldot V3. Made the 500 Portals and their trait rules. Kept today's mines on the server. Posted the first daily fingerprint (block 148888) |
 | 2026-10-23 | Demo video, pitch deck and architecture diagram |
-| 2026-11-01 | Friend challenges: send a link, you and a friend play the same hidden board, and the faster clear wins |
-| 2026-11-01 | Added stakes for matches: both players send tPOT to an escrow wallet, the server checks the transfer on Portaldot, and the winner is paid the pot. Behind a flag until the PvP flow is in |
-| 2026-11-01 | Connected stakes to friend challenges: a challenge can carry a tPOT stake, nobody plays until both have locked it, and the winner is paid (or a draw or expiry refunded) automatically. Fake chain only so far, behind a flag |
-| 2026-11-01 | Made the daily award retry a day whose mint failed, time out a stuck mint, log its result, and refuse bad recipient addresses. Added a script to mint one Portal by hand. No Portal minted yet |
-| 2026-11-04 | Deployed the ledger contract (`0xf815…145c`). First real stake run on Portaldot with two throwaway test wallets and 0.01 tPOT each: a win paid out and a draw refunded, 10 transactions, blocks 325506 to 325521 (`proof/stake-run.json`) |
-| 2026-11-04 | Tests, type checks and a build now run on every push (`.github/workflows/ci.yml`) |
+| 2026-11-01 | Friend races, and tPOT stakes on them |
+| 2026-11-04 | Deployed the ledger contract. First real stake runs on Portaldot. Tests, type checks and a build on every push |
+| 2026-11-05 | Stake escrow contract (win paid, draw refunded). Portal collection 25 with names, images and traits on chain. SHARD as asset 5555 with a trading pool. One-action award. Portal swaps and a pre-signed mint from a normal 0x wallet. Identity name. Chain random number switched on. Daily SHARD prizes, redeem 100 SHARD for a Portal, Portal stakes on races, live watching and backing a player |
 
 ## Where this came from
 
-Portalsweeper is a remix of my own game, [Chogsweeper](https://github.com/Sireadell/chogsweeper) (October 2026), which ran on Monad for an existing NFT collection. For Portaldot I replaced the NFT collection with 500 generated Portals, moved the fingerprint posts to Portaldot, dropped the paid Daily Pot and the token hint, and added the win-the-Portal flow on Portaldot's native NFT pallet.
+Portalsweeper is a remix of my own game, [Chogsweeper](https://github.com/Sireadell/chogsweeper) (October 2026), which ran on Monad for an existing NFT collection. For Portaldot I replaced the collection with 500 generated Portals, moved the fingerprints to Portaldot, and built the Portal, SHARD and race features on Portaldot's native modules.
 
 ## Run it locally
 
@@ -256,10 +250,12 @@ npx tsx scripts/post-commit.ts --dry-run
 |---|---|
 | `PORTAL_SALT_SECRET` | Long random value; the daily secrets are made from it |
 | `POSTER_PRIVATE_KEY` | Key of the small EVM wallet that posts the daily fingerprint |
-| `ISSUER_MNEMONIC` | Key of the native account that owns the Portal collection and mints the winners' Portals |
-| `PORTAL_COLLECTION_ID`, `NEXT_PUBLIC_PORTAL_COLLECTION_ID` | The pallet-nfts collection id |
-| `ESCROW_PRIVATE_KEY`, `NEXT_PUBLIC_STAKES` | Key of the escrow wallet that holds stakes, and `1` to switch stakes on |
-| `CRON_SECRET` | Protects the two daily timers |
+| `ISSUER_MNEMONIC` | Key of the native account that owns the Portal collection and SHARD, and sends awards and redeems |
+| `PORTAL_COLLECTION_ID`, `NEXT_PUBLIC_PORTAL_COLLECTION_ID` | The Nfts collection id (25) |
+| `SHARD_ASSET_ID` | The SHARD asset id (5555) |
+| `ESCROW_CONTRACT_ADDRESS`, `ESCROW_PRIVATE_KEY`, `NEXT_PUBLIC_STAKES` | The stake escrow contract, the referee and custody wallet's key, and `1` to switch stakes on |
+| `RANDOM_FROM` | First day that mixes in the chain random number |
+| `CRON_SECRET` | Protects the daily timers |
 | `REDIS_URL` (Vercel Redis), or `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Records store. One of the two is required on a hosted site |
 
 Nothing secret is ever written in this repo.
@@ -268,7 +264,34 @@ Nothing secret is ever written in this repo.
 
 | Part | Role |
 |---|---|
-| Portaldot V3 testnet | Daily fingerprints (EVM side) and the Portal NFTs (native pallet-nfts) |
-| Next.js, viem and @polkadot/api | The site, the EVM reads and the native NFT calls |
-| Redis (Vercel Redis on the live site; Upstash also works) | Records, streaks, the wall, Portal of the day and claims |
-| Vercel | Hosting and the two daily timers |
+| Portaldot V3 testnet | Nfts, Assets, Utility batch, Identity, System remark, and two contracts on the EVM side |
+| Next.js, viem and @polkadot/api | The site, the EVM calls and the native calls |
+| Redis (Vercel Redis on the live site; Upstash also works) | Records, streaks, races, broadcasts and backing |
+| Vercel | Hosting and the daily timers |
+
+> **Can you clear today's board fastest?**
+
+[b148888]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/148888
+[b326760]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326760
+[b327257]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327257
+[b327267]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327267
+[b327450]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/327450
+[b326771]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326771
+[b326933]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326933
+[b326969]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326969
+[b332052]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332052
+[b332042]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332042
+[b332048]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332048
+[b332827]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332827
+[b332885]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332885
+[b332941]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332941
+[b332984]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332984
+[b332995]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/332995
+[b333041]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333041
+[b333404]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333404
+[b333419]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333419
+[b333468]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333468
+[b333470]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333470
+[b333472]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333472
+[b333620]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333620
+[b333623]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333623
