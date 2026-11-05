@@ -148,7 +148,7 @@ export default function GameScreen({
     if (r.earned !== null) {
       saveShards(r.state);
       setShards(r.state);
-      setShardNote(`Shard earned: ${WEEKDAYS[r.earned]}.`);
+      setShardNote(`Day stamp earned: ${WEEKDAYS[r.earned]}.`);
     } else if (r.blockedHard) {
       setShardNote("No Shard for this weekend clear. Weekend Shards need a hard clear: a Rare or bigger Portal, a twist, or a friend win.");
     }
@@ -321,7 +321,7 @@ export default function GameScreen({
             </>
           )}
 
-          {(mode === "daily" || mode === "cotd") && <details className="group rounded-xl border border-edge bg-panel/60 px-3 py-2" open={!!shardNote}><summary className="cursor-pointer select-none text-[13px] font-semibold text-text2">Daily shards {shardCount(shards)}/{SET_SIZE}</summary><div className="mt-2"><ShardBar shards={shards} note={shardNote} /></div></details>}
+          {(mode === "daily" || mode === "cotd") && <details className="group rounded-xl border border-edge bg-panel/60 px-3 py-2" open={!!shardNote}><summary className="cursor-pointer select-none text-[13px] font-semibold text-text2">Day stamps {shardCount(shards)}/{SET_SIZE}</summary><div className="mt-2"><ShardBar shards={shards} note={shardNote} /></div></details>}
 
           <div className="space-y-3">
             <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-mute">Rules from this Portal</h3>
