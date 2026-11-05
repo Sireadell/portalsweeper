@@ -11,18 +11,29 @@ const MAIN = [
   { href: "/friends", label: "Friends", icon: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0zm-11 9c0-3.3 3.1-6 7-6s7 2.7 7 6z" },
   { href: "/wall", label: "Wall", icon: "M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" },
 ];
-const MORE = [
-  { href: "/play", label: "My Portals" },
-  { href: "/cotd", label: "Portal of the day" },
-  { href: "/hall", label: "Hall" },
-  { href: "/live", label: "Live" },
-  { href: "/shard", label: "SHARD" },
-  { href: "/chain", label: "On the chain" },
-  { href: "/money", label: "Money" },
-  { href: "/verify", label: "Verify a board" },
-  // The optional Daily Portal shows in the menu only when it is switched on.
-  ...(process.env.NEXT_PUBLIC_PORTAL_ENABLED === "true" ? [{ href: "/portal", label: "Daily Portal" }] : []),
+const MORE_GROUPS = [
+  {
+    heading: "Play",
+    items: [
+      { href: "/play", label: "My Portals", hint: "Your Portals. Pick one to play" },
+      { href: "/cotd", label: "Today's Portal", hint: "Today's board. Fastest three win SHARD" },
+      { href: "/live", label: "Watch live", hint: "Watch games being played right now" },
+      { href: "/hall", label: "Past winners", hint: "Who won each past daily board" },
+      // The optional Daily Portal shows in the menu only when it is switched on.
+      ...(process.env.NEXT_PUBLIC_PORTAL_ENABLED === "true" ? [{ href: "/portal", label: "Daily Portal", hint: "The Daily Portal board" }] : []),
+    ],
+  },
+  { heading: "SHARD", items: [{ href: "/shard", label: "SHARD points", hint: "Earn it by winning, spend it on Portals" }] },
+  {
+    heading: "Fair and open",
+    items: [
+      { href: "/verify", label: "Check a board", hint: "Confirm a past board wasn't changed" },
+      { href: "/chain", label: "Proof on Portaldot", hint: "Every game action, with checkable links" },
+      { href: "/money", label: "How we earn", hint: "We keep 5% of prize pools" },
+    ],
+  },
 ];
+const MORE = MORE_GROUPS.flatMap((g) => g.items);
 
 // The logo is a tiny board: three covered tiles and one cleared tile showing a Portal.
 export function Logo({ size = 30 }: { size?: number }) {
@@ -65,8 +76,13 @@ function MoreMenu({ path, up = false }: { path: string; up?: boolean }) {
       </button>
       {open && (
         <div role="menu" className={`menu-pop ${up ? "menu-pop-up" : ""}`}>
-          {MORE.map((m) => (
-            <Link key={m.href} href={m.href} role="menuitem" aria-current={path.startsWith(m.href) ? "page" : undefined}>{m.label}</Link>
+          {MORE_GROUPS.map((g) => (
+            <div key={g.heading} role="group" aria-label={g.heading}>
+              <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-mute">{g.heading}</p>
+              {g.items.map((m) => (
+                <Link key={m.href} href={m.href} role="menuitem" title={m.hint} aria-current={path.startsWith(m.href) ? "page" : undefined}>{m.label}</Link>
+              ))}
+            </div>
           ))}
         </div>
       )}
