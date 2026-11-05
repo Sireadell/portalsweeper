@@ -36,7 +36,8 @@ No wallet and no sign-up for any of these.
 | Stake tPOT on a race | Both players lock the same amount in an escrow contract (up to 1 tPOT). Win pays the pot, a draw refunds both | EVM contract (pallet-revive) |
 | Stake a Portal on a race | Each player locks one Portal from their normal 0x wallet. The winner gets both in one action | Nfts called from an EVM wallet |
 | Watch live | A player ticks "Broadcast my game". Anyone can watch with no sign-in, 15 seconds behind, with a viewer count. Mines are never sent while the game runs | Identity (player names) |
-| Back a player | On a race, viewers put up to 0.5 tPOT on one of the two players. The two players cannot back. Backers of the winner split the pot, paid in one action. A cancelled race refunds everyone | Utility batch, Identity |
+| Back a player | On a race page (/event/[id]), viewers put up to 0.5 tPOT on one of the two players. The two players cannot back. Backers of the winner split the pot, paid in one action. A cancelled race refunds everyone | Utility batch, Identity |
+| Buy a Portal | Three Portals (#398, #399 and #400) are for sale at a price that follows the SHARD pool, about 6.52 tPOT now. The sale uses the chain's own shop (`nfts.setPrice` and `nfts.buyItem`), so no contract is involved. /money shows the live price board | Nfts |
 
 Daily rule: SHARD goes only to the top 3 of the Challenge of the Day. Nobody gets a free Portal for a win. Friend races, practice, the daily Portal boards and streaks pay no SHARD, because two wallets could farm them.
 
@@ -89,6 +90,7 @@ Every row is a real transaction on the Portaldot V3 testnet, read back from the 
 | Backing pool: winners' backers paid in one action (test coins) | Utility batch | `0x66e0f1b1…7ab4aa` | [333620][b333620] |
 | Backing pool with a 5% treasury cut: winner paid, cut sent to the treasury and a note listing pot, cut and share, all in one action (test coins) | Utility batch | `0x40a46343…297422` | [335236][b335236] |
 | Backing pool: cancelled event refunded in one action (test coins) | Utility batch | `0x333d40ac…95914f` | [333623][b333623] |
+| Portal sale: Player B bought Portal #398 from the treasury through the chain's built-in shop for 6.52 tPOT, new owner read back from the chain | Nfts | `0xd2878f0c…2f7c7f` | [339731][b339731] |
 
 Full hashes are in `lib/chainProof.ts`, and raw records of the runs are in `proof/`. All of these were run by our own test wallets. The node console shows blocks, so open the block and find the hash in it.
 
@@ -159,6 +161,7 @@ People pay for the thing they want to own (a Portal), sponsors pay for attention
 |---|---|---|
 | Pool cut | When a backing pool pays out, 5% of the pot goes to a treasury wallet in the same chain action as the winners. The note on chain lists the pot, the cut and every backer's share. Refunds take nothing. Only pools opened after the deploy carry the cut | Live in tPOT on testnet. A paid pool with the cut ran at block [335236][b335236] |
 | Portals | There are 500 Portals and no more will be made. The loop is SHARD only: the Challenge of the Day top 3 earn 10, 4 and 2 SHARD, and 100 SHARD is burned to redeem a Portal, so every redeem takes SHARD out for good | The redeem runs on chain (Portal #477, block [333419][b333419]). A mainnet price is not set |
+| Portal sale | Three Portals (#398 to #400) can be bought straight from the treasury with the chain's built-in shop. The price follows the SHARD pool (about 6.52 tPOT now), so a Portal costs what its SHARD is worth. /money shows the price board | A real purchase ran on chain (Portal #398, block [339731][b339731]) |
 | Sponsored days | A project pays the day's prize plus a fee and gets its name on the board | Planned, not built |
 
 SHARD is only ever earned by finishing in the top 3 of a one-try ranked day, so there is nothing to farm for turning up. /money also shows a made-up example of how the three lines add up, labelled as an example and not a forecast.
@@ -302,3 +305,4 @@ Nothing secret is ever written in this repo.
 [b333620]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333620
 [b335236]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/335236
 [b333623]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/333623
+[b339731]: https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/339731
