@@ -19,8 +19,6 @@ const MORE_GROUPS = [
       { href: "/cotd", label: "Today's Portal", hint: "Today's board. Fastest three win SHARD" },
       { href: "/live", label: "Watch live", hint: "Watch games being played right now" },
       { href: "/hall", label: "Past winners", hint: "Who won each past daily board" },
-      // The optional Daily Portal shows in the menu only when it is switched on.
-      ...(process.env.NEXT_PUBLIC_PORTAL_ENABLED === "true" ? [{ href: "/portal", label: "Daily Portal", hint: "The Daily Portal board" }] : []),
     ],
   },
   { heading: "SHARD", items: [{ href: "/shard", label: "SHARD points", hint: "Earn it by winning, spend it on Portals" }] },
@@ -29,7 +27,7 @@ const MORE_GROUPS = [
     items: [
       { href: "/verify", label: "Check a board", hint: "Confirm a past board wasn't changed" },
       { href: "/chain", label: "Proof on Portaldot", hint: "Every game action, with checkable links" },
-      { href: "/money", label: "How we earn", hint: "We keep 5% of prize pools" },
+      { href: "/money", label: "How we earn", hint: "We keep 5% of backing pools" },
     ],
   },
 ];

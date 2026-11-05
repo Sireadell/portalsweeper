@@ -31,10 +31,10 @@ function ChallengeWatch({ id }: { id: string }) {
   useEffect(() => { void load(); }, [load]);
   const settled = view?.settled ?? false;
   useEffect(() => {
-    if (settled) return;
+    if (settled || missing) return;
     const t = setInterval(load, 1000);
     return () => clearInterval(t);
-  }, [settled, load]);
+  }, [settled, missing, load]);
 
   if (missing)
     return (
