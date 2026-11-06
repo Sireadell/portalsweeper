@@ -181,18 +181,6 @@ Real money is a different question. Staking real value on a game with any luck i
 | Portal stakes and backing pots | Our server's escrow wallet | Trusted custody: the server holds staked Portals and pooled tPOT until the race ends |
 | The coins | Nobody, there is nothing to lose | Testnet only. tPOT has no value |
 
-## What this is not
-
-- **Not real money.** Portaldot V3 is a testnet and tPOT has no value. Every stake, pot and prize uses test coins.
-- **Not trustless.** Our server is the referee and holds staked Portals and backing pots. Only tPOT race stakes sit in a contract.
-- **Not farm-proof.** One ranked try per wallet, not per person. Someone with many wallets can still farm SHARD. Planned fix: require an Identity name or 3 days of ranked history before paying.
-- **Not many Portals yet.** 4 of 500 exist (#102, #103, #104 and #477), all minted by our own test runs. Nobody outside the team has won or redeemed one yet.
-- **Not real players yet.** So far the top clear on 5 Nov is one of our own test wallets. 5 Nov is the first day the SHARD prize rule runs, and its payout goes out at 00:15 UTC on 6 Nov.
-- **Not click-tested by a person with a browser wallet.** The screens for stakes, redeem, backing and live watching were run and checked with scripts against the live chain, not yet clicked through by hand.
-- **No swap button in the game.** The SHARD pool, Portal swaps and pre-signed mints were run by script. The game screens do not offer them yet.
-- **The fairness check has a limit.** It proves boards were not changed after play, not that our server never saw the secret.
-- **Records live on a free database.** Fine for now, not built for a big crowd.
-
 ## Portaldot testnet deployment
 
 | What | Value |
