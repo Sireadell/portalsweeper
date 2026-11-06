@@ -15,6 +15,9 @@ const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 const today = () => iso(Date.now());
 const yesterday = () => iso(Date.now() - 86_400_000);
 
+// A plain note carries the fingerprint as its data. A call to the daily ledger (selector, day, fingerprint) carries it as the last 32 bytes.
+const fingerprintOf = (input: string) => (/^0x[0-9a-fA-F]{136}$/.test(input) ? `0x${input.slice(-64)}` : input);
+
 // Ask Portaldot directly from this browser, so the answer does not rely on our server.
 async function readChain(hash: string, fallback: Api["chain"]): Promise<Api["chain"]> {
   try {
@@ -22,7 +25,7 @@ async function readChain(hash: string, fallback: Api["chain"]): Promise<Api["cha
       (await (await fetch(PORTALDOT_RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) })).json()).result;
     const tx = await call("eth_getTransactionByHash", [hash]);
     const block = await call("eth_getBlockByNumber", [tx.blockNumber, false]);
-    return { found: true, data: tx.input, timestamp: Number(BigInt(block.timestamp)), txHash: hash, block: Number(BigInt(tx.blockNumber)) };
+    return { found: true, data: fingerprintOf(tx.input), timestamp: Number(BigInt(block.timestamp)), txHash: hash, block: Number(BigInt(tx.blockNumber)) };
   } catch {
     return fallback;
   }
