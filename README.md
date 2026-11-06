@@ -8,7 +8,7 @@ The three fastest clears of the daily Challenge win SHARD, a token on Portaldot'
 
 Live: **https://portalsweeper.vercel.app**
 
-Demo video (2 min): **https://youtu.be/VoFko5kYYdk**
+Demo video (3 min): **https://youtu.be/mbksh0u9McQ**
 
 392 tests in 48 files run on every push (see the Actions tab). MIT licensed.
 
@@ -203,6 +203,8 @@ Real money is a different question. Staking real value on a game with any luck i
 | 2026-11-01 | Friend races, and tPOT stakes on them |
 | 2026-11-04 | Deployed the ledger contract. First real stake runs on Portaldot. Tests, type checks and a build on every push |
 | 2026-11-05 | Stake escrow contract (win paid, draw refunded). Portal collection 25 with names, images and traits on chain. SHARD as asset 5555 with a trading pool. One-action award. Portal swaps and a pre-signed mint from a normal 0x wallet. Identity name. Chain random number switched on. Daily SHARD prizes, redeem 100 SHARD for a Portal, Portal stakes on races, live watching and backing a player |
+| 2026-11-05 (later) | A page to browse every game being played (Watch live), friends can back a player in a race and share the pool, Portal sale through the chain's built-in shop (three Portals, priced off the SHARD pool), a 5% cut on backing pools, a Money page with real counts, a daily note written on chain, Portal names from Identity shown on the Hall |
+| 2026-11-06 | First Challenge of the Day finished, with its winner on the Hall of Portals. New demo video (2:56) |
 
 ## Where this came from
 
@@ -210,7 +212,7 @@ Portalsweeper is a remix of my own game, [Chogsweeper](https://github.com/Siread
 
 ## Where this goes next
 
-Portalsweeper starts as one daily game and grows into a board of many games. Friends can already back the player they trust in a race, and the pool is shared among the backers who called it right. Next I want a place to browse every game being played, and more daily boards that use the same idea: your Portal is the board.
+The first step is done: Portalsweeper is one daily game that already has friend races, backing a player, live watching and a shop. What is planned next, and not built yet: staking SHARD, sponsored days, and more ways to use your Portal NFT. Each daily board keeps the same idea, your Portal is the board.
 
 ## Run it locally
 
